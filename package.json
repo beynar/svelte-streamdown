@@ -64,5 +64,26 @@
 		"onlyBuiltDependencies": [
 			"esbuild"
 		]
+	},
+	"dependencies": {
+		"@types/hast": "^3.0.4",
+		"clsx": "^2.1.1",
+		"hast": "^1.0.0",
+		"html-url-attributes": "^3.0.1",
+		"katex": "^0.16.22",
+		"marked": "^16.2.1",
+		"mdast": "^3.0.0",
+		"mermaid": "^11.11.0",
+		"react-markdown": "^10.1.0",
+		"rehype-katex": "^7.0.1",
+		"remark-gfm": "^4.0.1",
+		"remark-math": "^6.0.0",
+		"remark-parse": "^11.0.0",
+		"remark-rehype": "^11.1.2",
+		"shiki": "^3.12.2",
+		"tailwind-merge": "^3.3.1",
+		"unified": "^11.0.5",
+		"unist-util-visit": "^5.0.0",
+		"vfile": "^6.0.3"
 	}
 }

@@ -1,3 +1,197 @@
-<h1>Welcome to your library project</h1>
-<p>Create your package using @sveltejs/package and preview/showcase your work with SvelteKit</p>
-<p>Visit <a href="https://svelte.dev/docs/kit">svelte.dev/docs/kit</a> to read the documentation</p>
+<script lang="ts">
+	import Streamdown from '$lib/Streamdown.svelte';
+
+	// import Streamdown from '$lib/Streamdown.svelte';
+
+	const imageUrl = 'https://placehold.co/400x200/png';
+	const source = `
+
+
+    
+
+    **Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.**
+
+
+$$
+E = mc^2
+$$
+
+
+
+
+This famous equation, derived by Albert Einstein as part of his theory of special relativity, shows that mass and energy are interchangeable. The speed of light squared ($c^2$) acts as the conversion factor between mass and energy.
+
+For example, if $m = 1\,\text{kg}$:
+
+$$
+E = (1\,\text{kg}) \times (3.00 \times 10^8\,\text{m/s})^2 = 9.00 \times 10^{16}\,\text{J}
+$$
+
+This demonstrates how a small amount of mass can be converted into a tremendous amount of energy.
+
+
+\`\`\`mermaid
+graph TD
+    A[Start] --> B[Stop]
+    B --> C{Is it working?}
+    C -- Yes --> D[Great!]
+    C -- No --> E[Debug]
+    E --> F{Fixed?}
+    F -- Yes --> D
+    F -- No --> E
+    D --> G[End]
+    G --> H[Deploy]
+    H --> I{Production?}
+    I -- Yes --> J[Monitor]
+    I -- No --> K[Staging]
+    K --> L[Test Again]
+    L --> F
+    J --> M{Issues?}
+    M -- Yes --> E
+    M -- No --> N[Celebrate 🎉]
+    N --> O[Document]
+    O --> P[Archive]
+    P --> Q[Finish]
+\`\`\`
+    
+Code \`code\` code
+
+
+~~Old approach~~ → New approach with AI models
+
+\`\`\`svelte
+<div class={streamdown.theme.code.container} data-code-block-container data-language={language}>
+	<div class={streamdown.theme.code.header} data-code-block-header data-language={language}>
+		<span class={streamdown.theme.code.language}>{language}</span>
+		<div class="flex items-center gap-2">
+			<!-- Download button snippet -->
+			<button
+				class={streamdown.theme.code.downloadButton}
+				onclick={downloadCode}
+				title="Download file"
+				type="button"
+			>
+				<span class="text-sm">⬇️</span>
+			</button>
+
+			<!-- Copy button snippet -->
+			<button class={streamdown.theme.code.copyButton} onclick={copy.copy} type="button">
+				<span class="text-sm">{copy.isCopied ? '✓' : '📋'}</span>
+			</button>
+		</div>
+	</div>
+	<div class="h-fit w-full">
+		<div class={streamdown.theme.code.base}>
+			{#await highlighter.isReady(themes, language)}
+				{@const lines = codeContent.split('\n')}
+				{#each lines as line}
+					<div
+						class={streamdown.theme.code.skeleton + ' ' + 'rounded-md font-mono text-transparent'}
+					>
+						{line}
+					</div>
+				{/each}
+			{:then}
+				{@const [light, dark] = highlighter.highlightCode(
+					codeContent,
+					language,
+					themes,
+					preClassName
+				)}
+				{@render renderCode('light', light)}
+				{@render renderCode('dark', dark)}
+			{/await}
+		</div>
+	</div>
+</div>
+
+
+
+\`\`\`
+`;
+
+	let content = $state('');
+	let isStreaming = $state(false);
+	let streamingProgress = $state(0);
+
+	const simulateStreaming = async () => {
+		if (isStreaming) return;
+
+		isStreaming = true;
+		content = '';
+		streamingProgress = 0;
+
+		// Split by words and whitespace/newlines for more realistic streaming
+		const tokens = source.split(/(\s+|\n+)/);
+		const totalTokens = tokens.length;
+
+		for (let i = 0; i < tokens.length; i++) {
+			const token = tokens[i];
+			content += token;
+			streamingProgress = Math.round(((i + 1) / totalTokens) * 100);
+
+			// Calculate delay based on token type
+			let delay = 50; // Base delay for words
+
+			// Add some randomness (±30ms) to make it feel more natural
+			delay += (Math.random() - 0.5) * 10;
+
+			// Ensure minimum delay
+			delay = Math.max(delay, 1);
+
+			await new Promise((resolve) => setTimeout(resolve, delay));
+		}
+
+		isStreaming = false;
+		streamingProgress = 100;
+	};
+
+	let shikiTheme = $state(['slack-ochin', 'solarized-light']);
+
+	const swapTheme = () => {
+		console.log('swapTheme');
+		shikiTheme = shikiTheme.toReversed();
+	};
+</script>
+
+<div class="mb-4 flex items-center gap-4">
+	<button
+		class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
+		onclick={() => swapTheme()}
+		disabled={isStreaming}
+	>
+		Swap Theme
+	</button>
+	<button
+		class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+		onclick={() => simulateStreaming()}
+		disabled={isStreaming}
+	>
+		{isStreaming ? `Streaming... ${streamingProgress}%` : 'Simulate Streaming'}
+	</button>
+	<button
+		class="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700 disabled:opacity-50"
+		onclick={() => {
+			content = source;
+		}}
+		disabled={isStreaming}
+	>
+		Show All
+	</button>
+	<button
+		class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
+		onclick={() => {
+			content = '';
+		}}
+		disabled={isStreaming}
+	>
+		Clear
+	</button>
+	<span class="text-sm text-gray-600">Theme: {shikiTheme.join(', ')}</span>
+</div>
+
+<div class="p-10">
+	<div class="mx-auto max-w-3xl rounded-md p-4 shadow">
+		<Streamdown {shikiTheme} allowedImagePrefixes={['https']} content={source} />
+	</div>
+</div>

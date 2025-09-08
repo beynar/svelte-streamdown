@@ -7,6 +7,8 @@
 	const streamdown = useStreamdown();
 
 	const { children, node, ...props }: BlockquoteProps = $props();
+
+	console.log({ node });
 </script>
 
 <Slot

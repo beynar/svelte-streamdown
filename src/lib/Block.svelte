@@ -5,16 +5,15 @@
 	import type { Root } from 'hast';
 	import Element from './Elements/Element.svelte';
 	let {
-		content,
-		id
+		block
 	}: {
-		content: string;
-		id: string;
+		block: string;
 	} = $props();
 
 	const streamdownContext = useStreamdown();
-	const parsedContent = $derived(parseIncompleteMarkdown(content.trim()));
-	const root = $derived(parseMarkdown(streamdownContext, parsedContent));
+	const root = $derived(parseMarkdown(streamdownContext, parseIncompleteMarkdown(block.trim())));
+
+	console.log({ root });
 </script>
 
 {#snippet renderChildren(nodeChildren: Root['children'])}

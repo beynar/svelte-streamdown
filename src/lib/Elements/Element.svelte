@@ -24,7 +24,6 @@
 	import Li from './Li.svelte';
 	import Ol from './Ol.svelte';
 	import P from './P.svelte';
-	import Pre from './Pre.svelte';
 	import Strong from './Strong.svelte';
 	import Sub from './Sub.svelte';
 	import Sup from './Sup.svelte';
@@ -38,22 +37,21 @@
 	import InlineCode from './InlineCode.svelte';
 	import Mermaid from './Mermaid.svelte';
 	import Math from './Math.svelte';
-	$inspect(node);
+	import Em from './Em.svelte';
+	import Del from './Del.svelte';
+	import Alert from './Alert.svelte';
 </script>
 
 {#if type === 'a'}
 	<A {...props} {children} {node} />
 {:else if type === 'blockquote'}
 	<Blockquote {...props} {children} {node} />
+{:else if type === 'code' && node?.properties.language === 'math'}
+	<Math {...props} {children} {node} />
 {:else if type === 'code' && node?.position?.start.line === node?.position?.end.line}
 	<InlineCode {...props} {children} {node} />
 {:else if type === 'code' && node?.properties.language === 'mermaid'}
 	<Mermaid {...props} {children} {node} />
-{:else if type === 'math' && node?.position?.start.line === node?.position?.end.line}
-	<!-- <Math {...props} {children} {node} /> -->
-	Inline Math
-{:else if type === 'math'}
-	<Math {...props} {children} {node} />
 {:else if type === 'code'}
 	<Code {...props} {children} {node} />
 {:else if type === 'h1'}
@@ -78,8 +76,6 @@
 	<Ol {...props} {children} {node} />
 {:else if type === 'p'}
 	<P {...props} {children} {node} />
-{:else if type === 'pre'}
-	<Pre {...props} {children} {node} />
 {:else if type === 'strong'}
 	<Strong {...props} {children} {node} />
 {:else if type === 'sub'}
@@ -100,9 +96,19 @@
 	<Tr {...props} {children} {node} />
 {:else if type === 'ul'}
 	<Ul {...props} {children} {node} />
+{:else if type === 'ol'}
+	<Ol {...props} {children} {node} />
+{:else if type === 'br'}
+	<br />
+{:else if type === 'em'}
+	<Em {...props} {children} {node} />
+{:else if type === 'ins'}
+	<!-- <Ins {...props} {children} {node} /> -->
+{:else if type === 'del'}
+	<Del {...props} {children} {node} />
+{:else if type === 'alert'}
+	<Alert {...props} {children} {node} />
 {:else}
 	<!-- Fallback for unsupported elements -->
-	<!-- <svelte:element this={node.tagName} {...props} {children}> -->
 	{@render children?.()}
-	<!-- </svelte:element> -->
 {/if}

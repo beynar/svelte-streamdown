@@ -12,7 +12,6 @@ type SnippetProps = {
 export type Snippets = {
 	a?: Snippet<[SnippetProps]>;
 	h1?: Snippet<[SnippetProps]>;
-	inlineCode?: Snippet<[SnippetProps]>;
 	h2?: Snippet<[SnippetProps]>;
 	h3?: Snippet<[SnippetProps]>;
 	h4?: Snippet<[SnippetProps]>;
@@ -20,11 +19,13 @@ export type Snippets = {
 	h6?: Snippet<[SnippetProps]>;
 	p?: Snippet<[SnippetProps]>;
 	code?: Snippet<[SnippetProps]>;
+	inlineCode?: Snippet<[SnippetProps]>;
 	img?: Snippet<[SnippetProps]>;
 	ul?: Snippet<[SnippetProps]>;
 	ol?: Snippet<[SnippetProps]>;
 	li?: Snippet<[SnippetProps]>;
 	hr?: Snippet<[SnippetProps]>;
+	alert?: Snippet<[SnippetProps]>;
 	strong?: Snippet<[SnippetProps]>;
 	blockquote?: Snippet<[SnippetProps]>;
 	table?: Snippet<[SnippetProps]>;
@@ -39,6 +40,10 @@ export type Snippets = {
 	mermaid?: Snippet<[SnippetProps]>;
 	math?: Snippet<[SnippetProps]>;
 	inlineMath?: Snippet<[SnippetProps]>;
+	em?: Snippet<[SnippetProps]>;
+	ins?: Snippet<[SnippetProps]>;
+	del?: Snippet<[SnippetProps]>;
+	small?: Snippet<[SnippetProps]>;
 };
 
 /**

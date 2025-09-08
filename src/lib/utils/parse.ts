@@ -7,10 +7,10 @@ import remarkRehype from 'remark-rehype';
 import { unified, type PluggableList } from 'unified';
 import { visit } from 'unist-util-visit';
 import { VFile } from 'vfile';
-import rehypeKatex from 'rehype-katex';
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import type { BundledLanguage } from 'shiki';
+import { rehypeGithubAlerts } from './alerts.js';
 
 const emptyPlugins: PluggableList = [];
 const emptyRemarkRehypeOptions = { allowDangerousHtml: true };
@@ -51,11 +51,12 @@ export function parseMarkdown(context: StreamdownContext, content: string): Root
 	const processor = unified()
 		.use(remarkParse)
 		.use(remarkPlugins)
-		.use(remarkRehype, remarkRehypeOptions)
-		.use(rehypeKatex)
-		.use(remarkGfm)
+
 		.use(remarkMath)
-		.use(rehypePlugins);
+		.use(remarkGfm)
+		.use(remarkRehype, remarkRehypeOptions)
+		.use(rehypePlugins)
+		.use([rehypeGithubAlerts]);
 
 	const file = createFile(content);
 	const tree = processor.parse(file);

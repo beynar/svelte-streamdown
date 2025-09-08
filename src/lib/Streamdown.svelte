@@ -38,8 +38,8 @@
 		shikiTheme,
 		parseIncompleteMarkdown,
 		defaultOrigin,
-		allowedLinkPrefixes,
-		allowedImagePrefixes,
+		allowedLinkPrefixes = ['*'],
+		allowedImagePrefixes = ['*'],
 		allowElement,
 		allowedElements,
 		disallowedElements,
@@ -116,5 +116,5 @@
 </script>
 
 {#each blocks as block, index (`${id}-block-${index}`)}
-	<Block content={block} id={`${id}-block-${index}`} />
+	<Block {block} />
 {/each}

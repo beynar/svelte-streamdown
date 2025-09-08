@@ -62,6 +62,16 @@ export const theme = {
 	blockquote: {
 		base: 'border-gray-600/30 text-gray-600 my-4 border-l-4 pl-4 italic'
 	},
+	alert: {
+		base: ' relative my-4 border-l-4 p-4',
+		title: 'text-sm font-semibold flex items-center gap-2 mb-2 capitalize',
+		icon: 'size-5',
+		note: '[&>[data-alert-title]]:text-blue-600 border-blue-600 stroke-blue-600',
+		tip: '[&>[data-alert-title]]:text-green-600 border-green-600 stroke-green-600',
+		warning: '[&>[data-alert-title]]:text-yellow-600 border-yellow-600 stroke-yellow-600',
+		caution: '[&>[data-alert-title]]:text-red-600 border-red-600 stroke-red-600',
+		important: '[&>[data-alert-title]]:text-purple-600 border-purple-600 stroke-purple-600'
+	},
 	table: {
 		base: 'border-gray-200 w-full border-collapse border',
 		container: 'my-4 flex flex-col space-y-2'
@@ -102,6 +112,18 @@ export const theme = {
 	},
 	inlineMath: {
 		base: ''
+	},
+	em: {
+		base: 'font-italic'
+	},
+	ins: {
+		base: 'underline'
+	},
+	del: {
+		base: 'line-through'
+	},
+	small: {
+		base: 'text-sm'
 	}
 } satisfies Record<keyof Snippets, any>;
 

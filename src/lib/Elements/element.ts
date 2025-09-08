@@ -61,3 +61,7 @@ export type HorizontalRuleProps = ElementProps;
 export type MermaidProps = ElementProps;
 
 export type MathProps = ElementProps;
+
+export type DelProps = ElementProps;
+
+export type AlertProps = ElementProps;

@@ -6,10 +6,63 @@
 	const imageUrl = 'https://placehold.co/400x200/png';
 	const source = `
 
+Here is a statement with a footnote.[^1]
 
-    
+[^1]: This is the footnote content. Footnotes are supported and rendered at the bottom of the document.
 
-    **Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.**
+-------
+
+**Bold**  
+*Italic*  
+_Both italic (underscore)_  
+***Bold and Italic***  
+<em>Emphasis</em>  
+~~Strikethrough~~  
+------
+
+
+This is subscript: <sub>2</sub>
+
+This is superscript: E = mc<sup>2</sup>
+
+<small>Small</small>  
+<ins>Underline</ins>  
+<sup>Superscript</sup>  
+<sub>Subscript</sub>  
+\`Inline code\`  
+[Link](https://svelte.dev)  
+==Highlight==  
+:emoji:
+
+> [!NOTE]  
+> NOTE
+
+> [!WARNING]
+> WARNING
+
+> [!IMPORTANT]
+> IMPORTANT
+
+> [!TIP]
+> TIP
+
+> [!CAUTION]
+> CAUTION
+ 
+
+------
+
+
+$$
+E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}\\\\
+E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
+$$  
+
+
+$$
+E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
+E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
+$$
 
 
 $$
@@ -21,10 +74,12 @@ $$
 
 This famous equation, derived by Albert Einstein as part of his theory of special relativity, shows that mass and energy are interchangeable. The speed of light squared ($c^2$) acts as the conversion factor between mass and energy.
 
-For example, if $m = 1\,\text{kg}$:
+For example, if $m = 1\\,\\text{kg}$:
+
 
 $$
-E = (1\,\text{kg}) \times (3.00 \times 10^8\,\text{m/s})^2 = 9.00 \times 10^{16}\,\text{J}
+E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
+E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
 $$
 
 This demonstrates how a small amount of mass can be converted into a tremendous amount of energy.

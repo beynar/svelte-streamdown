@@ -32,6 +32,9 @@ importers:
       mdast:
         specifier: ^3.0.0
         version: 3.0.0
+      mdast-squeeze-paragraphs:
+        specifier: ^6.0.0
+        version: 6.0.0
       mermaid:
         specifier: ^11.11.0
         version: 11.11.0
@@ -1806,6 +1809,9 @@ packages:
     resolution: {integrity: sha512-r3UrXED9lMlHF97jJByry90cwrZBBvZmjG1L68oYfuPMW+uDTnuMbyJDymCWwbTE+f+3LhpNDKfpR3a3saFyjA==}
     engines: {node: '>= 20'}
     hasBin: true
+
+  mdast-squeeze-paragraphs@6.0.0:
+    resolution: {integrity: sha512-6NDbJPTg0M0Ye+TlYwX1KJ1LFbp515P2immRJyJQhc9Na9cetHzSoHNYIQcXpANEAP1sm9yd/CTZU2uHqR5A+w==}
 
   mdast-util-find-and-replace@3.0.2:
     resolution: {integrity: sha512-Tmd1Vg/m3Xz43afeNxDIhWRtFZgM2VLyaf4vSTYwudTyeuTneoL3qtWMA5jeLyz/O1vDJmmV4QuScFCA2tBPwg==}
@@ -4108,6 +4114,11 @@ snapshots:
   marked@15.0.12: {}
 
   marked@16.2.1: {}
+
+  mdast-squeeze-paragraphs@6.0.0:
+    dependencies:
+      '@types/mdast': 4.0.4
+      unist-util-visit: 5.0.0
 
   mdast-util-find-and-replace@3.0.2:
     dependencies:

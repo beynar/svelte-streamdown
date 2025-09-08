@@ -74,6 +74,7 @@
 		"katex": "^0.16.22",
 		"marked": "^16.2.1",
 		"mdast": "^3.0.0",
+		"mdast-squeeze-paragraphs": "^6.0.0",
 		"mermaid": "^11.11.0",
 		"react-markdown": "^10.1.0",
 		"rehype-github-alerts": "^4.1.1",

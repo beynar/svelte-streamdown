@@ -2,15 +2,19 @@
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import { transformUrl } from '$lib/utils/url.js';
 	import { clsx } from 'clsx';
-	import type { AnchorProps } from './element.js';
+	import type { ElementProps } from './element.js';
 	import Slot from './Slot.svelte';
 
 	const streamdown = useStreamdown();
 
-	const { href, children, node, ...props }: AnchorProps = $props();
+	const { children, className, node, props }: ElementProps = $props();
 
 	const transformedUrl = $derived(
-		transformUrl(href, streamdown.allowedLinkPrefixes ?? [], streamdown.defaultOrigin)
+		transformUrl(
+			node.properties.href,
+			streamdown.allowedLinkPrefixes ?? [],
+			streamdown.defaultOrigin
+		)
 	);
 </script>
 
@@ -22,22 +26,23 @@
 			rel: 'noopener noreferrer',
 			children,
 			node,
-			...props
+			props,
+			className
 		}}
 		render={streamdown.snippets.a}
 	>
 		<a
-			class={clsx(streamdown.theme.a.base, node.properties.className)}
+			{...props}
+			class={clsx(streamdown.theme.a.base, className)}
 			href={transformedUrl}
 			target="_blank"
 			rel="noopener noreferrer"
-			{...props}
 		>
 			{@render children()}
 		</a>
 	</Slot>
 {:else}
-	<span class="text-gray-500" title={`Blocked URL: ${href}`}>
+	<span class={streamdown.theme.a.blocked} title={`Blocked URL: ${node.properties.href}`}>
 		{@render children()} [blocked]
 	</span>
 {/if}

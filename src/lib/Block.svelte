@@ -12,14 +12,15 @@
 
 	const streamdownContext = useStreamdown();
 	const root = $derived(parseMarkdown(streamdownContext, parseIncompleteMarkdown(block.trim())));
-
-	console.log({ root });
 </script>
 
 {#snippet renderChildren(nodeChildren: Root['children'])}
 	{#each nodeChildren as node}
 		{#if node.type === 'element'}
-			<Element {node} props={'properties' in node ? node.properties : {}} type={node.tagName}>
+			{@const {
+				properties: { className, ...props }
+			} = node}
+			<Element {node} {className} {props} type={node.tagName}>
 				{#if 'children' in node && node.children?.length}
 					{@render renderChildren(node.children)}
 				{/if}

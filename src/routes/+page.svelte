@@ -1,118 +1,9 @@
 <script lang="ts">
 	import Streamdown from '$lib/Streamdown.svelte';
-
-	// import Streamdown from '$lib/Streamdown.svelte';
-
-	const imageUrl = 'https://placehold.co/400x200/png';
 	const source = `
 
-Here is a statement with a footnote.[^1]
-
-[^1]: This is the footnote content. Footnotes are supported and rendered at the bottom of the document.
-
 -------
-
-**Bold**  
-*Italic*  
-_Both italic (underscore)_  
-***Bold and Italic***  
-<em>Emphasis</em>  
-~~Strikethrough~~  
-------
-
-
-This is subscript: <sub>2</sub>
-
-This is superscript: E = mc<sup>2</sup>
-
-<small>Small</small>  
-<ins>Underline</ins>  
-<sup>Superscript</sup>  
-<sub>Subscript</sub>  
-\`Inline code\`  
-[Link](https://svelte.dev)  
-==Highlight==  
-:emoji:
-
-> [!NOTE]  
-> NOTE
-
-> [!WARNING]
-> WARNING
-
-> [!IMPORTANT]
-> IMPORTANT
-
-> [!TIP]
-> TIP
-
-> [!CAUTION]
-> CAUTION
- 
-
-------
-
-
-$$
-E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}\\\\
-E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
-$$  
-
-
-$$
-E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
-E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
-$$
-
-
-$$
-E = mc^2
-$$
-
-
-
-
-This famous equation, derived by Albert Einstein as part of his theory of special relativity, shows that mass and energy are interchangeable. The speed of light squared ($c^2$) acts as the conversion factor between mass and energy.
-
-For example, if $m = 1\\,\\text{kg}$:
-
-
-$$
-E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
-E = (1\\,\\text{kg}) \\times (3.00\\times 10^8\\,\\text{m/s})^2 = 9.00 \\times 10^{16}\\,\text{J}
-$$
-
-This demonstrates how a small amount of mass can be converted into a tremendous amount of energy.
-
-
-\`\`\`mermaid
-graph TD
-    A[Start] --> B[Stop]
-    B --> C{Is it working?}
-    C -- Yes --> D[Great!]
-    C -- No --> E[Debug]
-    E --> F{Fixed?}
-    F -- Yes --> D
-    F -- No --> E
-    D --> G[End]
-    G --> H[Deploy]
-    H --> I{Production?}
-    I -- Yes --> J[Monitor]
-    I -- No --> K[Staging]
-    K --> L[Test Again]
-    L --> F
-    J --> M{Issues?}
-    M -- Yes --> E
-    M -- No --> N[Celebrate 🎉]
-    N --> O[Document]
-    O --> P[Archive]
-    P --> Q[Finish]
-\`\`\`
-    
-Code \`code\` code
-
-
-~~Old approach~~ → New approach with AI models
+# Hello
 
 \`\`\`svelte
 <div class={streamdown.theme.code.container} data-code-block-container data-language={language}>
@@ -159,9 +50,6 @@ Code \`code\` code
 		</div>
 	</div>
 </div>
-
-
-
 \`\`\`
 `;
 
@@ -201,11 +89,16 @@ Code \`code\` code
 		streamingProgress = 100;
 	};
 
-	let shikiTheme = $state(['slack-ochin', 'solarized-light']);
+	let shikiTheme = $state('slack-ochin');
 
 	const swapTheme = () => {
 		console.log('swapTheme');
-		shikiTheme = shikiTheme.toReversed();
+		shikiTheme = shikiTheme === 'slack-ochin' ? 'solarized-light' : 'slack-ochin';
+	};
+
+	let mermaidTheme = $state('dark');
+	const swapMermaidTheme = () => {
+		mermaidTheme = mermaidTheme === 'dark' ? 'default' : 'dark';
 	};
 </script>
 
@@ -236,17 +129,33 @@ Code \`code\` code
 	<button
 		class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
 		onclick={() => {
+			swapMermaidTheme();
+		}}
+		disabled={isStreaming}
+	>
+		Swap Mermaid Theme
+	</button>
+	<button
+		class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
+		onclick={() => {
 			content = '';
 		}}
 		disabled={isStreaming}
 	>
 		Clear
 	</button>
-	<span class="text-sm text-gray-600">Theme: {shikiTheme.join(', ')}</span>
+	<span class="text-sm text-gray-600">Theme: {shikiTheme}</span>
 </div>
 
 <div class="p-10">
 	<div class="mx-auto max-w-3xl rounded-md p-4 shadow">
-		<Streamdown {shikiTheme} allowedImagePrefixes={['https']} content={source} />
+		<Streamdown
+			mermaidConfig={{
+				theme: mermaidTheme
+			}}
+			{shikiTheme}
+			allowedLinkPrefixes={['*']}
+			content={source}
+		/>
 	</div>
 </div>

@@ -4,7 +4,7 @@
 	let {
 		children,
 		render,
-		...props
+		props
 	}: {
 		children: Snippet;
 		render?: Snippet<[any]>;

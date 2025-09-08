@@ -7,26 +7,14 @@
 	import { useCopy } from '$lib/utils/copy.svelte.js';
 	import { highlighter, languageExtensionMap } from '$lib/hightlighter.svelte.js';
 	import { clsx } from 'clsx';
+	import type { ElementProps } from './element.js';
 
-	let {
-		code,
-		children,
-		preClassName,
-		language,
-		node,
-		...rest
-	}: {
-		code: Snippet;
-		children?: Snippet;
-		preClassName?: string;
-		node?: any;
-		[key: string]: any;
-	} = $props();
+	let { node, className, props }: ElementProps = $props();
 
 	const streamdown = useStreamdown();
 	const themes = $derived(streamdown.shikiTheme);
-	let codeContent = $derived(node.children[0].value);
-
+	let codeContent = $derived((node.children[0] as any).value);
+	const language = $derived(node.properties.language as string);
 	const copy = useCopy({
 		get content() {
 			return codeContent;
@@ -38,7 +26,9 @@
 	const downloadCode = () => {
 		try {
 			const extension =
-				language && language in languageExtensionMap ? languageExtensionMap[language] : 'txt';
+				language && language in languageExtensionMap
+					? languageExtensionMap[language as keyof typeof languageExtensionMap]
+					: 'txt';
 			const filename = `file.${extension}`;
 			const mimeType = 'text/plain';
 			save(filename, codeContent, mimeType);
@@ -48,19 +38,9 @@
 	};
 </script>
 
-{#snippet renderCode(type: string, code: string)}
-	<div
-		class="overflow-x-auto {type === 'dark' ? 'hidden dark:block' : 'dark:hidden'}"
-		data-code-block
-		data-language={language}
-		{...rest}
-	>
-		{@html code}
-	</div>
-{/snippet}
 <div
-	class={clsx(streamdown.theme.code.container, node.properties.className)}
-	data-code-block-container
+	{...props}
+	class={clsx(streamdown.theme.code.base, streamdown.theme.code.container, className)}
 	data-language={language}
 >
 	<div class={clsx(streamdown.theme.code.header)} data-code-block-header data-language={language}>
@@ -68,41 +48,80 @@
 		<div class="flex items-center gap-2">
 			<!-- Download button snippet -->
 			<button
-				class={clsx(streamdown.theme.code.downloadButton)}
+				class={streamdown.theme.code.button}
 				onclick={downloadCode}
 				title="Download file"
 				type="button"
 			>
-				<span class="text-sm">⬇️</span>
+				{@render downloadIcon()}
 			</button>
 
-			<!-- Copy button snippet -->
-			<button class={clsx(streamdown.theme.code.copyButton)} onclick={copy.copy} type="button">
-				<span class="text-sm">{copy.isCopied ? '✓' : '📋'}</span>
+			<button class={streamdown.theme.code.button} onclick={copy.copy} type="button">
+				{@render copyIcon()}
 			</button>
 		</div>
 	</div>
-	<div class="h-fit w-full">
-		<div class={clsx(streamdown.theme.code.base)}>
-			{#await highlighter.isReady(themes, language)}
-				{@const lines = codeContent.split('\n')}
-				{#each lines as line}
-					<div
-						class={clsx(streamdown.theme.code.skeleton, 'rounded-md font-mono text-transparent')}
-					>
-						{line}
-					</div>
-				{/each}
+	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
+		<div>
+			{#await highlighter.isReady(themes, language as any)}
+				{@render Skeleton()}
 			{:then}
-				{@const [light, dark] = highlighter.highlightCode(
+				{@const code = highlighter.highlightCode(
 					codeContent,
-					language,
+					language as any,
 					themes,
-					preClassName
+					streamdown.theme.code.pre
 				)}
-				{@render renderCode('light', light)}
-				{@render renderCode('dark', dark)}
+				{@html code}
 			{/await}
 		</div>
 	</div>
 </div>
+
+{#snippet Skeleton()}
+	{@const lines = codeContent.split('\n')}
+	<!--  -->
+	<pre class={streamdown.theme.code.pre}><!--  -->
+<!--  --><code
+			><!--  -->{#each lines as line}<!--  --><span class={streamdown.theme.code.skeleton}
+					>{line}</span
+				><!--  -->
+<!--  -->{/each}<!--  --></code
+		><!--  -->
+						</pre>
+{/snippet}
+{#snippet copyIcon()}
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		width="100%"
+		height="100%"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		class="lucide lucide-clipboard-icon lucide-clipboard"
+		><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path
+			d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
+		/></svg
+	>
+{/snippet}
+
+{#snippet downloadIcon()}
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		width="100%"
+		height="100%"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke="currentColor"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		class="lucide lucide-download-icon lucide-download"
+		><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path
+			d="m7 10 5 5 5-5"
+		/></svg
+	>
+{/snippet}

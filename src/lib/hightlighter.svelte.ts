@@ -10,24 +10,22 @@ const removePreBackground = (html: string) => {
 class HighlighterManager {
 	initialized = $state(false);
 	initializedPromise = $state<Promise<void> | null>(null);
-	private lightHighlighter: Awaited<ReturnType<typeof createHighlighter>> | null = null;
-	private darkHighlighter: Awaited<ReturnType<typeof createHighlighter>> | null = null;
-	private lightTheme: BundledTheme | null = null;
-	private darkTheme: BundledTheme | null = null;
+	private highlighter: Awaited<ReturnType<typeof createHighlighter>> | null = null;
+	private theme: BundledTheme | null = null;
 	private readonly loadedLanguages: Set<BundledLanguage> = new Set();
 	private initializationPromise: Promise<void> | null = null;
 	private readyStates = new Map<string, boolean>();
 
-	private getReadyKey(themes: [BundledTheme, BundledTheme], language: BundledLanguage): string {
-		return `${themes[0]}-${themes[1]}-${language}`;
+	private getReadyKey(theme: BundledTheme, language: BundledLanguage): string {
+		return `${theme}-${language}`;
 	}
 
 	/**
 	 * Prepares the highlighter for the given themes and language.
 	 * This method must be called and awaited before using highlightCode.
 	 */
-	async isReady(themes: [BundledTheme, BundledTheme], language: BundledLanguage): Promise<void> {
-		const readyKey = this.getReadyKey(themes, language);
+	async isReady(theme: BundledTheme, language: BundledLanguage): Promise<void> {
+		const readyKey = this.getReadyKey(theme, language);
 
 		// If already ready for this combination, return immediately
 		if (this.readyStates.get(readyKey)) {
@@ -45,7 +43,7 @@ class HighlighterManager {
 		}
 
 		// Initialize for this combination
-		this.initializationPromise = this.ensureHighlightersInitialized(themes, language);
+		this.initializationPromise = this.ensureHighlightersInitialized(theme, language);
 		await this.initializationPromise;
 		this.initializationPromise = null;
 
@@ -55,17 +53,15 @@ class HighlighterManager {
 	}
 
 	private async ensureHighlightersInitialized(
-		themes: [BundledTheme, BundledTheme],
+		theme: BundledTheme,
 		language: BundledLanguage
 	): Promise<void> {
-		const [lightTheme, darkTheme] = themes;
 		const jsEngine = createJavaScriptRegexEngine({ forgiving: true });
 
 		// Check if we need to recreate highlighters due to theme change
-		const needsLightRecreation = !this.lightHighlighter || this.lightTheme !== lightTheme;
-		const needsDarkRecreation = !this.darkHighlighter || this.darkTheme !== darkTheme;
+		const needsLightRecreation = !this.highlighter || this.theme !== theme;
 
-		if (needsLightRecreation || needsDarkRecreation) {
+		if (needsLightRecreation) {
 			// If themes changed, reset loaded languages and ready states
 			this.loadedLanguages.clear();
 			this.readyStates.clear();
@@ -76,34 +72,16 @@ class HighlighterManager {
 
 		// Create or recreate light highlighter if needed
 		if (needsLightRecreation) {
-			this.lightHighlighter = await createHighlighter({
-				themes: [lightTheme],
+			this.highlighter = await createHighlighter({
+				themes: [theme],
 				langs: [language],
 				engine: jsEngine
 			});
-			this.lightTheme = lightTheme;
+			this.theme = theme;
 			this.loadedLanguages.add(language);
 		} else if (needsLanguageLoad) {
 			// Load the language if not already loaded
-			await this.lightHighlighter?.loadLanguage(language);
-		}
-
-		// Create or recreate dark highlighter if needed
-		if (needsDarkRecreation) {
-			// If recreating dark highlighter, load all previously loaded languages plus the new one
-			const langsToLoad = needsLanguageLoad
-				? [...this.loadedLanguages, language]
-				: Array.from(this.loadedLanguages);
-
-			this.darkHighlighter = await createHighlighter({
-				themes: [darkTheme],
-				langs: langsToLoad.length > 0 ? langsToLoad : [language],
-				engine: jsEngine
-			});
-			this.darkTheme = darkTheme;
-		} else if (needsLanguageLoad) {
-			// Load the language if not already loaded
-			await this.darkHighlighter?.loadLanguage(language);
+			await this.highlighter?.loadLanguage(language);
 		}
 
 		// Mark language as loaded after both highlighters have it
@@ -119,21 +97,21 @@ class HighlighterManager {
 	highlightCode(
 		code: string,
 		language: BundledLanguage,
-		themes: [BundledTheme, BundledTheme],
+		theme: BundledTheme,
 		preClassName?: string
-	): [string, string] {
-		const readyKey = this.getReadyKey(themes, language);
+	): string {
+		const readyKey = this.getReadyKey(theme, language);
 
 		// Ensure isReady was called first
 		if (!this.readyStates.get(readyKey)) {
 			throw new Error(
-				`Highlighter not ready for themes [${themes[0]}, ${themes[1]}] and language "${language}". ` +
-					`Call await highlighter.isReady(themes, language) first.`
+				`Highlighter not ready for themes [${theme}] and language "${language}". ` +
+					`Call await highlighter.isReady(theme, language) first.`
 			);
 		}
 
 		// Ensure highlighters exist
-		if (!this.lightHighlighter || !this.darkHighlighter) {
+		if (!this.highlighter) {
 			throw new Error(
 				'Highlighters not initialized. This should not happen after calling isReady().'
 			);
@@ -146,18 +124,12 @@ class HighlighterManager {
 			return html.replace(/<pre(\s|>)/, `<pre class="${preClassName}"$1`);
 		};
 
-		const [lightTheme, darkTheme] = themes;
-
-		const light = this.lightHighlighter.codeToHtml(code, {
+		const light = this.highlighter.codeToHtml(code, {
 			lang: language,
-			theme: lightTheme
-		});
-		const dark = this.darkHighlighter.codeToHtml(code, {
-			lang: language,
-			theme: darkTheme
+			theme: theme
 		});
 
-		return [removePreBackground(addPreClass(light)), removePreBackground(addPreClass(dark))];
+		return removePreBackground(addPreClass(light));
 	}
 }
 

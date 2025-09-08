@@ -11,6 +11,7 @@ import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import type { BundledLanguage } from 'shiki';
 import { rehypeGithubAlerts } from './alerts.js';
+import { squeezeParagraphs } from 'mdast-squeeze-paragraphs';
 
 const emptyPlugins: PluggableList = [];
 const emptyRemarkRehypeOptions = { allowDangerousHtml: true };
@@ -117,9 +118,10 @@ function post(tree: Nodes, options: ParseOptions): Root {
 				}
 			}
 
+			const className = node.properties.className;
+
 			if (node.tagName === 'code') {
 				const LANGUAGE_REGEX = /language-([^\s]+)/;
-				const className = node.properties.className;
 
 				const match = (Array.isArray(className) ? className : [className])?.reduce((acc, c) => {
 					const match = String(c).match(LANGUAGE_REGEX);

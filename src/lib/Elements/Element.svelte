@@ -5,9 +5,10 @@
 	let {
 		node,
 		props,
+		className,
 		type,
 		children
-	}: { node: Element; props: any; type: string; children: Snippet } = $props();
+	}: { node: Element; props: any; className: any; type: string; children: Snippet } = $props();
 
 	// Import all element components
 	import A from './A.svelte';
@@ -43,71 +44,76 @@
 </script>
 
 {#if type === 'a'}
-	<A {...props} {children} {node} />
+	<A {props} {className} {children} {node} />
 {:else if type === 'blockquote'}
-	<Blockquote {...props} {children} {node} />
+	<Blockquote {props} {className} {children} {node} />
 {:else if type === 'code' && node?.properties.language === 'math'}
-	<Math {...props} {children} {node} />
+	<Math {props} {className} {children} {node} />
 {:else if type === 'code' && node?.position?.start.line === node?.position?.end.line}
-	<InlineCode {...props} {children} {node} />
+	<InlineCode {props} {className} {children} {node} />
 {:else if type === 'code' && node?.properties.language === 'mermaid'}
-	<Mermaid {...props} {children} {node} />
+	<Mermaid {props} {className} {children} {node} />
 {:else if type === 'code'}
-	<Code {...props} {children} {node} />
+	<Code {props} {className} {children} {node} />
 {:else if type === 'h1'}
-	<H1 {...props} {children} {node} />
+	<H1 {props} {className} {children} {node} />
 {:else if type === 'h2'}
-	<H2 {...props} {children} {node} />
+	<H2 {props} {className} {children} {node} />
 {:else if type === 'h3'}
-	<H3 {...props} {children} {node} />
+	<H3 {props} {className} {children} {node} />
 {:else if type === 'h4'}
-	<H4 {...props} {children} {node} />
+	<H4 {props} {className} {children} {node} />
 {:else if type === 'h5'}
-	<H5 {...props} {children} {node} />
+	<H5 {props} {className} {children} {node} />
 {:else if type === 'h6'}
-	<H6 {...props} {children} {node} />
+	<H6 {props} {className} {children} {node} />
 {:else if type === 'hr'}
-	<Hr {node} {...props} />
+	<Hr {children} {node} {props} {className} />
 {:else if type === 'img'}
-	<Image {...props} {children} {node} />
+	<Image
+		src={node.properties.src as string}
+		alt={node.properties.alt as string}
+		{props}
+		{className}
+		{children}
+		{node}
+	/>
 {:else if type === 'li'}
-	<Li {...props} {children} {node} />
+	<Li {props} {className} {children} {node} />
 {:else if type === 'ol'}
-	<Ol {...props} {children} {node} />
+	<Ol {props} {className} {children} {node} />
 {:else if type === 'p'}
-	<P {...props} {children} {node} />
+	<P {props} {className} {children} {node} />
 {:else if type === 'strong'}
-	<Strong {...props} {children} {node} />
+	<Strong {props} {className} {children} {node} />
 {:else if type === 'sub'}
-	<Sub {...props} {children} {node} />
+	<Sub {props} {className} {children} {node} />
 {:else if type === 'sup'}
-	<Sup {...props} {children} {node} />
+	<Sup {props} {className} {children} {node} />
 {:else if type === 'table'}
-	<Table {...props} {children} {node} />
+	<Table {props} {className} {children} {node} />
 {:else if type === 'tbody'}
-	<Tbody {...props} {children} {node} />
+	<Tbody {props} {className} {children} {node} />
 {:else if type === 'td'}
-	<Td {...props} {children} {node} />
+	<Td {props} {className} {children} {node} />
 {:else if type === 'th'}
-	<Th {...props} {children} {node} />
+	<Th {props} {className} {children} {node} />
 {:else if type === 'thead'}
-	<Thead {...props} {children} {node} />
+	<Thead {props} {className} {children} {node} />
 {:else if type === 'tr'}
-	<Tr {...props} {children} {node} />
+	<Tr {props} {className} {children} {node} />
 {:else if type === 'ul'}
-	<Ul {...props} {children} {node} />
+	<Ul {props} {className} {children} {node} />
 {:else if type === 'ol'}
-	<Ol {...props} {children} {node} />
+	<Ol {props} {className} {children} {node} />
 {:else if type === 'br'}
 	<br />
 {:else if type === 'em'}
-	<Em {...props} {children} {node} />
-{:else if type === 'ins'}
-	<!-- <Ins {...props} {children} {node} /> -->
+	<Em {props} {className} {children} {node} />
 {:else if type === 'del'}
-	<Del {...props} {children} {node} />
+	<Del {props} {className} {children} {node} />
 {:else if type === 'alert'}
-	<Alert {...props} {children} {node} />
+	<Alert {props} {className} {children} {node} />
 {:else}
 	<!-- Fallback for unsupported elements -->
 	{@render children?.()}

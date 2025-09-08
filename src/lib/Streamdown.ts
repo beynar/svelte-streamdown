@@ -5,45 +5,42 @@ import type { PluggableList } from 'unified';
 import type { Options as RemarkRehypeOptions } from 'remark-rehype';
 import type { Theme } from './theme.js';
 import type { MermaidConfig } from 'mermaid';
+import type { KatexOptions } from 'katex';
+import type { ElementProps } from './Elements/element.js';
 
-type SnippetProps = {
-	children: Snippet;
-};
 export type Snippets = {
-	a?: Snippet<[SnippetProps]>;
-	h1?: Snippet<[SnippetProps]>;
-	h2?: Snippet<[SnippetProps]>;
-	h3?: Snippet<[SnippetProps]>;
-	h4?: Snippet<[SnippetProps]>;
-	h5?: Snippet<[SnippetProps]>;
-	h6?: Snippet<[SnippetProps]>;
-	p?: Snippet<[SnippetProps]>;
-	code?: Snippet<[SnippetProps]>;
-	inlineCode?: Snippet<[SnippetProps]>;
-	img?: Snippet<[SnippetProps]>;
-	ul?: Snippet<[SnippetProps]>;
-	ol?: Snippet<[SnippetProps]>;
-	li?: Snippet<[SnippetProps]>;
-	hr?: Snippet<[SnippetProps]>;
-	alert?: Snippet<[SnippetProps]>;
-	strong?: Snippet<[SnippetProps]>;
-	blockquote?: Snippet<[SnippetProps]>;
-	table?: Snippet<[SnippetProps]>;
-	thead?: Snippet<[SnippetProps]>;
-	tbody?: Snippet<[SnippetProps]>;
-	tr?: Snippet<[SnippetProps]>;
-	th?: Snippet<[SnippetProps]>;
-	td?: Snippet<[SnippetProps]>;
-	sup?: Snippet<[SnippetProps]>;
-	sub?: Snippet<[SnippetProps]>;
-	pre?: Snippet<[SnippetProps]>;
-	mermaid?: Snippet<[SnippetProps]>;
-	math?: Snippet<[SnippetProps]>;
-	inlineMath?: Snippet<[SnippetProps]>;
-	em?: Snippet<[SnippetProps]>;
-	ins?: Snippet<[SnippetProps]>;
-	del?: Snippet<[SnippetProps]>;
-	small?: Snippet<[SnippetProps]>;
+	a?: Snippet<[ElementProps]>;
+	h1?: Snippet<[ElementProps]>;
+	h2?: Snippet<[ElementProps]>;
+	h3?: Snippet<[ElementProps]>;
+	h4?: Snippet<[ElementProps]>;
+	h5?: Snippet<[ElementProps]>;
+	h6?: Snippet<[ElementProps]>;
+	p?: Snippet<[ElementProps]>;
+	code?: Snippet<[ElementProps]>;
+	inlineCode?: Snippet<[ElementProps]>;
+	img?: Snippet<[ElementProps]>;
+	ul?: Snippet<[ElementProps]>;
+	ol?: Snippet<[ElementProps]>;
+	li?: Snippet<[ElementProps]>;
+	hr?: Snippet<[ElementProps]>;
+	alert?: Snippet<[ElementProps]>;
+	strong?: Snippet<[ElementProps]>;
+	blockquote?: Snippet<[ElementProps]>;
+	table?: Snippet<[ElementProps]>;
+	thead?: Snippet<[ElementProps]>;
+	tbody?: Snippet<[ElementProps]>;
+	tr?: Snippet<[ElementProps]>;
+	th?: Snippet<[ElementProps]>;
+	td?: Snippet<[ElementProps]>;
+	sup?: Snippet<[ElementProps]>;
+	sub?: Snippet<[ElementProps]>;
+	pre?: Snippet<[ElementProps]>;
+	mermaid?: Snippet<[ElementProps]>;
+	math?: Snippet<[ElementProps]>;
+	inlineMath?: Snippet<[ElementProps]>;
+	em?: Snippet<[ElementProps]>;
+	del?: Snippet<[ElementProps]>;
 };
 
 /**
@@ -88,6 +85,17 @@ export type StreamdownProps = {
 
 	// Theme
 	theme?: Partial<Theme>;
-	shikiTheme?: [BundledTheme, BundledTheme];
+	shikiTheme?: BundledTheme;
 	mermaidConfig?: MermaidConfig;
+	katexConfig?: KatexOptions | ((inline: boolean) => KatexOptions);
+
+	translations?: {
+		alert?: {
+			note?: string;
+			tip?: string;
+			warning?: string;
+			caution?: string;
+			important?: string;
+		};
+	};
 } & Snippets;

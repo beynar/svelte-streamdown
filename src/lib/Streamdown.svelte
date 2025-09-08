@@ -4,7 +4,7 @@
 	export interface StreamdownContext
 		extends Omit<StreamdownProps, keyof Snippets | 'class' | 'theme' | 'shikiTheme'> {
 		snippets: Snippets;
-		shikiTheme: [BundledTheme, BundledTheme];
+		shikiTheme: BundledTheme;
 		// make it non optional
 		theme: Theme;
 	}
@@ -51,6 +51,8 @@
 		rehypePlugins,
 		theme,
 		mermaidConfig,
+		katexConfig,
+		translations,
 		...snippets
 	}: StreamdownProps = $props();
 
@@ -98,7 +100,7 @@
 			return rehypePlugins;
 		},
 		get shikiTheme() {
-			return shikiTheme || ['github-light', 'github-dark'];
+			return shikiTheme || 'github-light';
 		},
 		get snippets() {
 			return snippets;
@@ -108,6 +110,12 @@
 		},
 		get mermaidConfig() {
 			return mermaidConfig;
+		},
+		get katexConfig() {
+			return katexConfig;
+		},
+		get translations() {
+			return translations;
 		}
 	});
 	const id = $props.id();

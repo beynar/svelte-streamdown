@@ -15,12 +15,12 @@
 
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import { clsx } from 'clsx';
-	import type { AlertProps } from './element.js';
+	import type { ElementProps } from './element.js';
 	import Slot from './Slot.svelte';
 
 	const streamdown = useStreamdown();
 
-	const { children, node, ...props }: AlertProps = $props();
+	const { children, className, node, props }: ElementProps = $props();
 
 	// Extract alertType from className
 	const alertType = $derived.by(() => {
@@ -38,6 +38,7 @@
 
 	// Extract icon from node properties
 	const icon = $derived((node.properties.icon as string) || '');
+	const title = $derived(streamdown.translations?.alert?.[alertType] || alertType);
 </script>
 
 <Slot
@@ -46,17 +47,14 @@
 		alertType,
 		icon,
 		node,
-		...props
+		props,
+		className
 	}}
 	render={streamdown.snippets.alert}
 >
 	<div
-		class={clsx(
-			streamdown.theme.alert.base,
-			node.properties.className,
-			streamdown.theme.alert[alertType]
-		)}
 		{...props}
+		class={clsx(streamdown.theme.alert.base, className, streamdown.theme.alert[alertType])}
 	>
 		<div data-alert-title class={streamdown.theme.alert.title}>
 			<svg
@@ -73,7 +71,7 @@
 				<!-- {@html icon} -->
 				{@html icons[alertType]}
 			</svg>
-			{alertType}
+			{title}
 		</div>
 		{@render children()}
 	</div>

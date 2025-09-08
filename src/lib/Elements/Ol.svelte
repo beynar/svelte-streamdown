@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import { clsx } from 'clsx';
-	import type { ListProps } from './element.js';
+	import type { ElementProps } from './element.js';
 	import Slot from './Slot.svelte';
 
 	const streamdown = useStreamdown();
 
-	const { children, node, ...props }: ListProps = $props();
+	const { children, node, className, props }: ElementProps = $props();
 </script>
 
 <Slot
@@ -17,7 +17,7 @@
 	}}
 	render={streamdown.snippets.ol}
 >
-	<ol class={clsx(streamdown.theme.ol.base, node.properties.className)} {...props}>
+	<ol {...props} class={clsx(streamdown.theme.ol.base, className)}>
 		{@render children()}
 	</ol>
 </Slot>

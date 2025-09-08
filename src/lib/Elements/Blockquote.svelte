@@ -1,12 +1,12 @@
 <script lang="ts">
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import { clsx } from 'clsx';
-	import type { BlockquoteProps } from './element.js';
+	import type { ElementProps } from './element.js';
 	import Slot from './Slot.svelte';
 
 	const streamdown = useStreamdown();
 
-	const { children, node, ...props }: BlockquoteProps = $props();
+	const { children, node, className, props }: ElementProps = $props();
 
 	console.log({ node });
 </script>
@@ -15,11 +15,12 @@
 	props={{
 		children,
 		node,
-		...props
+		props,
+		className
 	}}
 	render={streamdown.snippets.blockquote}
 >
-	<blockquote class={clsx(streamdown.theme.blockquote.base, node.properties.className)} {...props}>
+	<blockquote {...props} class={clsx(streamdown.theme.blockquote.base, className)}>
 		{@render children()}
 	</blockquote>
 </Slot>

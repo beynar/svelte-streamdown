@@ -2,15 +2,15 @@
 	import { onMount, onDestroy } from 'svelte';
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import { clsx } from 'clsx';
-	import type { MermaidProps } from './element.js';
+	import type { ElementProps } from './element.js';
 	import Slot from './Slot.svelte';
 	import type { MermaidConfig } from 'mermaid';
 
 	const streamdown = useStreamdown();
 
-	const { children, node, ...props }: MermaidProps = $props();
-	const id = $props.id();
-	const code = $derived(node.children[0].value as string);
+	const { children, node, className, props }: ElementProps = $props();
+
+	const code = $derived((node.children[0] as any)?.value as string);
 	let mermaid = $state<any>(null);
 	onMount(async () => {
 		mermaid = (await import('mermaid')).default;
@@ -20,7 +20,7 @@
 		try {
 			// Default configuration
 			const defaultConfig: MermaidConfig = {
-				theme: 'default',
+				theme: 'base',
 				startOnLoad: false,
 				securityLevel: 'strict',
 				fontFamily: 'monospace',
@@ -70,11 +70,11 @@
 >
 	{#if mermaid}
 		<div
-			class={clsx(streamdown.theme.mermaid.base, node.properties.className)}
 			{...props}
+			class={clsx(streamdown.theme.mermaid.base, className)}
 			{@attach (node) => renderMermaid(code, node)}
 		></div>
 	{:else}
-		<div class={clsx(streamdown.theme.mermaid.base, node.properties.className)} {...props}></div>
+		<div {...props} class={clsx(streamdown.theme.mermaid.base, className)}></div>
 	{/if}
 </Slot>

@@ -6,7 +6,8 @@ import type { Snippets } from './Streamdown.js';
 
 export const theme = {
 	a: {
-		base: 'text-blue-600 font-medium underline'
+		base: 'text-blue-600 font-medium underline',
+		blocked: 'text-gray-500'
 	},
 	h1: {
 		base: 'mt-6 mb-2 text-3xl font-semibold'
@@ -39,20 +40,21 @@ export const theme = {
 		base: 'py-1'
 	},
 	code: {
-		base: 'bg-gray-100 rounded px-1.5 py-0.5 font-mono text-sm',
-		container: 'my-4 w-full overflow-hidden rounded-xl border border-gray-200 flex flex-col',
-		header: 'flex items-center justify-between bg-gray-100/80 p-3 text-gray-600 text-xs',
-		copyButton: 'cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900',
-		downloadButton: 'cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900',
+		base: 'my-4 w-full overflow-hidden rounded-xl border border-gray-200 flex flex-col',
+		container: ' relative overflow-visible bg-gray-100 rounded p-2 font-mono text-sm ',
+		header: 'flex items-center justify-between bg-gray-100/80 p-2 pb-0	 text-gray-600 text-xs',
+		button: 'cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900 size-6 p-1',
+
 		language: 'ml-1 font-mono lowercase',
-		skeleton: 'rounded-md font-mono text-transparent bg-gray-200'
+		skeleton: 'rounded-md font-mono text-transparent bg-gray-200 whitespace-nowrap inline-block',
+		pre: 'overflow-x-auto font-mono p-0 bg-gray-100/40'
 	},
 	inlineCode: {
 		base: 'bg-gray-100 rounded px-1.5 py-0.5 font-mono text-sm'
 	},
 	img: {
-		container: 'group relative my-4 inline-block',
-		base: 'max-w-full rounded-lg',
+		base: 'group relative my-4  mx-auto w-fit block',
+		image: 'max-w-full rounded-lg',
 		downloadButton:
 			'absolute right-2 bottom-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-white/90 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white opacity-0 group-hover:opacity-100'
 	},
@@ -73,8 +75,7 @@ export const theme = {
 		important: '[&>[data-alert-title]]:text-purple-600 border-purple-600 stroke-purple-600'
 	},
 	table: {
-		base: 'border-gray-200 w-full border-collapse border',
-		container: 'my-4 flex flex-col space-y-2'
+		base: 'border-gray-200 w-full border-collapse border'
 	},
 	thead: {
 		base: 'bg-gray-100/80'
@@ -116,14 +117,8 @@ export const theme = {
 	em: {
 		base: 'font-italic'
 	},
-	ins: {
-		base: 'underline'
-	},
 	del: {
 		base: 'line-through'
-	},
-	small: {
-		base: 'text-sm'
 	}
 } satisfies Record<keyof Snippets, any>;
 

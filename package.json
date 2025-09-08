@@ -76,6 +76,7 @@
 		"mdast": "^3.0.0",
 		"mdast-squeeze-paragraphs": "^6.0.0",
 		"mermaid": "^11.11.0",
+		"panzoom": "^9.4.3",
 		"react-markdown": "^10.1.0",
 		"rehype-github-alerts": "^4.1.1",
 		"rehype-katex": "^7.0.1",

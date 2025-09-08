@@ -5,6 +5,16 @@
 -------
 # Hello
 
+
+
+\`\`\`mermaid
+
+graph TD
+    A[Start] --> B[Stop]
+    C[Continue] --> D[End]
+\`\`\`
+
+
 \`\`\`svelte
 <div class={streamdown.theme.code.container} data-code-block-container data-language={language}>
 	<div class={streamdown.theme.code.header} data-code-block-header data-language={language}>
@@ -155,7 +165,7 @@
 			}}
 			{shikiTheme}
 			allowedLinkPrefixes={['*']}
-			content={source}
+			{content}
 		/>
 	</div>
 </div>

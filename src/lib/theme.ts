@@ -118,7 +118,7 @@ export const theme = {
 		base: ''
 	},
 	em: {
-		base: 'font-italic'
+		base: 'italic'
 	},
 	del: {
 		base: 'line-through'

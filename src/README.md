@@ -2,7 +2,29 @@
 
 [![npm version](https://badge.fury.io/js/svelte-streamdown.svg)](https://badge.fury.io/js/svelte-streamdown)
 
-A **Svelte port** of [Streamdown](https://streamdown.ai/) by Vercel - an all markdown renderer, designed specifically for AI-powered streaming applications.
+A **Svelte port** of [Streamdown](https://streamdown.ai/) by Vercel - an all in one markdown renderer, designed specifically for AI-powered streaming applications.
+
+## 📦 Installation
+
+```bash
+npm install svelte-streamdown
+# or
+pnpm add svelte-streamdown
+# or
+yarn add svelte-streamdown
+```
+
+### Tailwind CSS Setup
+
+Streamdown comes with **built-in Tailwind CSS classes** for beautiful default styling. To ensure all styles are included in your build, add the following to your `app.css` or main CSS file:
+
+```css
+@import 'tailwindcss';
+/* Add Streamdown styles to your Tailwind build */
+@source "../node_modules/svelte-streamdown/**/*";
+```
+
+This ensures that all Streamdown's default styling is included in your Tailwind build process.
 
 ## 🚀 Overview
 
@@ -20,18 +42,14 @@ Beautiful, responsive typography with **built-in Tailwind CSS classes** for head
 
 Full support for GitHub Flavored Markdown including:
 
-- Task lists
 - Tables
 - Strikethrough text
-- Autolinks
-- Footnotes
+- Alerts
 
 ### 💻 Interactive Code Blocks
 
 - Syntax highlighting powered by Shiki
 - Copy-to-clipboard functionality
-- Hover-to-reveal copy button
-- Support for light and dark themes
 
 ### 🔢 Mathematical Expressions
 
@@ -46,7 +64,8 @@ LaTeX math support through KaTeX:
 - Render Mermaid diagrams from code blocks
 - **Incremental rendering** during streaming content
 - Click-to-render functionality for streaming content
-- Static diagram visualization (non-interactive)
+- Static diagram visualization
+- Pan-zoomable
 
 ### 🔄 Streaming-Optimized
 
@@ -67,47 +86,6 @@ LaTeX math support through KaTeX:
 - Override default styling and behavior for any markdown element
 - Full control over rendering with type-safe props
 - Seamless integration with your design system
-
-## 🔄 Differences from Original React Version
-
-This Svelte port maintains feature parity with the original [Streamdown](https://streamdown.ai/) while adapting to Svelte's patterns:
-
-| Aspect            | Original (React) | Svelte Port               |
-| ----------------- | ---------------- | ------------------------- |
-| **Framework**     | React            | Svelte 5                  |
-| **Component API** | JSX Components   | Svelte Snippets           |
-| **Styling**       | Tailwind CSS     | Tailwind CSS (compatible) |
-| **Context**       | React Context    | Svelte Context            |
-| **Build System**  | Vite/React       | Vite/SvelteKit            |
-| **TypeScript**    | Full TS support  | Full TS support           |
-
-## 📦 Installation
-
-```bash
-npm install svelte-streamdown
-# or
-pnpm add svelte-streamdown
-# or
-yarn add svelte-streamdown
-```
-
-### Peer Dependencies
-
-```bash
-npm install svelte@^5.0.0
-```
-
-### Tailwind CSS Setup
-
-Streamdown comes with **built-in Tailwind CSS classes** for beautiful default styling. To ensure all styles are included in your build, add the following to your `app.css` or main CSS file:
-
-```css
-@import 'tailwindcss';
-/* Add Streamdown styles to your Tailwind build */
-@source "../node_modules/svelte-streamdown/**/*";
-```
-
-This ensures that all Streamdown's default styling is included in your Tailwind build process.
 
 ## 🚀 Quick Start
 

@@ -54,6 +54,7 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 
 	let node: HTMLElement | SVGSVGElement | null = null; // element we transform
 	let eventTarget: HTMLElement | null = null; // element we listen on (parent container if available)
+	let createdWrapper: HTMLElement | null = null; // wrapper we created if no parent existed
 	const listeners = new Set<() => void>();
 
 	// drag state
@@ -93,6 +94,16 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 			placeholderEl.remove();
 			placeholderEl = null;
 		}
+		if (createdWrapper) {
+			// Move node back out of wrapper before removing wrapper
+			if (node && createdWrapper.parentElement) {
+				createdWrapper.parentElement.insertBefore(node, createdWrapper);
+			}
+			createdWrapper.remove();
+			createdWrapper = null;
+		}
+		if (dragOffMove) dragOffMove();
+		if (dragOffUp) dragOffUp();
 	});
 
 	function normalize() {
@@ -188,6 +199,9 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 		dragOffUp = () => window.removeEventListener('mouseup', endDrag as any);
 		window.addEventListener('mousemove', onDragMove as any, { passive: false });
 		window.addEventListener('mouseup', endDrag as any, { passive: true });
+
+		listeners.add(dragOffMove);
+		listeners.add(dragOffUp);
 	}
 
 	function onDragMove(e: MouseEvent) {
@@ -204,8 +218,14 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 	function endDrag() {
 		dragging = false;
 		if (node) (node as HTMLElement).style.cursor = 'grab';
-		if (dragOffMove) dragOffMove();
-		if (dragOffUp) dragOffUp();
+		if (dragOffMove) {
+			dragOffMove();
+			listeners.delete(dragOffMove);
+		}
+		if (dragOffUp) {
+			dragOffUp();
+			listeners.delete(dragOffUp);
+		}
 		dragOffMove = dragOffUp = null;
 	}
 
@@ -280,16 +300,46 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 		}
 	}
 
-	function internalAttach(target: SVGSVGElement) {
+	function internalAttach(target: HTMLElement | SVGSVGElement) {
 		console.log('internalAttach', target);
 		return untrack(() => {
 			node = target;
 
-			// For SVG, listen on the parent to keep a constant interaction surface.
-			// For non-SVG, listen on the node itself.
+			// Ensure eventTarget and node are different elements to avoid FLIP conflicts
 			const isSVG = typeof SVGSVGElement !== 'undefined' && target instanceof SVGSVGElement;
-			eventTarget = (isSVG ? target.parentElement : target) as HTMLElement | null;
-			if (!eventTarget) eventTarget = target as unknown as HTMLElement;
+
+			if (isSVG) {
+				// For SVG, prefer parent element
+				eventTarget = target.parentElement as HTMLElement | null;
+			} else {
+				// For non-SVG, try to use parent element when available
+				const parent = target.parentElement;
+				if (parent && parent instanceof HTMLElement) {
+					eventTarget = parent;
+				} else {
+					// No suitable parent - create wrapper to ensure separation
+					const wrapper = document.createElement('div');
+					wrapper.style.cssText = `
+						display: contents;
+						contain: layout style;
+					`
+						.replace(/\s+/g, ' ')
+						.trim();
+
+					// Insert wrapper and move target into it
+					if (target.parentElement) {
+						target.parentElement.insertBefore(wrapper, target);
+					}
+					wrapper.appendChild(target);
+					eventTarget = wrapper;
+					createdWrapper = wrapper;
+				}
+			}
+
+			// Final fallback if no eventTarget was established
+			if (!eventTarget) {
+				eventTarget = target as HTMLElement;
+			}
 			apply();
 			// helper to add and track listeners with options
 			const add = <K extends keyof HTMLElementEventMap>(
@@ -338,6 +388,16 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 				// run all listeners and clear
 				listeners.forEach((off) => off());
 				listeners.clear();
+
+				// Clean up created wrapper if it exists
+				if (createdWrapper) {
+					// Move node back out of wrapper before removing wrapper
+					if (node && createdWrapper.parentElement) {
+						createdWrapper.parentElement.insertBefore(node, createdWrapper);
+					}
+					createdWrapper.remove();
+					createdWrapper = null;
+				}
 			};
 		});
 	}
@@ -349,13 +409,14 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 			duration: o.duration ?? 250,
 			easing: o.easing ?? 'cubic-bezier(0.2, 0.0, 0.0, 1.0)',
 			zIndex: o.zIndex ?? 2147483647,
-			fitRatio: o.fitRatio ?? 0.05
+			fitRatio: Math.min(0.49, Math.max(0, o.fitRatio ?? 0.05))
 		};
 	}
 
 	async function expand(options?: ExpandOptions | number): Promise<void> {
 		if (!node) return;
-		const target = (eventTarget ?? node.parentElement) as HTMLElement | null;
+		// Use eventTarget for expand/collapse transforms, node for content transforms
+		const target = eventTarget as HTMLElement | null;
 		if (!target) return;
 		if (isExpanded || animating) return;
 		const { padding, duration, easing, zIndex, fitRatio } = toExpandOptions(options);
@@ -453,7 +514,8 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 
 	async function collapse(options?: ExpandOptions): Promise<void> {
 		if (!node) return;
-		const target = (eventTarget ?? node.parentElement) as HTMLElement | null;
+		// Use eventTarget for expand/collapse transforms, node for content transforms
+		const target = eventTarget as HTMLElement | null;
 		if (!target) return;
 		if (!isExpanded || animating) return;
 		const { duration, easing, fitRatio } = toExpandOptions(options);

@@ -105,8 +105,11 @@ export const theme = {
 		base: 'font-semibold'
 	},
 	mermaid: {
-		base: 'group relative my-4 h-auto rounded-xl border border-gray-200 overflow-hidden items-center min-h-[500px]',
-		downloadButton: 'cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900'
+		base: 'group relative my-4 h-auto rounded-xl border border-gray-200 bg-white overflow-hidden items-center min-h-[500px]',
+		downloadButton: 'cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900',
+		button:
+			'cursor-pointer size-8 p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100',
+		icon: 'size-5'
 	},
 	math: {
 		base: ''

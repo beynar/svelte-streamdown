@@ -5,7 +5,6 @@
 		extends Omit<StreamdownProps, keyof Snippets | 'class' | 'theme' | 'shikiTheme'> {
 		snippets: Snippets;
 		shikiTheme: BundledTheme;
-		// make it non optional
 		theme: Theme;
 	}
 	export class StreamdownContext {

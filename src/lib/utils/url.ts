@@ -1,5 +1,3 @@
-import type { Components, Options } from 'react-markdown';
-
 export const parseUrl = (url: unknown, defaultOrigin?: string): URL | null => {
 	if (typeof url !== 'string') return null;
 	try {

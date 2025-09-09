@@ -1,5 +1,7 @@
 import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
 import { type BundledLanguage, type BundledTheme, createHighlighter } from 'shiki';
+import { SvelteMap } from 'svelte/reactivity';
+
 // Remove background styles from <pre> tags (inline style)
 const removePreBackground = (html: string) => {
 	return html.replace(/<pre[^>]*style="[^"]*background[^";]*;?[^"]*"[^>]*>/g, (match) =>
@@ -7,96 +9,115 @@ const removePreBackground = (html: string) => {
 	);
 };
 
+type HighlighterState = {
+	highlighter: Awaited<ReturnType<typeof createHighlighter>>;
+	theme: BundledTheme;
+	languages: Set<BundledLanguage>;
+};
+
 class HighlighterManager {
 	initialized = $state(false);
-	initializedPromise = $state<Promise<void> | null>(null);
-	private highlighter: Awaited<ReturnType<typeof createHighlighter>> | null = null;
-	private theme: BundledTheme | null = null;
-	private readonly loadedLanguages: Set<BundledLanguage> = new Set();
-	private initializationPromise: Promise<void> | null = null;
-	private readyStates = new Map<string, boolean>();
+	private state: HighlighterState | null = null;
+	private readonly preloadedThemes = new Set<BundledTheme>();
+	private readonly readyCache = new SvelteMap<string, boolean>();
+	initPromise: Promise<void> | null = $state(null);
 
-	private getReadyKey(theme: BundledTheme, language: BundledLanguage): string {
-		return `${theme}-${language}`;
+	private getCacheKey(theme: BundledTheme, language: BundledLanguage): string {
+		return `${theme}:${language}`;
 	}
 
 	isLoaded(theme: BundledTheme, language: BundledLanguage): boolean {
-		return this.readyStates.get(this.getReadyKey(theme, language)) || false;
+		return this.readyCache.get(this.getCacheKey(theme, language)) ?? false;
 	}
 
 	/**
-	 * Prepares the highlighter for the given themes and language.
-	 * This method must be called and awaited before using highlightCode.
+	 * Preloads themes by creating minimal highlighter instances.
+	 * This reduces flickering when switching themes.
+	 */
+	async preloadThemes(themes: BundledTheme[]): Promise<void> {
+		const promises = themes
+			.filter((theme) => !this.preloadedThemes.has(theme))
+			.map(async (theme) => {
+				try {
+					// Create minimal highlighter just to load theme assets
+					const preloader = await createHighlighter({
+						themes: [theme],
+						langs: ['javascript'], // Minimal language for preloading
+						engine: createJavaScriptRegexEngine({ forgiving: true })
+					});
+					preloader.dispose();
+					this.preloadedThemes.add(theme);
+				} catch (error) {
+					console.warn(`Failed to preload theme ${theme}:`, error);
+				}
+			});
+
+		await Promise.all(promises);
+	}
+
+	/**
+	 * Ensures the highlighter is ready for the given theme and language.
 	 */
 	async isReady(theme: BundledTheme, language: BundledLanguage): Promise<void> {
-		const readyKey = this.getReadyKey(theme, language);
+		const cacheKey = this.getCacheKey(theme, language);
 
-		// If already ready for this combination, return immediately
-		if (this.readyStates.get(readyKey)) {
+		// Return immediately if already ready
+		if (this.readyCache.get(cacheKey)) {
 			return;
 		}
 
-		// Ensure only one initialization happens at a time
-		if (this.initializationPromise) {
-			await this.initializationPromise;
+		// Wait for any ongoing initialization
+		if (this.initPromise) {
+			await this.initPromise;
 		}
 
-		// Check again after waiting, in case another call initialized it
-		if (this.readyStates.get(readyKey)) {
+		// Check again after waiting
+		if (this.readyCache.get(cacheKey)) {
 			return;
 		}
 
-		// Initialize for this combination
-		this.initializationPromise = this.ensureHighlightersInitialized(theme, language);
-		await this.initializationPromise;
-		this.initializationPromise = null;
-
-		// Mark as ready
-		this.readyStates.set(readyKey, true);
+		// Initialize the highlighter
+		this.initPromise = this.initialize(theme, language);
+		await this.initPromise;
+		this.readyCache.set(cacheKey, true);
 		this.initialized = true;
+		this.initPromise = null;
 	}
 
-	private async ensureHighlightersInitialized(
-		theme: BundledTheme,
-		language: BundledLanguage
-	): Promise<void> {
-		const jsEngine = createJavaScriptRegexEngine({ forgiving: true });
+	private async initialize(theme: BundledTheme, language: BundledLanguage): Promise<void> {
+		const needsNewHighlighter = !this.state || this.state.theme !== theme;
 
-		// Check if we need to recreate highlighters due to theme change
-		const needsLightRecreation = !this.highlighter || this.theme !== theme;
+		if (needsNewHighlighter) {
+			// Dispose old highlighter if it exists
+			this.state?.highlighter.dispose();
 
-		if (needsLightRecreation) {
-			// If themes changed, reset loaded languages and ready states
-			this.loadedLanguages.clear();
-			this.readyStates.clear();
-		}
+			// Clear cache when theme changes
+			this.readyCache.clear();
 
-		// Check if we need to load the language
-		const needsLanguageLoad = !this.loadedLanguages.has(language);
-
-		// Create or recreate light highlighter if needed
-		if (needsLightRecreation) {
-			this.highlighter = await createHighlighter({
+			// Create new highlighter with the theme
+			const highlighter = await createHighlighter({
 				themes: [theme],
 				langs: [language],
-				engine: jsEngine
+				engine: createJavaScriptRegexEngine({ forgiving: true })
 			});
-			this.theme = theme;
-			this.loadedLanguages.add(language);
-		} else if (needsLanguageLoad) {
-			// Load the language if not already loaded
-			await this.highlighter?.loadLanguage(language);
-		}
 
-		// Mark language as loaded after both highlighters have it
-		if (needsLanguageLoad) {
-			this.loadedLanguages.add(language);
+			this.state = {
+				highlighter,
+				theme,
+				languages: new Set([language])
+			};
+
+			// Mark theme as preloaded since we now have it
+			this.preloadedThemes.add(theme);
+		} else if (this.state && !this.state.languages.has(language)) {
+			// Add language to existing highlighter
+			await this.state.highlighter.loadLanguage(language);
+			this.state.languages.add(language);
 		}
 	}
 
 	/**
-	 * Synchronously highlights code. Must call isReady() first for the same themes and language.
-	 * @throws {Error} If isReady() hasn't been called for this combination of themes and language
+	 * Highlights code synchronously. Must call isReady() first.
 	 */
 	highlightCode(
 		code: string,
@@ -104,36 +125,43 @@ class HighlighterManager {
 		theme: BundledTheme,
 		preClassName?: string
 	): string {
-		const readyKey = this.getReadyKey(theme, language);
-
-		// Ensure isReady was called first
-		if (!this.readyStates.get(readyKey)) {
+		if (!this.isLoaded(theme, language)) {
 			throw new Error(
-				`Highlighter not ready for themes [${theme}] and language "${language}". ` +
+				`Highlighter not ready for theme "${theme}" and language "${language}". ` +
 					`Call await highlighter.isReady(theme, language) first.`
 			);
 		}
 
-		// Ensure highlighters exist
-		if (!this.highlighter) {
+		if (!this.state) {
 			throw new Error(
-				'Highlighters not initialized. This should not happen after calling isReady().'
+				'Highlighter not initialized. This should not happen after calling isReady().'
 			);
 		}
 
-		const addPreClass = (html: string) => {
-			if (!preClassName) {
-				return html;
-			}
-			return html.replace(/<pre(\s|>)/, `<pre class="${preClassName}"$1`);
-		};
-
-		const light = this.highlighter.codeToHtml(code, {
+		let html = this.state.highlighter.codeToHtml(code, {
 			lang: language,
 			theme: theme
 		});
 
-		return removePreBackground(addPreClass(light));
+		// Remove background and add custom class if needed
+		html = removePreBackground(html);
+
+		if (preClassName) {
+			html = html.replace(/<pre(\s|>)/, `<pre class="${preClassName}"$1`);
+		}
+
+		return html;
+	}
+
+	/**
+	 * Clean up resources
+	 */
+	dispose(): void {
+		this.state?.highlighter.dispose();
+		this.state = null;
+		this.readyCache.clear();
+		this.preloadedThemes.clear();
+		this.initialized = false;
 	}
 }
 

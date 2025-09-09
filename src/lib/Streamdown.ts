@@ -90,6 +90,7 @@ export type StreamdownProps = {
 	baseTheme?: 'tailwind' | 'shadcn';
 	mergeTheme?: boolean;
 	shikiTheme?: BundledTheme;
+	shikiPreloadThemes?: BundledTheme[];
 	mermaidConfig?: MermaidConfig;
 	katexConfig?: KatexOptions | ((inline: boolean) => KatexOptions);
 

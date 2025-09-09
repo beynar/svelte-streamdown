@@ -143,6 +143,7 @@
 				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
 			}}
 			shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
+			shikiPreloadThemes={['github-dark', 'github-light']}
 			allowedLinkPrefixes={['*']}
 			{content}
 		/>

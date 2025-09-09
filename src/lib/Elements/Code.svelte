@@ -36,6 +36,10 @@
 			console.error('Failed to download file:', error);
 		}
 	};
+
+	$effect(() => {
+		highlighter.isReady(theme, language as any);
+	});
 </script>
 
 <div
@@ -63,7 +67,7 @@
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
 		<div>
-			{#snippet code()}
+			{#if highlighter.isLoaded(theme, language as any)}
 				{@const code = highlighter.highlightCode(
 					codeContent,
 					language as any,
@@ -71,18 +75,9 @@
 					streamdown.theme.code.pre
 				)}
 				{@html code}
-			{/snippet}
-			{#key theme}
-				{#if highlighter.isLoaded(theme, language as any)}
-					{@render code()}
-				{:else}
-					{#await highlighter.isReady(theme, language as any)}
-						{@render Skeleton()}
-					{:then}
-						{@render code()}
-					{/await}
-				{/if}
-			{/key}
+			{:else}
+				{@render Skeleton()}
+			{/if}
 		</div>
 	</div>
 </div>

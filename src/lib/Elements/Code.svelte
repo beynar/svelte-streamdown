@@ -12,7 +12,7 @@
 	let { node, className, props }: ElementProps = $props();
 
 	const streamdown = useStreamdown();
-	const themes = $derived(streamdown.shikiTheme);
+	const theme = $derived(streamdown.shikiTheme);
 	let codeContent = $derived((node.children[0] as any).value);
 	const language = $derived(node.properties.language as string);
 	const copy = useCopy({
@@ -63,32 +63,43 @@
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
 		<div>
-			{#await highlighter.isReady(themes, language as any)}
-				{@render Skeleton()}
-			{:then}
+			{#snippet code()}
 				{@const code = highlighter.highlightCode(
 					codeContent,
 					language as any,
-					themes,
+					theme,
 					streamdown.theme.code.pre
 				)}
 				{@html code}
-			{/await}
+			{/snippet}
+			{#key theme}
+				{#if highlighter.isLoaded(theme, language as any)}
+					{@render code()}
+				{:else}
+					{#await highlighter.isReady(theme, language as any)}
+						{@render Skeleton()}
+					{:then}
+						{@render code()}
+					{/await}
+				{/if}
+			{/key}
 		</div>
 	</div>
 </div>
 
+<!-- Need to improve this -->
 {#snippet Skeleton()}
 	{@const lines = codeContent.split('\n')}
 	<!--  -->
-	<pre class={streamdown.theme.code.pre}><!--  -->
-<!--  --><code
-			><!--  -->{#each lines as line}<!--  --><span class={streamdown.theme.code.skeleton}
-					>{line}</span
-				><!--  -->
-<!--  -->{/each}<!--  --></code
-		><!--  -->
-						</pre>
+
+	<!--  --><code
+		class={streamdown.theme.code.pre}
+		style="height: fit-content; width: 100%; display: flex; flex-direction: column;"
+		><!--  -->{#each lines as line}<!--  --><span class={streamdown.theme.code.skeleton}
+				>{line}</span
+			><!--  -->
+			<!--  -->{/each}<!--  --></code
+	><!--  -->
 {/snippet}
 {#snippet copyIcon()}
 	<svg

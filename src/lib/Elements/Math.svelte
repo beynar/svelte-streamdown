@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy } from 'svelte';
+	import { onMount, onDestroy, untrack } from 'svelte';
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import { clsx } from 'clsx';
 	import type { ElementProps } from './element.js';
@@ -8,35 +8,29 @@
 	import 'katex/dist/katex.min.css';
 	const streamdown = useStreamdown();
 	const { children, node, className, props }: ElementProps = $props();
-	const code = $derived((node.children[0] as any).value as string);
-	const isInline = className?.includes('inline') ?? false;
-	let katex = $state<typeof import('katex').renderToString | null>(null);
-	onMount(async () => {
-		katex = (await import('katex')).renderToString;
-	});
+	const isInline = className?.some?.((c: string) => c.includes('inline')) ?? false;
 
-	const renderMath = async (code: string, element: HTMLElement) => {
-		console.log({ code, node });
+	import katex from 'katex';
 
-		if (!katex || !code) return;
+	let inner = $state<HTMLElement | null>(null);
+	const html = $derived.by(() => {
+		const config: KatexOptions = {
+			output: 'html',
+			displayMode: !isInline,
+			...(typeof streamdown.katexConfig === 'function'
+				? streamdown.katexConfig(isInline)
+				: streamdown.katexConfig || {})
+		};
+		const code = (node.children[0] as any).value as string;
 		try {
-			const customConfig =
-				typeof streamdown.katexConfig === 'function'
-					? streamdown.katexConfig(isInline)
-					: streamdown.katexConfig;
-			// Default configuration
-			const config: KatexOptions = {
-				output: 'html',
-				displayMode: !isInline,
-				...(customConfig || {})
-			};
-
-			const html = katex(code, config);
-			element.innerHTML = html.toString();
-		} catch (err) {
-			// Do nothing
+			return katex.renderToString(code, config);
+		} catch (error) {
+			console.log('Failed to render math:', error);
+			return untrack(() => {
+				return inner?.innerHTML || '';
+			});
 		}
-	};
+	});
 </script>
 
 <Slot
@@ -47,27 +41,17 @@
 	}}
 	render={streamdown.snippets.math}
 >
-	{#if katex}
-		{#if isInline}
-			<span
-				{...props}
-				class={clsx(streamdown.theme.math.base, className)}
-				{@attach (node) => renderMath(code, node)}
-			>
-				<!--  -->
-			</span>
-		{:else}
-			<div class="h-fit w-full">
-				<div class="overflow-x-auto">
-					<div
-						{...props}
-						class={clsx(streamdown.theme.math.base, className)}
-						{@attach (node) => renderMath(code, node)}
-					></div>
+	{#if isInline}
+		<span bind:this={inner} {...props} class={clsx(streamdown.theme.inlineMath.base, className)}>
+			{@html html}
+		</span>
+	{:else}
+		<div class="h-fit w-full">
+			<div class="overflow-x-auto">
+				<div bind:this={inner} {...props} class={clsx(streamdown.theme.math.base, className)}>
+					{@html html}
 				</div>
 			</div>
-		{/if}
-	{:else}
-		<div {...props} class={clsx(streamdown.theme.math.base, className)}></div>
+		</div>
 	{/if}
 </Slot>

@@ -20,6 +20,10 @@ class HighlighterManager {
 		return `${theme}-${language}`;
 	}
 
+	isLoaded(theme: BundledTheme, language: BundledLanguage): boolean {
+		return this.readyStates.get(this.getReadyKey(theme, language)) || false;
+	}
+
 	/**
 	 * Prepares the highlighter for the given themes and language.
 	 * This method must be called and awaited before using highlightCode.

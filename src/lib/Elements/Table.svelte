@@ -17,8 +17,8 @@
 	}}
 	render={streamdown.snippets.table}
 >
-	<div class={clsx(streamdown.theme.table.base, className)} {...props}>
-		<table>
+	<div class={clsx(streamdown.theme.table.base, className)}>
+		<table class={streamdown.theme.table.table} {...props}>
 			{@render children()}
 		</table>
 	</div>

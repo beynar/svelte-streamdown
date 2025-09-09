@@ -10,6 +10,8 @@
 		children
 	}: { node: Element; props: any; className: any; type: string; children: Snippet } = $props();
 
+	const streamdown = useStreamdown();
+
 	// Import all element components
 	import A from './A.svelte';
 	import Blockquote from './Blockquote.svelte';
@@ -41,6 +43,8 @@
 	import Em from './Em.svelte';
 	import Del from './Del.svelte';
 	import Alert from './Alert.svelte';
+	import { useStreamdown } from '$lib/Streamdown.svelte';
+	import { type ElementProps } from './element.js';
 </script>
 
 {#if type === 'a'}
@@ -115,6 +119,12 @@
 {:else if type === 'alert'}
 	<Alert {props} {className} {children} {node} />
 {:else}
+	{@const snippet = streamdown.customElements?.[type] as Snippet<[ElementProps]> | undefined}
+	{#if snippet}
+		{@render streamdown.customElements?.[type]({ props, className, children, node })}
+	{:else}
+		{@render children?.()}
+	{/if}
+
 	<!-- Fallback for unsupported elements -->
-	{@render children?.()}
 {/if}

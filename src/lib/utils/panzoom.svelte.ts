@@ -1,4 +1,4 @@
-import { onDestroy, tick, untrack } from 'svelte';
+import { onDestroy, untrack } from 'svelte';
 
 // Minimal pan/zoom utility for Svelte (DOM or SVG root)
 // - Uses CSS transforms with origin at (0,0)
@@ -25,8 +25,8 @@ export interface PanzoomInstance {
 	zoomOut: (factor?: number) => void;
 	moveBy: (dx: number, dy: number) => void;
 	setTransform: (x: number, y: number, scale: number) => void;
-	expand: (options?: ExpandOptions | number) => Promise<void>;
-	collapse: (options?: ExpandOptions) => Promise<void>;
+	expand: () => void;
+	collapse: () => void;
 	toggleExpand: (options?: ExpandOptions | number) => Promise<void>;
 	readonly expanded: boolean;
 	readonly transform: Readonly<{ x: number; y: number; scale: number }>;
@@ -63,7 +63,7 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 	let lastClientY = 0;
 	let dragOffMove: (() => void) | null = null;
 	let dragOffUp: (() => void) | null = null;
-
+	let previousStyle: string | null = null;
 	// touch state
 	let touchMode: 'none' | 'pan' | 'pinch' = 'none';
 	let pinchDistance = 0;
@@ -175,6 +175,24 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 	}
 
 	function onDblClick(e: MouseEvent) {
+		// Ignore dblclicks that originate outside of the pan/zoom content (the node)
+		const t = e.target as Element | null;
+		if (node && t && !(t === (node as Element) || (node as Element).contains(t))) {
+			return; // likely UI control inside container; don't zoom
+		}
+		// Ignore dblclicks on interactive elements or those explicitly marked to ignore
+		const isInteractive = (el: Element) => {
+			const tag = el.tagName.toLowerCase();
+			return (
+				el.closest('[data-panzoom-ignore]') !== null ||
+				['button', 'a', 'input', 'textarea', 'select', 'label', 'summary', 'details'].includes(
+					tag
+				) ||
+				(el as HTMLElement).isContentEditable
+			);
+		};
+		if (t && isInteractive(t)) return;
+
 		e.preventDefault();
 		// Anchor double-click zoom at parent center to avoid shifts on rapid clicks
 		const baseEl = (eventTarget ?? node?.parentElement ?? (node as HTMLElement)) as HTMLElement;
@@ -301,7 +319,6 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 	}
 
 	function internalAttach(target: HTMLElement | SVGSVGElement) {
-		console.log('internalAttach', target);
 		return untrack(() => {
 			node = target;
 
@@ -402,194 +419,53 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 		});
 	}
 
-	function toExpandOptions(options?: ExpandOptions | number): Required<ExpandOptions> {
-		const o = typeof options === 'number' ? { padding: options } : options || {};
-		return {
-			padding: o.padding ?? 16,
-			duration: o.duration ?? 250,
-			easing: o.easing ?? 'cubic-bezier(0.2, 0.0, 0.0, 1.0)',
-			zIndex: o.zIndex ?? 2147483647,
-			fitRatio: Math.min(0.49, Math.max(0, o.fitRatio ?? 0.05))
-		};
-	}
+	const collapse = () => {
+		if (!eventTarget) return;
 
-	async function expand(options?: ExpandOptions | number): Promise<void> {
-		if (!node) return;
-		// Use eventTarget for expand/collapse transforms, node for content transforms
-		const target = eventTarget as HTMLElement | null;
-		if (!target) return;
-		if (isExpanded || animating) return;
-		const { padding, duration, easing, zIndex, fitRatio } = toExpandOptions(options);
+		// Add view transition name for CSS targeting
+		eventTarget.style.viewTransitionName = 'panzoom-element';
 
-		animating = true;
-		// FIRST (container + child)
-		const first = target.getBoundingClientRect();
-		// save previous inline styles and child's transform
-		const prevCssText = target.style.cssText;
-		const prevChild = { x, y, scale };
-		const childFirstRect = node.getBoundingClientRect();
-		const naturalWidth = childFirstRect.width / (scale || 1);
-		const naturalHeight = childFirstRect.height / (scale || 1);
-
-		// Insert placeholder to prevent layout shift while element is fixed
-		const cs = getComputedStyle(target);
-		placeholderEl = document.createElement('div');
-		placeholderEl.setAttribute('aria-hidden', 'true');
-		placeholderEl.style.display = cs.display === 'inline' ? 'inline-block' : 'block';
-		placeholderEl.style.width = `${first.width}px`;
-		placeholderEl.style.height = `${first.height}px`;
-		placeholderEl.style.margin = cs.margin;
-		placeholderEl.style.boxSizing = 'border-box';
-		placeholderEl.style.padding = '0';
-		placeholderEl.style.border = '0';
-		placeholderEl.style.pointerEvents = 'none';
-		placeholderEl.style.visibility = 'hidden';
-		target.parentElement?.insertBefore(placeholderEl, target.nextSibling);
-
-		// Apply LAST (final expanded) styles
-		target.style.position = 'fixed';
-		target.style.top = `${padding}px`;
-		target.style.left = `${padding}px`;
-		target.style.width = `calc(100vw - ${2 * padding}px)`;
-		target.style.height = `calc(100vh - ${2 * padding}px)`;
-		target.style.zIndex = String(zIndex);
-		target.style.margin = '0';
-		target.style.right = '';
-		target.style.bottom = '';
-		target.style.overflow = 'hidden';
-		target.style.transformOrigin = '0 0';
-
-		const last = target.getBoundingClientRect();
-		const dx = first.left - last.left;
-		const dy = first.top - last.top;
-		const sx = first.width / (last.width || 1);
-		const sy = first.height / (last.height || 1);
-
-		// INVERT
-		target.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
-		// PLAY
-		// force reflow
-		void target.getBoundingClientRect();
-		// compute child's final fit transform for expanded container size
-		const targetWidth = last.width * (1 - 2 * fitRatio);
-		const targetHeight = last.height * (1 - 2 * fitRatio);
-		const finalScale = clampScale(
-			Math.min(targetWidth / naturalWidth, targetHeight / naturalHeight)
-		);
-		const finalX = (last.width - naturalWidth * finalScale) / 2;
-		const finalY = (last.height - naturalHeight * finalScale) / 2;
-
-		// animate container and child simultaneously
-		target.style.transition = `transform ${duration}ms ${easing}`;
-		(node as HTMLElement).style.transition = `transform ${duration}ms ${easing}`;
-		// trigger animation to final states
-		target.style.transform = '';
-		scale = finalScale;
-		x = finalX;
-		y = finalY;
-		apply();
-
-		await new Promise<void>((resolve) => {
-			let done = false;
-			const off = () => {
-				if (done) return;
-				done = true;
-				target.removeEventListener('transitionend', onEnd);
-				target.style.transition = '';
-				resolve();
-			};
-			const onEnd = (ev: Event) => {
-				if ((ev as TransitionEvent).propertyName === 'transform') off();
-			};
-			target.addEventListener('transitionend', onEnd);
-			setTimeout(off, duration + 50);
-		});
-
-		// cleanup transitions
-		(node as HTMLElement).style.transition = '';
-		expandedSnapshot = { prevCssText, child: prevChild };
-		isExpanded = true;
-		animating = false;
-	}
-
-	async function collapse(options?: ExpandOptions): Promise<void> {
-		if (!node) return;
-		// Use eventTarget for expand/collapse transforms, node for content transforms
-		const target = eventTarget as HTMLElement | null;
-		if (!target) return;
-		if (!isExpanded || animating) return;
-		const { duration, easing, fitRatio } = toExpandOptions(options);
-		const prev = expandedSnapshot?.prevCssText ?? '';
-		const prevChild = expandedSnapshot?.child ?? { x, y, scale };
-		animating = true;
-
-		// FIRST (expanded)
-		const first = target.getBoundingClientRect();
-
-		// Apply LAST (restore previous styles)
-		target.style.transition = '';
-		target.style.transform = '';
-		target.style.cssText = prev;
-
-		const last = target.getBoundingClientRect();
-		const dx = first.left - last.left;
-		const dy = first.top - last.top;
-		const sx = first.width / (last.width || 1);
-		const sy = first.height / (last.height || 1);
-
-		// INVERT: apply transform so it visually stays where it was
-		target.style.transformOrigin = '0 0';
-		target.style.transform = `translate(${dx}px, ${dy}px) scale(${sx}, ${sy})`;
-		// force reflow
-		void target.getBoundingClientRect();
-		// PLAY to identity
-		const prevZIndex = target.style.zIndex;
-		target.style.zIndex = '1000';
-		target.style.transition = `transform ${duration}ms ${easing}`;
-		(node as HTMLElement).style.transition = `transform ${duration}ms ${easing}`;
-		target.style.transform = '';
-		target.style.zIndex = prevZIndex;
-		// animate child back to previous transform
-		scale = prevChild.scale;
-		x = prevChild.x;
-		y = prevChild.y;
-
-		if (placeholderEl) {
-			placeholderEl.remove();
-			placeholderEl = null;
-		}
-		apply();
-
-		await new Promise<void>((resolve) => {
-			let done = false;
-			const off = () => {
-				if (done) return;
-				done = true;
-				target.removeEventListener('transitionend', onEnd);
-				target.style.transition = '';
-				resolve();
-			};
-			const onEnd = (ev: Event) => {
-				if ((ev as TransitionEvent).propertyName === 'transform') off();
-			};
-			target.addEventListener('transitionend', onEnd);
-			setTimeout(off, duration + 50);
-		});
-
-		(node as HTMLElement).style.transition = '';
-		(node as HTMLElement).style.transition = '';
-		// remove placeholder after collapse finishes
-
-		expandedSnapshot = null;
 		isExpanded = false;
-		animating = false;
-		// no auto-fit here; we restore previous transform smoothly
-	}
+		document
+			.startViewTransition(() => {
+				if (!eventTarget) return;
+				eventTarget.dataset.expanded = 'false';
+				zoomToFit();
+			})
+			.finished.finally(() => {
+				// Clean up view transition name
+				if (eventTarget) {
+					eventTarget.style.viewTransitionName = '';
+				}
+			});
+	};
 
-	async function toggleExpand(options?: ExpandOptions | number): Promise<void> {
+	const expand = () => {
+		if (!eventTarget) return;
+
+		// Add view transition name for CSS targeting
+		eventTarget.style.viewTransitionName = 'panzoom-element';
+		isExpanded = true;
+		document
+			.startViewTransition(() => {
+				if (!eventTarget) return;
+
+				eventTarget.dataset.expanded = 'true';
+
+				zoomToFit();
+			})
+			.finished.finally(() => {
+				// Clean up view transition name
+				if (eventTarget) {
+					eventTarget.style.viewTransitionName = '';
+				}
+			});
+	};
+
+	async function toggleExpand(): Promise<void> {
 		zoomToFit();
-		if (isExpanded) return collapse(options as ExpandOptions);
-		return expand(options);
+		if (isExpanded) return collapse();
+		return expand();
 	}
 
 	function zoomToFit(padding = 0.05) {

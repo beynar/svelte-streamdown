@@ -1,90 +1,35 @@
 <script lang="ts">
 	import Streamdown from '$lib/Streamdown.svelte';
-	const source = `
+	import { useTheme } from 'svelte-themes';
 
--------
-# Hello
+	let { data } = $props();
 
-
-
-\`\`\`mermaid
-
-graph TD
-    A[Start] --> B[Stop]
-    C[Continue] --> D[End]
-\`\`\`
-
-
-\`\`\`svelte
-<div class={streamdown.theme.code.container} data-code-block-container data-language={language}>
-	<div class={streamdown.theme.code.header} data-code-block-header data-language={language}>
-		<span class={streamdown.theme.code.language}>{language}</span>
-		<div class="flex items-center gap-2">
-			<!-- Download button snippet -->
-			<button
-				class={streamdown.theme.code.downloadButton}
-				onclick={downloadCode}
-				title="Download file"
-				type="button"
-			>
-				<span class="text-sm">⬇️</span>
-			</button>
-
-			<!-- Copy button snippet -->
-			<button class={streamdown.theme.code.copyButton} onclick={copy.copy} type="button">
-				<span class="text-sm">{copy.isCopied ? '✓' : '📋'}</span>
-			</button>
-		</div>
-	</div>
-	<div class="h-fit w-full">
-		<div class={streamdown.theme.code.base}>
-			{#await highlighter.isReady(themes, language)}
-				{@const lines = codeContent.split('\n')}
-				{#each lines as line}
-					<div
-						class={streamdown.theme.code.skeleton + ' ' + 'rounded-md font-mono text-transparent'}
-					>
-						{line}
-					</div>
-				{/each}
-			{:then}
-				{@const [light, dark] = highlighter.highlightCode(
-					codeContent,
-					language,
-					themes,
-					preClassName
-				)}
-				{@render renderCode('light', light)}
-				{@render renderCode('dark', dark)}
-			{/await}
-		</div>
-	</div>
-</div>
-\`\`\`
-`;
-
-	let content = $state('');
+	let content = $state(data.readme);
 	let isStreaming = $state(false);
 	let streamingProgress = $state(0);
+	let cancelRequested = $state(false);
 
 	const simulateStreaming = async () => {
 		if (isStreaming) return;
 
 		isStreaming = true;
+		cancelRequested = false;
 		content = '';
 		streamingProgress = 0;
 
 		// Split by words and whitespace/newlines for more realistic streaming
-		const tokens = source.split(/(\s+|\n+)/);
+		const tokens = data.readme.split(/(\s+|\n+)/);
 		const totalTokens = tokens.length;
 
 		for (let i = 0; i < tokens.length; i++) {
+			if (cancelRequested) break;
 			const token = tokens[i];
 			content += token;
+
 			streamingProgress = Math.round(((i + 1) / totalTokens) * 100);
 
 			// Calculate delay based on token type
-			let delay = 50; // Base delay for words
+			let delay = streamSpeed; // Base delay for words
 
 			// Add some randomness (±30ms) to make it feel more natural
 			delay += (Math.random() - 0.5) * 10;
@@ -93,13 +38,29 @@ graph TD
 			delay = Math.max(delay, 1);
 
 			await new Promise((resolve) => setTimeout(resolve, delay));
+
+			if (cancelRequested) {
+				break;
+			} else {
+				window.scrollTo({
+					top: document.body.scrollHeight
+				});
+			}
 		}
 
 		isStreaming = false;
-		streamingProgress = 100;
+		if (!cancelRequested) {
+			streamingProgress = 100;
+		}
+	};
+
+	const stopStreaming = () => {
+		if (!isStreaming) return;
+		cancelRequested = true;
 	};
 
 	let shikiTheme = $state('slack-ochin');
+	let streamSpeed = $state(2); // Default speed in milliseconds
 
 	const swapTheme = () => {
 		console.log('swapTheme');
@@ -110,60 +71,78 @@ graph TD
 	const swapMermaidTheme = () => {
 		mermaidTheme = mermaidTheme === 'dark' ? 'default' : 'dark';
 	};
+
+	const theme = useTheme();
 </script>
 
-<div class="mb-4 flex items-center gap-4">
+<div
+	class="sticky top-0 z-10 flex flex-wrap items-center gap-2 border-b border-dashed border-border bg-background/95 p-3 backdrop-blur supports-[backdrop-filter]:bg-background/60"
+>
 	<button
-		class="rounded bg-blue-600 px-4 py-2 text-white hover:bg-blue-700 disabled:opacity-50"
-		onclick={() => swapTheme()}
-		disabled={isStreaming}
+		class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+		onclick={() => (theme.theme = theme.resolvedTheme === 'dark' ? 'light' : 'dark')}
 	>
-		Swap Theme
+		{theme.resolvedTheme === 'dark' ? '☀️ Light' : '🌙 Dark'}
 	</button>
 	<button
-		class="rounded bg-green-600 px-4 py-2 text-white hover:bg-green-700 disabled:opacity-50"
+		class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
 		onclick={() => simulateStreaming()}
 		disabled={isStreaming}
 	>
-		{isStreaming ? `Streaming... ${streamingProgress}%` : 'Simulate Streaming'}
+		{isStreaming ? `⏳ ${streamingProgress}%` : '▶️ Stream'}
 	</button>
 	<button
-		class="rounded bg-gray-600 px-4 py-2 text-white hover:bg-gray-700 disabled:opacity-50"
-		onclick={() => {
-			content = source;
-		}}
-		disabled={isStreaming}
+		class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+		onclick={() => stopStreaming()}
+		disabled={!isStreaming}
 	>
-		Show All
+		⏹️ Stop
 	</button>
 	<button
-		class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
+		class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
 		onclick={() => {
-			swapMermaidTheme();
+			stopStreaming();
+			content = data.readme;
 		}}
-		disabled={isStreaming}
 	>
-		Swap Mermaid Theme
+		📄 Show All
 	</button>
 	<button
-		class="rounded bg-red-600 px-4 py-2 text-white hover:bg-red-700 disabled:opacity-50"
+		class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
 		onclick={() => {
+			stopStreaming();
 			content = '';
 		}}
-		disabled={isStreaming}
 	>
-		Clear
+		🗑️ Clear
 	</button>
-	<span class="text-sm text-gray-600">Theme: {shikiTheme}</span>
+
+	<div class="ml-4 flex items-center gap-2">
+		<label for="speed-slider" class="text-xs text-muted-foreground">Speed:</label>
+		<input
+			id="speed-slider"
+			type="range"
+			min="1"
+			max="50"
+			step="1"
+			bind:value={streamSpeed}
+			disabled={isStreaming}
+			class="h-2 w-20 cursor-pointer appearance-none rounded-lg bg-muted outline-none disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:bg-foreground [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:transition-colors hover:[&::-webkit-slider-thumb]:bg-foreground/80"
+		/>
+		<span class="w-8 text-xs text-muted-foreground">{streamSpeed}ms</span>
+	</div>
 </div>
 
-<div class="p-10">
-	<div class="mx-auto max-w-3xl rounded-md p-4 shadow">
+<div class="pr-10 pl-10">
+	<div
+		class="mx-auto max-w-4xl border border-t-0 border-dashed border-border px-4 pt-10 [&>h1]:mt-0"
+	>
 		<Streamdown
+			baseTheme="shadcn"
 			mermaidConfig={{
-				theme: mermaidTheme
+				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
 			}}
-			{shikiTheme}
+			shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
 			allowedLinkPrefixes={['*']}
 			{content}
 		/>

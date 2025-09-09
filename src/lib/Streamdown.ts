@@ -8,39 +8,41 @@ import type { MermaidConfig } from 'mermaid';
 import type { KatexOptions } from 'katex';
 import type { ElementProps } from './Elements/element.js';
 
+type PredefinedElements =
+	| 'a'
+	| 'h1'
+	| 'h2'
+	| 'h3'
+	| 'h4'
+	| 'h5'
+	| 'h6'
+	| 'p'
+	| 'code'
+	| 'inlineCode'
+	| 'img'
+	| 'ul'
+	| 'ol'
+	| 'li'
+	| 'hr'
+	| 'alert'
+	| 'strong'
+	| 'blockquote'
+	| 'table'
+	| 'thead'
+	| 'tbody'
+	| 'tr'
+	| 'th'
+	| 'td'
+	| 'sup'
+	| 'sub'
+	| 'pre'
+	| 'mermaid'
+	| 'math'
+	| 'inlineMath'
+	| 'em'
+	| 'del';
 export type Snippets = {
-	a?: Snippet<[ElementProps]>;
-	h1?: Snippet<[ElementProps]>;
-	h2?: Snippet<[ElementProps]>;
-	h3?: Snippet<[ElementProps]>;
-	h4?: Snippet<[ElementProps]>;
-	h5?: Snippet<[ElementProps]>;
-	h6?: Snippet<[ElementProps]>;
-	p?: Snippet<[ElementProps]>;
-	code?: Snippet<[ElementProps]>;
-	inlineCode?: Snippet<[ElementProps]>;
-	img?: Snippet<[ElementProps]>;
-	ul?: Snippet<[ElementProps]>;
-	ol?: Snippet<[ElementProps]>;
-	li?: Snippet<[ElementProps]>;
-	hr?: Snippet<[ElementProps]>;
-	alert?: Snippet<[ElementProps]>;
-	strong?: Snippet<[ElementProps]>;
-	blockquote?: Snippet<[ElementProps]>;
-	table?: Snippet<[ElementProps]>;
-	thead?: Snippet<[ElementProps]>;
-	tbody?: Snippet<[ElementProps]>;
-	tr?: Snippet<[ElementProps]>;
-	th?: Snippet<[ElementProps]>;
-	td?: Snippet<[ElementProps]>;
-	sup?: Snippet<[ElementProps]>;
-	sub?: Snippet<[ElementProps]>;
-	pre?: Snippet<[ElementProps]>;
-	mermaid?: Snippet<[ElementProps]>;
-	math?: Snippet<[ElementProps]>;
-	inlineMath?: Snippet<[ElementProps]>;
-	em?: Snippet<[ElementProps]>;
-	del?: Snippet<[ElementProps]>;
+	[K in PredefinedElements]?: Snippet<[ElementProps]>;
 };
 
 /**
@@ -85,6 +87,8 @@ export type StreamdownProps = {
 
 	// Theme
 	theme?: Partial<Theme>;
+	baseTheme?: 'tailwind' | 'shadcn';
+	mergeTheme?: boolean;
 	shikiTheme?: BundledTheme;
 	mermaidConfig?: MermaidConfig;
 	katexConfig?: KatexOptions | ((inline: boolean) => KatexOptions);
@@ -98,4 +102,5 @@ export type StreamdownProps = {
 			important?: string;
 		};
 	};
-} & Snippets;
+	customElements?: Record<string, Snippet<[ElementProps]>>;
+} & Partial<Snippets>;

@@ -84,6 +84,7 @@
 		"remark-parse": "^11.0.0",
 		"remark-rehype": "^11.1.2",
 		"shiki": "^3.12.2",
+		"svelte-themes": "^2.0.8",
 		"tailwind-merge": "^3.3.1",
 		"unified": "^11.0.5",
 		"unist-util-visit": "^5.0.0",

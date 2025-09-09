@@ -4,6 +4,16 @@
 
 A **Svelte port** of [Streamdown](https://streamdown.ai/) by Vercel - an all markdown renderer, designed specifically for AI-powered streaming applications.
 
+## 📦 Installation
+
+```bash
+npm install svelte-streamdown
+# or
+pnpm add svelte-streamdown
+# or
+yarn add svelte-streamdown
+```
+
 ## 🚀 Overview
 
 Streamdown makes formatting Markdown easy, but when you tokenize and stream it from AI models, new challenges arise. This Svelte port brings all the power of the original React Streamdown component to the Svelte ecosystem.
@@ -23,30 +33,70 @@ Full support for GitHub Flavored Markdown including:
 - Task lists
 - Tables
 - Strikethrough text
-- Autolinks
-- Footnotes
 
 ### 💻 Interactive Code Blocks
 
 - Syntax highlighting powered by Shiki
 - Copy-to-clipboard functionality
-- Hover-to-reveal copy button
-- Support for light and dark themes
+- Support any Shiki themes
 
 ### 🔢 Mathematical Expressions
 
 LaTeX math support through KaTeX:
 
-- Inline math: `$E = mc^2$`
-- Block math: `$$\\sum_{i=1}^n x_i$$`
 - Perfect rendering for scientific content
+- Inline math: $E = mc^2$
+- Block math:
+
+$$
+\\sum_{i=1}^n x_i
+$$
 
 ### 🧜‍♀️ Mermaid Diagrams
 
 - Render Mermaid diagrams from code blocks
 - **Incremental rendering** during streaming content
-- Click-to-render functionality for streaming content
-- Static diagram visualization (non-interactive)
+- Pan and Zoom
+- Full screen mode
+
+**Example:**
+
+```mermaid
+graph TD
+    A[Start] --> B{Is it working?}
+    B -->|Yes| C[Great!]
+    B -->|No| D[Debug]
+    D --> B
+    C --> E[End]
+```
+
+```mermaid
+sequenceDiagram
+    participant User
+    participant Frontend
+    participant API
+    participant Database
+
+    User->>Frontend: Submit form
+    Frontend->>API: POST /api/data
+    API->>Database: INSERT query
+    Database-->>API: Success
+    API-->>Frontend: 200 OK
+    Frontend-->>User: Show success message
+```
+
+```mermaid
+pie title Project Time Allocation
+    "Development" : 45
+    "Testing" : 25
+    "Documentation" : 15
+    "Meetings" : 15
+```
+
+### Alert Support
+
+> [!IMPORTANT]
+> Native support for Github style Alert
 
 ### 🔄 Streaming-Optimized
 
@@ -81,25 +131,10 @@ This Svelte port maintains feature parity with the original [Streamdown](https:/
 | **Build System**  | Vite/React       | Vite/SvelteKit            |
 | **TypeScript**    | Full TS support  | Full TS support           |
 
-## 📦 Installation
-
-```bash
-npm install svelte-streamdown
-# or
-pnpm add svelte-streamdown
-# or
-yarn add svelte-streamdown
-```
-
-### Peer Dependencies
-
-```bash
-npm install svelte@^5.0.0
-```
-
 ### Tailwind CSS Setup
 
-Streamdown comes with **built-in Tailwind CSS classes** for beautiful default styling. To ensure all styles are included in your build, add the following to your `app.css` or main CSS file:
+> [!NOTE]
+> Streamdown comes with **built-in Tailwind CSS classes** for beautiful default styling. To ensure all styles are included in your build, add the following to your `app.css` or main CSS file:
 
 ```css
 @import 'tailwindcss';
@@ -108,6 +143,8 @@ Streamdown comes with **built-in Tailwind CSS classes** for beautiful default st
 ```
 
 This ensures that all Streamdown's default styling is included in your Tailwind build process.
+
+> **Note:** This setup is primarily necessary if you're using Tailwind CSS v4's new `@source` directive or if you have aggressive purging enabled in older versions. If you're using standard Tailwind CSS v3+ with default purging, Streamdown's styles should be automatically included when the component is imported and used in your application.
 
 ## 🚀 Quick Start
 
@@ -186,12 +223,15 @@ This heading will use a custom component!`;
 | `unwrapDisallowed`        | `boolean`                                             | -                | Unwrap instead of removing disallowed elements |
 | `urlTransform`            | `UrlTransform \| null`                                | -                | Custom URL transformation function             |
 | `theme`                   | `Partial<Theme>`                                      | -                | Custom theme overrides                         |
+| `baseTheme`               | `'tailwind' \| 'shadcn'`                              | `'tailwind'`     | Base theme to use before applying overrides    |
+| `mergeTheme`              | `boolean`                                             | `true`           | Whether to merge theme with base theme         |
 | `shikiTheme`              | `BundledTheme`                                        | `'github-light'` | Code highlighting theme                        |
 | `mermaidConfig`           | `MermaidConfig`                                       | -                | Mermaid diagram configuration                  |
 | `katexConfig`             | `KatexOptions \| ((inline: boolean) => KatexOptions)` | -                | KaTeX math rendering options                   |
 | `remarkPlugins`           | `PluggableList`                                       | -                | Additional remark plugins                      |
 | `rehypePlugins`           | `PluggableList`                                       | -                | Additional rehype plugins                      |
 | `remarkRehypeOptions`     | `RemarkRehypeOptions`                                 | -                | Remark-rehype conversion options               |
+| `customElements`          | `Record<string, Snippet<[ElementProps]>>`             | -                | Custom snippets for not handled nodes          |
 
 ### Custom Component Props
 
@@ -247,11 +287,106 @@ This heading uses a custom component with your design system!`;
 
 **Special Content**: `blockquote`, `hr`, `alert`, `mermaid`, `math`, `inlineMath`
 
+**Note**: The above elements are **supported by Streamdown** and should be customized using individual props or the theme system. Use `customElements` only for HTML elements **not in this list** (like `div`, `span`, `section`, `article`, etc.).
+
 Each snippet receives `{ children, ...props }` where `props` contains all element attributes and classes.
+
+### Using `customElements` Record
+
+The `customElements` prop is specifically for HTML elements that are **not handled by the library by default**. For elements already supported by Streamdown (like `h1`, `p`, `code`, etc.), use individual props or the theme system instead.
+
+```svelte
+<script>
+	import { Streamdown } from 'svelte-streamdown';
+
+	let content = `# Custom Elements Example
+
+This content contains HTML elements not handled by Streamdown by default:
+
+<div class="special">This is a custom div element</div>
+
+<span class="highlight">This is a custom span element</span>
+
+<section class="wrapper">
+	<article>This is a custom article inside a section</article>
+</section>`;
+
+	// Define custom components for unsupported HTML elements
+</script>
+
+{#snippet customDiv({ children, props, className, node })}
+	<div class="rounded-lg border-2 border-blue-500 p-4 {className}" {...props}>
+		{@render children()}
+	</div>
+{/snippet}
+
+{#snippet customSpan({ children, props, className, node })}
+	<span class="rounded bg-yellow-200 px-2 py-1 {className}" {...props}>
+		{@render children()}
+	</span>
+{/snippet}
+
+{#snippet customSection({ children, props, className, node })}
+	<section class="my-8 rounded-xl bg-gray-50 p-6 {className}" {...props}>
+		{@render children()}
+	</section>
+{/snippet}
+
+{#snippet customArticle({ children, props, className, node })}
+	<article class="prose max-w-none {className}" {...props}>
+		{@render children()}
+	</article>
+{/snippet}
+
+<Streamdown
+	{content}
+	customElements={{
+		div: customDiv,
+		span: customSpan,
+		section: customSection,
+		article: customArticle
+	}}
+/>
+```
+
+### Benefits of `customElements`
+
+- **Handle Unsupported Elements**: Define components for HTML elements not built into Streamdown
+- **Semantic HTML Support**: Use elements like `<section>`, `<article>`, `<aside>`, `<nav>`, etc.
+- **Fallback Support**: Automatically handles unknown elements that would otherwise be ignored
+- **Type Safety**: Full TypeScript support with `ElementProps` interface
+
+### `customElements` vs Individual Props
+
+Use the right approach for the right elements:
+
+**Individual Props** (for supported Streamdown elements):
+
+```svelte
+<Streamdown {content} h1={customH1} p={customP} code={customCode} />
+```
+
+**CustomElements Record** (for unsupported HTML elements):
+
+```svelte
+<Streamdown
+	{content}
+	customElements={{ div: customDiv, span: customSpan, section: customSection }}
+/>
+```
+
+**Note**: For supported elements (h1, p, code, etc.), use individual props or the theme system. For unsupported elements (div, span, section, etc.), use `customElements`.
 
 ## 🎨 Advanced Theming System
 
-Beyond custom snippets, Streamdown provides a **granular theming system** that lets you customize every part of every component without writing custom snippets.
+### Built-in Themes
+
+Streamdown comes with two built-in themes:
+
+- **Default Theme**: The standard theme with gray-based colors
+- **Shadcn Theme**: A theme that uses shadcn/ui design tokens for seamless integration with shadcn-based projects
+
+Beyond custom snippets, Streamdown provides a **granular theming system** that lets you customize every part of every component without writing custom snippets. You can use the built-in themes (default and shadcn) or create completely custom themes using the `mergeTheme` utility.
 
 ### Theme Structure
 

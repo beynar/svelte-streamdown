@@ -59,6 +59,9 @@ importers:
       shiki:
         specifier: ^3.12.2
         version: 3.12.2
+      svelte-themes:
+        specifier: ^2.0.8
+        version: 2.0.8(svelte@5.38.7)
       tailwind-merge:
         specifier: ^3.3.1
         version: 3.3.1
@@ -2231,6 +2234,11 @@ packages:
     peerDependencies:
       svelte: ^4.0.0 || ^5.0.0-next.0
       typescript: '>=5.0.0'
+
+  svelte-themes@2.0.8:
+    resolution: {integrity: sha512-OVyLRXBd2BjyJyI6GpjW1fl6w2zuHvj3rp2MmLLPARMuRzVVqLQp9PxblSj1G32k3GJdSdXf075UIB6vutdBlg==}
+    peerDependencies:
+      svelte: ^4.0.0 || ^5.0.0
 
   svelte2tsx@0.7.42:
     resolution: {integrity: sha512-PSNrKS16aVdAajoFjpF5M0t6TA7ha7GcKbBajD9RG3M+vooAuvLnWAGUSC6eJL4zEOVbOWKtcS2BuY4rxPljoA==}
@@ -4711,6 +4719,10 @@ snapshots:
       typescript: 5.9.2
     transitivePeerDependencies:
       - picomatch
+
+  svelte-themes@2.0.8(svelte@5.38.7):
+    dependencies:
+      svelte: 5.38.7
 
   svelte2tsx@0.7.42(svelte@5.38.7)(typescript@5.9.2):
     dependencies:

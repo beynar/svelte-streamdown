@@ -28,7 +28,7 @@
 	import { bind } from './utils/bind.js';
 	import { parseMarkdownIntoBlocks } from './utils/parse-blocks.js';
 	import 'katex/dist/katex.min.css';
-	import { mergeTheme, type Theme } from './theme.js';
+	import { mergeTheme, type Theme, shadcnTheme } from './theme.js';
 	import type { BundledTheme } from 'shiki';
 
 	let {
@@ -52,6 +52,9 @@
 		mermaidConfig,
 		katexConfig,
 		translations,
+		baseTheme,
+		mergeTheme: shouldMergeTheme = true,
+		customElements,
 		...snippets
 	}: StreamdownProps = $props();
 
@@ -105,7 +108,12 @@
 			return snippets;
 		},
 		get theme() {
-			return mergeTheme(theme);
+			return shouldMergeTheme
+				? mergeTheme(theme, baseTheme)
+				: theme || (baseTheme === 'shadcn' ? shadcnTheme : theme);
+		},
+		get baseTheme() {
+			return baseTheme;
 		},
 		get mermaidConfig() {
 			return mermaidConfig;
@@ -115,6 +123,9 @@
 		},
 		get translations() {
 			return translations;
+		},
+		get customElements() {
+			return customElements;
 		}
 	});
 	const id = $props.id();

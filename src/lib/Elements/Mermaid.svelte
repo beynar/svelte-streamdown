@@ -18,36 +18,37 @@
 		mermaid = (await import('mermaid')).default;
 	});
 
-	const useIsInsideForMoreThanAQuarterSecond = () => {
-		let isInside = $state(false);
-		let timeout: number | undefined = undefined;
+	// const useIsInsideForMoreThanAQuarterSecond = () => {
+	// 	let isInside = $state(false);
+	// 	let timeout: number | undefined = undefined;
 
-		return {
-			get isInside() {
-				return isInside;
-			},
-			attach: (node: HTMLElement) => {
-				const off1 = on(node, 'mouseenter', () => {
-					timeout = setTimeout(() => {
-						isInside = true;
-					}, 1000);
-				});
+	// 	return {
+	// 		get isInside() {
+	// 			return isInside;
+	// 		},
+	// 		attach: (node: HTMLElement) => {
+	// 			const off1 = on(node, 'mouseenter', () => {
+	// 				timeout = setTimeout(() => {
+	// 					isInside = true;
+	// 				}, 1000);
+	// 			});
 
-				const off2 = on(node, 'mouseleave', () => {
-					isInside = false;
-					clearTimeout(timeout);
-				});
+	// 			const off2 = on(node, 'mouseleave', () => {
+	// 				isInside = false;
+	// 				clearTimeout(timeout);
+	// 			});
 
-				return () => {
-					off1();
-					off2();
-				};
-			}
-		};
-	};
+	// 			return () => {
+	// 				off1();
+	// 				off2();
+	// 			};
+	// 		}
+	// 	};
+	// };
 
-	const insider = useIsInsideForMoreThanAQuarterSecond();
-	$inspect(insider.isInside);
+	// const insider = useIsInsideForMoreThanAQuarterSecond();
+
+	const panzoom2 = usePanzoom({ minZoom: 0.5, maxZoom: 4, zoomSpeed: 1 });
 
 	const renderMermaid = async (code: string, element: HTMLElement) => {
 		try {
@@ -86,37 +87,20 @@
 			// Render the diagram
 			const { svg: svgString } = await mermaid.render(uniqueId, code);
 			const svg = new DOMParser().parseFromString(svgString, 'image/svg+xml').documentElement;
-			const svgTarget = element.querySelector('#mermaid-svg')!;
+
+			const svgTarget = element.querySelector('[data-mermaid-svg]')!;
+			svg.id = uniqueId;
 			Array.from(svg.attributes).forEach((attribute) => {
 				svgTarget.setAttribute(attribute.name, attribute.value);
 			});
 			svgTarget.innerHTML = svg.innerHTML;
 			// After rendering, fit the SVG within its parent container
-			panzoom2.zoomToFit(0.05);
-			// pz = panzoom(element.querySelector('svg') as SVGSVGElement, {
-			// 	autocenter: true,
-			// 	minZoom: 0.5,
-			// 	maxZoom: 4,
-
-			// 	smoothScroll: true,
-			// 	beforeWheel(e) {
-			// 		return untrack(() => {
-			// 			if (!insider.isInside) {
-			// 				e.preventDefault();
-			// 				e.stopPropagation();
-			// 				return true;
-			// 			}
-			// 		});
-			// 	}
-			// });
-
-			// console.log({ svg });
+			panzoom2.zoomToFit();
+			panzoom2.zoomToFit();
 		} catch (err) {
 			// Do nothing
 		}
 	};
-
-	const panzoom2 = usePanzoom({ minZoom: 0.5, maxZoom: 4, zoomSpeed: 1 });
 </script>
 
 <Slot
@@ -132,13 +116,14 @@
 			{...props}
 			class={clsx(streamdown.theme.mermaid.base, className)}
 			{@attach (node) => renderMermaid(code, node)}
-			{@attach insider.attach}
+			data-expanded={'false'}
 		>
-			<div class="absolute top-0 left-0 z-10 flex h-fit w-fit items-center gap-1">
+			<div class={streamdown.theme.mermaid.buttons}>
 				<button
 					class={streamdown.theme.mermaid.button}
 					aria-label="Zoom to fit"
 					onclick={() => panzoom2.zoomToFit()}
+					data-panzoom-ignore
 				>
 					<svg
 						class={streamdown.theme.mermaid.icon}
@@ -164,6 +149,7 @@
 					class={streamdown.theme.mermaid.button}
 					aria-label="Zoom in"
 					onclick={() => panzoom2.zoomIn()}
+					data-panzoom-ignore
 				>
 					<svg
 						class={streamdown.theme.mermaid.icon}
@@ -186,6 +172,7 @@
 					class={streamdown.theme.mermaid.button}
 					aria-label="Zoom out"
 					onclick={() => panzoom2.zoomOut()}
+					data-panzoom-ignore
 					><svg
 						class={streamdown.theme.mermaid.icon}
 						xmlns="http://www.w3.org/2000/svg"
@@ -207,6 +194,7 @@
 					class={streamdown.theme.mermaid.button}
 					aria-label="Toggle expand"
 					onclick={() => panzoom2.toggleExpand()}
+					data-panzoom-ignore
 				>
 					<svg
 						class={streamdown.theme.mermaid.icon}
@@ -225,9 +213,61 @@
 					>
 				</button>
 			</div>
-			<svg id="mermaid-svg" {@attach panzoom2.attach}></svg>
+			<svg {@attach panzoom2.attach} data-mermaid-svg></svg>
 		</div>
 	{:else}
 		<div {...props} class={clsx(streamdown.theme.mermaid.base, className)}></div>
 	{/if}
 </Slot>
+
+<style>
+	/* View Transition styles for zoom effect */
+	::view-transition-old(panzoom-element),
+	::view-transition-new(panzoom-element) {
+		/* Animate both scale and opacity for smooth zoom */
+		animation-duration: 0.3s;
+		animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+	}
+
+	/* Zoom in animation (expand) */
+	::view-transition-old(panzoom-element) {
+		animation-name: zoom-out;
+	}
+
+	::view-transition-new(panzoom-element) {
+		animation-name: zoom-in;
+	}
+
+	@keyframes zoom-out {
+		from {
+			transform: scale(1);
+		}
+		to {
+			transform: scale(0.8);
+		}
+	}
+
+	@keyframes zoom-in {
+		from {
+			transform: scale(1.2);
+		}
+		to {
+			transform: scale(1);
+		}
+	}
+
+	[data-expanded='true'] {
+		::view-transition-old(panzoom-element),
+		::view-transition-new(panzoom-element) {
+			animation-duration: 0.3s;
+			animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
+		}
+		position: fixed;
+		top: 16px;
+		left: 16px;
+		width: calc(100vw - 32px);
+		height: calc(100vh - 32px);
+		z-index: 2147483647;
+		margin: 0px;
+	}
+</style>

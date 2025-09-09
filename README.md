@@ -2,7 +2,7 @@
 
 [![npm version](https://badge.fury.io/js/svelte-streamdown.svg)](https://badge.fury.io/js/svelte-streamdown)
 
-A **Svelte port** of [Streamdown](https://streamdown.ai/) by Vercel - an all markdown renderer, designed specifically for AI-powered streaming applications.
+A **Svelte port** of [Streamdown](https://streamdown.ai/) by Vercel - an all in one markdown renderer, designed specifically for AI-powered streaming applications.
 
 ## 📦 Installation
 
@@ -15,8 +15,6 @@ yarn add svelte-streamdown
 ```
 
 ## 🚀 Overview
-
-Streamdown makes formatting Markdown easy, but when you tokenize and stream it from AI models, new challenges arise. This Svelte port brings all the power of the original React Streamdown component to the Svelte ecosystem.
 
 Perfect for AI-powered applications that need to stream and render markdown content safely and beautifully, with support for incomplete markdown blocks, security hardening, and rich features like code highlighting, math expressions, and interactive diagrams.
 

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, onDestroy, untrack } from 'svelte';
+	import { untrack } from 'svelte';
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import { clsx } from 'clsx';
 	import type { ElementProps } from './element.js';
@@ -8,9 +8,8 @@
 	import 'katex/dist/katex.min.css';
 	const streamdown = useStreamdown();
 	const { children, node, className, props }: ElementProps = $props();
-	const isInline = className?.some?.((c: string) => c.includes('inline')) ?? false;
-
 	import katex from 'katex';
+	const isInline = className?.some?.((c: string) => c.includes('inline')) ?? false;
 
 	let inner = $state<HTMLElement | null>(null);
 	const html = $derived.by(() => {
@@ -21,11 +20,10 @@
 				? streamdown.katexConfig(isInline)
 				: streamdown.katexConfig || {})
 		};
-		const code = (node.children[0] as any).value as string;
+		const code = ((node.children[0] as any)?.value as string) ?? '';
 		try {
 			return katex.renderToString(code, config);
 		} catch (error) {
-			console.log('Failed to render math:', error);
 			return untrack(() => {
 				return inner?.innerHTML || '';
 			});

@@ -15,6 +15,7 @@ export interface PanzoomOptions {
 	initialScale?: number; // default: 1
 	initialX?: number; // default: 0
 	initialY?: number; // default: 0
+	activateMouseWheel?: boolean;
 }
 
 export interface PanzoomInstance {
@@ -72,10 +73,6 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 	// expand/collapse state
 	let isExpanded = $state(false);
 	let animating = false;
-	let expandedSnapshot: {
-		prevCssText: string;
-		child: { x: number; y: number; scale: number };
-	} | null = null;
 	let placeholderEl: HTMLDivElement | null = null;
 
 	function onKeyDown(e: KeyboardEvent) {
@@ -87,7 +84,7 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 		}
 	}
 
-	onDestroy(() => {
+	const destroy = () => {
 		listeners.forEach((off) => off());
 		listeners.clear();
 		if (placeholderEl) {
@@ -104,6 +101,10 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 		}
 		if (dragOffMove) dragOffMove();
 		if (dragOffUp) dragOffUp();
+	};
+
+	onDestroy(() => {
+		destroy();
 	});
 
 	function normalize() {
@@ -158,6 +159,7 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 	}
 
 	function onWheel(e: WheelEvent) {
+		if (!opts.activateMouseWheel) return;
 		if (!node) return;
 		if (animating) {
 			e.preventDefault();
@@ -402,19 +404,7 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 			}
 
 			return () => {
-				// run all listeners and clear
-				listeners.forEach((off) => off());
-				listeners.clear();
-
-				// Clean up created wrapper if it exists
-				if (createdWrapper) {
-					// Move node back out of wrapper before removing wrapper
-					if (node && createdWrapper.parentElement) {
-						createdWrapper.parentElement.insertBefore(node, createdWrapper);
-					}
-					createdWrapper.remove();
-					createdWrapper = null;
-				}
+				destroy();
 			};
 		});
 	}
@@ -426,18 +416,20 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 		eventTarget.style.viewTransitionName = 'panzoom-element';
 
 		isExpanded = false;
-		document
-			.startViewTransition(() => {
-				if (!eventTarget) return;
-				eventTarget.dataset.expanded = 'false';
-				zoomToFit();
-			})
-			.finished.finally(() => {
-				// Clean up view transition name
-				if (eventTarget) {
-					eventTarget.style.viewTransitionName = '';
-				}
+		const api = (document as any).startViewTransition;
+		const run = () => {
+			if (!eventTarget) return;
+			eventTarget.dataset.expanded = 'false';
+			zoomToFit();
+		};
+		if (typeof api === 'function') {
+			api(run).finished.finally(() => {
+				if (eventTarget) eventTarget.style.viewTransitionName = '';
 			});
+		} else {
+			run();
+			if (eventTarget) eventTarget.style.viewTransitionName = '';
+		}
 	};
 
 	const expand = () => {
@@ -446,20 +438,20 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 		// Add view transition name for CSS targeting
 		eventTarget.style.viewTransitionName = 'panzoom-element';
 		isExpanded = true;
-		document
-			.startViewTransition(() => {
-				if (!eventTarget) return;
-
-				eventTarget.dataset.expanded = 'true';
-
-				zoomToFit();
-			})
-			.finished.finally(() => {
-				// Clean up view transition name
-				if (eventTarget) {
-					eventTarget.style.viewTransitionName = '';
-				}
+		const api = (document as any).startViewTransition;
+		const run = () => {
+			if (!eventTarget) return;
+			eventTarget.dataset.expanded = 'true';
+			zoomToFit();
+		};
+		if (typeof api === 'function') {
+			api(run).finished.finally(() => {
+				if (eventTarget) eventTarget.style.viewTransitionName = '';
 			});
+		} else {
+			run();
+			if (eventTarget) eventTarget.style.viewTransitionName = '';
+		}
 	};
 
 	async function toggleExpand(): Promise<void> {

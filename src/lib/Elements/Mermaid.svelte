@@ -18,37 +18,44 @@
 		mermaid = (await import('mermaid')).default;
 	});
 
-	// const useIsInsideForMoreThanAQuarterSecond = () => {
-	// 	let isInside = $state(false);
-	// 	let timeout: number | undefined = undefined;
+	const useIsInsideForMoreThanAQuarterSecond = () => {
+		let isInside = $state(false);
+		let timeout: number | undefined = undefined;
 
-	// 	return {
-	// 		get isInside() {
-	// 			return isInside;
-	// 		},
-	// 		attach: (node: HTMLElement) => {
-	// 			const off1 = on(node, 'mouseenter', () => {
-	// 				timeout = setTimeout(() => {
-	// 					isInside = true;
-	// 				}, 1000);
-	// 			});
+		return {
+			get isInside() {
+				return isInside;
+			},
+			attach: (node: HTMLElement) => {
+				const off1 = on(node, 'mouseenter', () => {
+					timeout = setTimeout(() => {
+						isInside = true;
+					}, 800);
+				});
 
-	// 			const off2 = on(node, 'mouseleave', () => {
-	// 				isInside = false;
-	// 				clearTimeout(timeout);
-	// 			});
+				const off2 = on(node, 'mouseleave', () => {
+					isInside = false;
+					clearTimeout(timeout);
+				});
 
-	// 			return () => {
-	// 				off1();
-	// 				off2();
-	// 			};
-	// 		}
-	// 	};
-	// };
+				return () => {
+					off1();
+					off2();
+				};
+			}
+		};
+	};
 
-	// const insider = useIsInsideForMoreThanAQuarterSecond();
+	const insider = useIsInsideForMoreThanAQuarterSecond();
 
-	const panzoom2 = usePanzoom({ minZoom: 0.5, maxZoom: 4, zoomSpeed: 1 });
+	const panzoom = usePanzoom({
+		minZoom: 0.5,
+		maxZoom: 4,
+		zoomSpeed: 1,
+		get activateMouseWheel() {
+			return insider.isInside;
+		}
+	});
 
 	const renderMermaid = async (code: string, element: HTMLElement) => {
 		try {
@@ -95,8 +102,9 @@
 			});
 			svgTarget.innerHTML = svg.innerHTML;
 			// After rendering, fit the SVG within its parent container
-			panzoom2.zoomToFit();
-			panzoom2.zoomToFit();
+
+			panzoom.zoomToFit();
+			panzoom.zoomToFit();
 		} catch (err) {
 			// Do nothing
 		}
@@ -116,13 +124,14 @@
 			{...props}
 			class={clsx(streamdown.theme.mermaid.base, className)}
 			{@attach (node) => renderMermaid(code, node)}
+			{@attach insider.attach}
 			data-expanded={'false'}
 		>
 			<div class={streamdown.theme.mermaid.buttons}>
 				<button
 					class={streamdown.theme.mermaid.button}
 					aria-label="Zoom to fit"
-					onclick={() => panzoom2.zoomToFit()}
+					onclick={() => panzoom.zoomToFit()}
 					data-panzoom-ignore
 				>
 					<svg
@@ -148,7 +157,7 @@
 				<button
 					class={streamdown.theme.mermaid.button}
 					aria-label="Zoom in"
-					onclick={() => panzoom2.zoomIn()}
+					onclick={() => panzoom.zoomIn()}
 					data-panzoom-ignore
 				>
 					<svg
@@ -171,7 +180,7 @@
 				<button
 					class={streamdown.theme.mermaid.button}
 					aria-label="Zoom out"
-					onclick={() => panzoom2.zoomOut()}
+					onclick={() => panzoom.zoomOut()}
 					data-panzoom-ignore
 					><svg
 						class={streamdown.theme.mermaid.icon}
@@ -193,7 +202,7 @@
 				<button
 					class={streamdown.theme.mermaid.button}
 					aria-label="Toggle expand"
-					onclick={() => panzoom2.toggleExpand()}
+					onclick={() => panzoom.toggleExpand()}
 					data-panzoom-ignore
 				>
 					<svg
@@ -213,7 +222,7 @@
 					>
 				</button>
 			</div>
-			<svg {@attach panzoom2.attach} data-mermaid-svg></svg>
+			<svg {@attach panzoom.attach} data-mermaid-svg></svg>
 		</div>
 	{:else}
 		<div {...props} class={clsx(streamdown.theme.mermaid.base, className)}></div>

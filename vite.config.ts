@@ -27,7 +27,7 @@ function copyReadmePlugin() {
 		},
 		configureServer(server) {
 			// Watch and copy during development
-			watchFile(rootReadme, (curr, prev) => {
+			const watcher = watchFile(rootReadme, (curr, prev) => {
 				if (curr.mtime !== prev.mtime) {
 					copyReadme();
 					// Trigger HMR update
@@ -35,6 +35,11 @@ function copyReadmePlugin() {
 						type: 'full-reload'
 					});
 				}
+			});
+
+			// Cleanup on server close
+			server.httpServer?.on('close', () => {
+				watcher?.close?.();
 			});
 		}
 	};

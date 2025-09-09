@@ -38,7 +38,7 @@
 	};
 
 	$effect(() => {
-		highlighter.isReady(theme, language as any);
+		void highlighter.isReady(theme, language as any);
 	});
 </script>
 

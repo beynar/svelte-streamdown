@@ -416,14 +416,14 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 		eventTarget.style.viewTransitionName = 'panzoom-element';
 
 		isExpanded = false;
-		const api = (document as any).startViewTransition;
+
 		const run = () => {
 			if (!eventTarget) return;
 			eventTarget.dataset.expanded = 'false';
 			zoomToFit();
 		};
-		if (typeof api === 'function') {
-			api(run).finished.finally(() => {
+		if (typeof document.startViewTransition === 'function') {
+			document.startViewTransition(run).finished.finally(() => {
 				if (eventTarget) eventTarget.style.viewTransitionName = '';
 			});
 		} else {
@@ -438,14 +438,14 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 		// Add view transition name for CSS targeting
 		eventTarget.style.viewTransitionName = 'panzoom-element';
 		isExpanded = true;
-		const api = (document as any).startViewTransition;
+
 		const run = () => {
 			if (!eventTarget) return;
 			eventTarget.dataset.expanded = 'true';
 			zoomToFit();
 		};
-		if (typeof api === 'function') {
-			api(run).finished.finally(() => {
+		if (typeof document.startViewTransition === 'function') {
+			document.startViewTransition(run).finished.finally(() => {
 				if (eventTarget) eventTarget.style.viewTransitionName = '';
 			});
 		} else {

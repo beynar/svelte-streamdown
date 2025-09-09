@@ -33,7 +33,7 @@
 	import { highlighter } from './hightlighter.svelte.js';
 
 	let {
-		content,
+		content = '',
 		class: className,
 		shikiTheme,
 		shikiPreloadThemes,

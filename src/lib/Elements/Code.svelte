@@ -5,12 +5,13 @@
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import { save } from '$lib/utils/save.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
-	import { highlighter, languageExtensionMap } from '$lib/hightlighter.svelte.js';
+	import { HighlighterManager, languageExtensionMap } from '$lib/hightlighter.svelte.js';
 	import { clsx } from 'clsx';
 	import type { ElementProps } from './element.js';
 
 	let { node, className, props }: ElementProps = $props();
 
+	const highlighter = HighlighterManager.create();
 	const streamdown = useStreamdown();
 	const theme = $derived(streamdown.shikiTheme);
 	let codeContent = $derived((node.children[0] as any).value);
@@ -38,8 +39,10 @@
 	};
 
 	$effect(() => {
-		void highlighter.isReady(theme, language as any);
+		void highlighter.load(theme, language as any);
 	});
+
+	$inspect(highlighter.isReady(theme, language as any));
 </script>
 
 <div
@@ -67,7 +70,7 @@
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
 		<div>
-			{#if highlighter.isLoaded(theme, language as any)}
+			{#if highlighter.isReady(theme, language as any)}
 				{@const code = highlighter.highlightCode(
 					codeContent,
 					language as any,

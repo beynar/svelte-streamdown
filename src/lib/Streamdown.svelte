@@ -30,7 +30,6 @@
 	import 'katex/dist/katex.min.css';
 	import { mergeTheme, type Theme, shadcnTheme } from './theme.js';
 	import type { BundledTheme } from 'shiki';
-	import { highlighter } from './hightlighter.svelte.js';
 
 	let {
 		content = '',
@@ -133,13 +132,6 @@
 	const id = $props.id();
 
 	const blocks = $derived(parseMarkdownIntoBlocks(content));
-
-	// Preload themes if specified to avoid flickering
-	$effect(() => {
-		if (shikiPreloadThemes && shikiPreloadThemes.length > 0) {
-			highlighter.preloadThemes(shikiPreloadThemes);
-		}
-	});
 </script>
 
 {#each blocks as block, index (`${id}-block-${index}`)}

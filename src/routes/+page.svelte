@@ -73,6 +73,27 @@
 	};
 
 	const theme = useTheme();
+
+	const testDoc = `
+
+
+\`\`\`javascript
+    console.log('test');
+\`\`\`
+   
+    coucou 
+
+\`\`\`typescript
+    console.log('test');
+\`\`\`
+
+   coucou
+
+\`\`\`bash
+    console.log('test');
+\`\`\`
+
+`;
 </script>
 
 <div
@@ -169,7 +190,7 @@
 			shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
 			shikiPreloadThemes={['github-dark', 'github-light']}
 			allowedLinkPrefixes={['*']}
-			{content}
+			content={testDoc}
 		/>
 	</div>
 </div>

@@ -1,7 +1,6 @@
 import { type BundledLanguage, type BundledTheme } from 'shiki';
 import { untrack } from 'svelte';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-import { StreamdownContext, useStreamdown } from './Streamdown.svelte';
 
 // Remove background styles from <pre> tags (inline style)
 const removePreBackground = (html: string) => {

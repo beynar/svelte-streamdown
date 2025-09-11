@@ -2,6 +2,8 @@ import { marked } from 'marked';
 
 export const parseMarkdownIntoBlocks = (markdown: string): string[] => {
 	const tokens = marked.use({ gfm: true }).lexer(markdown);
+	const ast = marked.use({ gfm: true }).parse(markdown);
+	console.log({ tokens, ast });
 	const blocks = tokens.map((token) => token.raw);
 
 	// Post-process to merge consecutive blocks that are part of the same math block

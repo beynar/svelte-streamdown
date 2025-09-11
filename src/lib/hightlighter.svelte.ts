@@ -1,6 +1,7 @@
 import { type BundledLanguage, type BundledTheme } from 'shiki';
 import { untrack } from 'svelte';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+import { StreamdownContext, useStreamdown } from './Streamdown.svelte';
 
 // Remove background styles from <pre> tags (inline style)
 const removePreBackground = (html: string) => {
@@ -29,10 +30,12 @@ class HighlighterManager {
 	private highlighters = new SvelteMap<string, Highlighter>();
 	private createHighlighter: CreateHighlighter | null = null;
 	private engine: Engine | null = null;
+	preloadedThemes: BundledTheme[];
 	loadedLanguages = new SvelteSet<BundledLanguage>();
 	loadedThemes = new SvelteSet<BundledTheme>();
 
-	constructor() {
+	constructor(preloadedThemes: BundledTheme[]) {
+		this.preloadedThemes = preloadedThemes;
 		if (typeof window !== 'undefined') {
 			Object.assign(window, {
 				STREAMDOWN_HIGHLIGHTER: this
@@ -48,22 +51,26 @@ class HighlighterManager {
 	 * Preloads themes by creating minimal highlighter instances.
 	 * This reduces flickering when switching themes.
 	 */
-	async preloadThemes(themes: BundledTheme[]): Promise<void> {
-		if (!this.highlighter) {
+	async preloadThemes(themes: BundledTheme[], language: BundledLanguage): Promise<void> {
+		if (!themes.length) {
 			return;
 		}
-		const promises = themes
-			.filter((theme) => !this.loadedThemes.has(theme))
-			.map(async (theme) => {
-				try {
-					this.highlighter!.loadTheme(theme);
-					this.loadedThemes.add(theme);
-				} catch (error) {
-					console.warn(`Failed to preload theme ${theme}:`, error);
-				}
-			});
 
-		await Promise.all(promises);
+		await Promise.all(
+			themes
+				.filter((theme) => !this.highlighters.has(`${theme}:${language}`))
+				.map(async (theme) => {
+					if (!this.createHighlighter || !this.engine) {
+						return;
+					}
+					const highlighter = await this.createHighlighter?.({
+						themes: [theme],
+						langs: [language],
+						engine: this.engine
+					});
+					this.highlighters.set(`${theme}:${language}`, highlighter);
+				})
+		);
 	}
 
 	/**
@@ -71,7 +78,6 @@ class HighlighterManager {
 	 */
 	async load(theme: BundledTheme, language: BundledLanguage): Promise<void> {
 		return untrack(async () => {
-			console.log('load', theme, language);
 			if (!this.createHighlighter || !this.engine) {
 				const [engine, createHighlighter] = await loadShiki();
 				this.createHighlighter = createHighlighter;
@@ -87,28 +93,7 @@ class HighlighterManager {
 				this.highlighters.set(`${theme}:${language}`, highlighter);
 			}
 
-			// if (!highlighter) {
-			// 	highlighter = await this.createHighlighter({
-			// 		themes: [theme],
-			// 		langs: [language],
-			// 		engine: this.engine
-			// 	});
-			// 	this.highlighter = highlighter;
-			// 	this.loadedThemes.add(theme);
-			// 	this.loadedLanguages.add(language);
-			// }
-
-			// if (!this.loadedThemes.has(theme)) {
-			// 	console.log('loading theme', theme);
-			// 	await this.highlighter.loadTheme(theme);
-			// }
-			// if (!this.loadedLanguages.has(language)) {
-			// 	console.log('loading language', language);
-			// 	await this.highlighter.loadLanguage(language);
-			// }
-
-			// this.loadedThemes.add(theme);
-			// this.loadedLanguages.add(language);
+			void this.preloadThemes(this.preloadedThemes || [], language);
 		});
 	}
 
@@ -121,20 +106,9 @@ class HighlighterManager {
 		theme: BundledTheme,
 		preClassName?: string
 	): string {
-		console.log('highlightCode', theme, language, this.isReady(theme, language));
-		if (!this.isReady(theme, language)) {
-			throw new Error(
-				`Highlighter not ready for theme "${theme}" and language "${language}". ` +
-					`Call await highlighter.isReady(theme, language) first.`
-			);
-		}
-
 		const highlighter = this.highlighters.get(`${theme}:${language}`);
 		if (!highlighter) {
-			throw new Error(
-				`Highlighter not loaded for theme "${theme}" and language "${language}". ` +
-					`Call await highlighter.load(theme, language) first.`
-			);
+			return '';
 		}
 
 		let html = highlighter.codeToHtml(code, {
@@ -152,12 +126,16 @@ class HighlighterManager {
 		return html;
 	}
 
-	static create(): HighlighterManager {
+	static create(preloadedThemes: BundledTheme[]): HighlighterManager {
 		if (typeof window !== 'undefined' && 'STREAMDOWN_HIGHLIGHTER' in window) {
+			const previousHighlighter = window.STREAMDOWN_HIGHLIGHTER as HighlighterManager;
+			previousHighlighter.preloadedThemes = Array.from(
+				new Set([...previousHighlighter.preloadedThemes, ...preloadedThemes])
+			);
 			// @ts-ignore
 			return window.STREAMDOWN_HIGHLIGHTER!;
 		}
-		return new HighlighterManager();
+		return new HighlighterManager(preloadedThemes);
 	}
 }
 

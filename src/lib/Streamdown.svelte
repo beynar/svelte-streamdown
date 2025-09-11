@@ -127,6 +127,9 @@
 		},
 		get customElements() {
 			return customElements;
+		},
+		get shikiPreloadThemes() {
+			return shikiPreloadThemes;
 		}
 	});
 	const id = $props.id();

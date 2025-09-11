@@ -3,18 +3,17 @@ import type { Element, Nodes, Parents, Root } from 'hast';
 import type { AllowElement, UrlTransform } from '$lib/Streamdown.js';
 import { urlAttributes } from 'html-url-attributes';
 import remarkParse from 'remark-parse';
-import remarkRehype from 'remark-rehype';
+import remarkRehype, { type Options as RemarkRehypeOptions } from 'remark-rehype';
 import { unified, type PluggableList } from 'unified';
 import { visit } from 'unist-util-visit';
-import { VFile } from 'vfile';
+
 import remarkGfm from 'remark-gfm';
 import remarkMath from 'remark-math';
 import type { BundledLanguage } from 'shiki';
 import { rehypeGithubAlerts } from './alerts.js';
-import { squeezeParagraphs } from 'mdast-squeeze-paragraphs';
 
 const emptyPlugins: PluggableList = [];
-const emptyRemarkRehypeOptions = { allowDangerousHtml: true };
+const emptyRemarkRehypeOptions: RemarkRehypeOptions = { allowDangerousHtml: true };
 const safeProtocol = /^(https?|ircs?|mailto|xmpp)$/i;
 
 /**
@@ -30,18 +29,6 @@ interface ParseOptions {
 	urlTransform?: UrlTransform | null;
 }
 
-function createFile(content: string): VFile {
-	const file = new VFile();
-
-	if (typeof content === 'string') {
-		file.value = content;
-	} else {
-		throw new Error('Unexpected value `' + content + '` for content, expected `string`');
-	}
-
-	return file;
-}
-
 export function parseMarkdown(context: StreamdownContext, content: string): Root {
 	const rehypePlugins = context.rehypePlugins || emptyPlugins;
 	const remarkPlugins = context.remarkPlugins || emptyPlugins;
@@ -52,17 +39,15 @@ export function parseMarkdown(context: StreamdownContext, content: string): Root
 	const processor = unified()
 		.use(remarkParse)
 		.use(remarkPlugins)
-
 		.use(remarkMath)
 		.use(remarkGfm)
 		.use(remarkRehype, remarkRehypeOptions)
 		.use(rehypePlugins)
 		.use([rehypeGithubAlerts]);
 
-	const file = createFile(content);
-	const tree = processor.parse(file);
+	const tree = processor.runSync(processor.parse(content));
 
-	return post(processor.runSync(tree, file), {
+	return post(tree, {
 		allowElement: context.allowElement,
 		allowedElements: context.allowedElements,
 		disallowedElements: context.disallowedElements,

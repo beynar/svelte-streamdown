@@ -1,7 +1,4 @@
 <script lang="ts">
-	import { setContext } from 'svelte';
-	import type { Snippet } from 'svelte';
-	import type { BundledLanguage, BundledTheme } from 'shiki';
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import { save } from '$lib/utils/save.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
@@ -11,8 +8,8 @@
 
 	let { node, className, props }: ElementProps = $props();
 
-	const highlighter = HighlighterManager.create();
 	const streamdown = useStreamdown();
+	const highlighter = HighlighterManager.create(streamdown.shikiPreloadThemes || []);
 	const theme = $derived(streamdown.shikiTheme);
 	let codeContent = $derived((node.children[0] as any).value);
 	const language = $derived(node.properties.language as string);
@@ -41,8 +38,6 @@
 	$effect(() => {
 		void highlighter.load(theme, language as any);
 	});
-
-	$inspect(highlighter.isReady(theme, language as any));
 </script>
 
 <div

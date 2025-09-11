@@ -1,6 +1,6 @@
 {
 	"name": "svelte-streamdown",
-	"version": "1.0.4",
+	"version": "1.0.6",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -76,7 +76,6 @@
 		"katex": "^0.16.22",
 		"marked": "^16.2.1",
 		"mdast": "^3.0.0",
-		"mdast-squeeze-paragraphs": "^6.0.0",
 		"mermaid": "^11.11.0",
 		"rehype-github-alerts": "^4.1.1",
 		"rehype-katex": "^7.0.1",
@@ -87,7 +86,6 @@
 		"shiki": "^3.12.2",
 		"tailwind-merge": "^3.3.1",
 		"unified": "^11.0.5",
-		"unist-util-visit": "^5.0.0",
-		"vfile": "^6.0.3"
+		"unist-util-visit": "^5.0.0"
 	}
 }

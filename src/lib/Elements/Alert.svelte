@@ -13,49 +13,33 @@
 	/><path d="M12 17h.01" />`
 	};
 
-	import { useStreamdown } from '$lib/Streamdown.svelte';
-	import { clsx } from 'clsx';
-	import type { ElementProps } from './element.js';
+	import { useStreamdown } from '$lib/Streamdown.js';
 	import Slot from './Slot.svelte';
+	import type { AlertToken } from '$lib/marked/index.js';
+	import type { Snippet } from 'svelte';
 
 	const streamdown = useStreamdown();
 
-	const { children, className, node, props }: ElementProps = $props();
+	const {
+		children,
+		token
+	}: {
+		children: Snippet;
+		token: AlertToken;
+	} = $props();
 
-	// Extract alertType from className
-	const alertType = $derived.by(() => {
-		const className = node.properties.className as string[] | undefined;
-		if (!className) return 'note';
-		const alertClass = className.find((cls) => cls.startsWith('markdown-alert-'));
-		if (!alertClass) return 'note';
-		return alertClass.replace('markdown-alert-', '') as
-			| 'note'
-			| 'tip'
-			| 'warning'
-			| 'caution'
-			| 'important';
-	});
-
-	// Extract icon from node properties
-	const icon = $derived((node.properties.icon as string) || '');
+	const alertType = $derived(token.variant);
 	const title = $derived(streamdown.translations?.alert?.[alertType] || alertType);
 </script>
 
 <Slot
 	props={{
 		children,
-		alertType,
-		icon,
-		node,
-		props,
-		className
+		token
 	}}
 	render={streamdown.snippets.alert}
 >
-	<div
-		{...props}
-		class={clsx(streamdown.theme.alert.base, className, streamdown.theme.alert[alertType])}
-	>
+	<div class={`${streamdown.theme.alert.base} ${streamdown.theme.alert[alertType]}`}>
 		<div data-alert-title class={streamdown.theme.alert.title}>
 			<svg
 				xmlns="http://www.w3.org/2000/svg"
@@ -68,7 +52,6 @@
 				stroke-linejoin="round"
 				class={streamdown.theme.alert.icon}
 			>
-				<!-- {@html icon} -->
 				{@html icons[alertType]}
 			</svg>
 			{title}

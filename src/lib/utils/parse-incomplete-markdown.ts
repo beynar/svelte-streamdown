@@ -6,6 +6,8 @@ const singleAsteriskPattern = /(\*)([^*]*?)$/;
 const singleUnderscorePattern = /(_)([^_]*?)$/;
 const inlineCodePattern = /(`)([^`]*?)$/;
 const strikethroughPattern = /(~~)([^~]*?)$/;
+const subPattern = /(~)([^~]*?)$/;
+const supPattern = /(\^)([^\^]*?)$/;
 
 // Helper function to check if we have a complete code block
 const hasCompleteCodeBlock = (text: string): boolean => {
@@ -228,6 +230,42 @@ const isWithinMathBlock = (text: string, position: number): boolean => {
 	return inInlineMath || inBlockMath;
 };
 
+// Check if a position is within a footnote reference pattern [^label]
+const isWithinFootnoteRef = (text: string, position: number): boolean => {
+	// Look backwards from position to find if we're inside [^...]
+	let openBracketPos = -1;
+	let caretPos = -1;
+
+	for (let i = position; i >= 0; i--) {
+		if (text[i] === ']') {
+			// Found closing bracket before our position, not in footnote
+			return false;
+		}
+		if (text[i] === '^' && caretPos === -1) {
+			caretPos = i;
+		}
+		if (text[i] === '[') {
+			openBracketPos = i;
+			break;
+		}
+	}
+
+	// Check if we have the pattern [^ and our position is after the caret
+	if (openBracketPos !== -1 && caretPos === openBracketPos + 1 && position >= caretPos) {
+		// Look forward to see if there's a closing bracket
+		for (let i = position + 1; i < text.length; i++) {
+			if (text[i] === ']') {
+				return true; // We're inside [^...] pattern
+			}
+			if (text[i] === '[' || text[i] === '\n') {
+				break; // Invalid pattern
+			}
+		}
+	}
+
+	return false;
+};
+
 // Counts single underscores that are not part of double underscores, not escaped, and not in math blocks
 const countSingleUnderscores = (text: string): number => {
 	return text.split('').reduce((acc, char, index) => {
@@ -393,6 +431,140 @@ const handleIncompleteStrikethrough = (text: string): string => {
 	return text;
 };
 
+// Counts single tildes that are not part of double tildes and not escaped
+const countSingleTildes = (text: string): number => {
+	return text.split('').reduce((acc, char, index) => {
+		if (char === '~') {
+			const prevChar = text[index - 1];
+			const nextChar = text[index + 1];
+			// Skip if escaped with backslash
+			if (prevChar === '\\') {
+				return acc;
+			}
+			if (prevChar !== '~' && nextChar !== '~') {
+				return acc + 1;
+			}
+		}
+		return acc;
+	}, 0);
+};
+
+// Completes incomplete subscript formatting (~)
+const handleIncompleteSub = (text: string): string => {
+	// Don't process if inside a complete code block
+	if (hasCompleteCodeBlock(text)) {
+		return text;
+	}
+
+	const singleTildes = countSingleTildes(text);
+	if (singleTildes % 2 === 1) {
+		// Find the last unmatched tilde and add content until we find a good place to close
+		const lastTildeIndex = text.lastIndexOf('~');
+		if (lastTildeIndex !== -1) {
+			// Check if the tilde is within a math block - if so, don't process
+			if (isWithinMathBlock(text, lastTildeIndex)) {
+				return text;
+			}
+
+			const afterTilde = text.substring(lastTildeIndex + 1);
+
+			// Don't close if there's no meaningful content after the opening marker
+			if (!afterTilde || /^[\s_~*`^]*$/.test(afterTilde)) {
+				return text;
+			}
+
+			// Find the end of the subscript content
+			// For typical sub/sup patterns, look for single numbers, letters, or simple expressions
+			const endMatch = afterTilde.match(/^([0-9]+|[a-zA-Z]|[a-zA-Z0-9]{1,3})(?=\s|[^a-zA-Z0-9]|$)/);
+			if (endMatch) {
+				const contentLength = endMatch[1].length;
+				const insertPosition = lastTildeIndex + 1 + contentLength;
+				return text.substring(0, insertPosition) + '~' + text.substring(insertPosition);
+			} else {
+				// Fallback: if no clear boundary, treat everything until space as content
+				const spaceMatch = afterTilde.match(/^([^\s]+)/);
+				if (spaceMatch) {
+					const contentLength = spaceMatch[1].length;
+					const insertPosition = lastTildeIndex + 1 + contentLength;
+					return text.substring(0, insertPosition) + '~' + text.substring(insertPosition);
+				}
+			}
+		}
+	}
+
+	return text;
+};
+
+// Counts single carets that are not escaped and not in footnote references
+const countSingleCarets = (text: string): number => {
+	return text.split('').reduce((acc, char, index) => {
+		if (char === '^') {
+			const prevChar = text[index - 1];
+			// Skip if escaped with backslash
+			if (prevChar === '\\') {
+				return acc;
+			}
+			// Skip if within footnote reference
+			if (isWithinFootnoteRef(text, index)) {
+				return acc;
+			}
+			return acc + 1;
+		}
+		return acc;
+	}, 0);
+};
+
+// Completes incomplete superscript formatting (^)
+const handleIncompleteSup = (text: string): string => {
+	// Don't process if inside a complete code block
+	if (hasCompleteCodeBlock(text)) {
+		return text;
+	}
+
+	const singleCarets = countSingleCarets(text);
+	if (singleCarets % 2 === 1) {
+		// Find the last unmatched caret and add content until we find a good place to close
+		const lastCaretIndex = text.lastIndexOf('^');
+		if (lastCaretIndex !== -1) {
+			// Check if the caret is within a math block - if so, don't process
+			if (isWithinMathBlock(text, lastCaretIndex)) {
+				return text;
+			}
+
+			// Check if the caret is within a footnote reference - if so, don't process
+			if (isWithinFootnoteRef(text, lastCaretIndex)) {
+				return text;
+			}
+
+			const afterCaret = text.substring(lastCaretIndex + 1);
+
+			// Don't close if there's no meaningful content after the opening marker
+			if (!afterCaret || /^[\s_~*`^]*$/.test(afterCaret)) {
+				return text;
+			}
+
+			// Find the end of the superscript content
+			// For typical sub/sup patterns, look for single numbers, letters, or simple expressions
+			const endMatch = afterCaret.match(/^([0-9]+|[a-zA-Z]|[a-zA-Z0-9]{1,3})(?=\s|[^a-zA-Z0-9]|$)/);
+			if (endMatch) {
+				const contentLength = endMatch[1].length;
+				const insertPosition = lastCaretIndex + 1 + contentLength;
+				return text.substring(0, insertPosition) + '^' + text.substring(insertPosition);
+			} else {
+				// Fallback: if no clear boundary, treat everything until space as content
+				const spaceMatch = afterCaret.match(/^([^\s]+)/);
+				if (spaceMatch) {
+					const contentLength = spaceMatch[1].length;
+					const insertPosition = lastCaretIndex + 1 + contentLength;
+					return text.substring(0, insertPosition) + '^' + text.substring(insertPosition);
+				}
+			}
+		}
+	}
+
+	return text;
+};
+
 // Counts single dollar signs that are not part of double dollar signs and not escaped
 const _countSingleDollarSigns = (text: string): number => {
 	return text.split('').reduce((acc, char, index) => {
@@ -514,6 +686,8 @@ export const parseIncompleteMarkdown = (text: string): string => {
 	result = handleIncompleteSingleUnderscoreItalic(result);
 	result = handleIncompleteInlineCode(result);
 	result = handleIncompleteStrikethrough(result);
+	result = handleIncompleteSub(result);
+	result = handleIncompleteSup(result);
 
 	// Handle KaTeX formatting (only block math with $$)
 	result = handleIncompleteBlockKatex(result);

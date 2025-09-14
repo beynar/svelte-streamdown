@@ -18,21 +18,6 @@ export interface PanzoomOptions {
 	activateMouseWheel?: boolean;
 }
 
-export interface PanzoomInstance {
-	attach: (node: HTMLElement | SVGSVGElement) => () => void;
-	zoomToFit: (padding?: number) => void;
-	zoomBy: (factor: number) => void;
-	zoomIn: (factor?: number) => void;
-	zoomOut: (factor?: number) => void;
-	moveBy: (dx: number, dy: number) => void;
-	setTransform: (x: number, y: number, scale: number) => void;
-	expand: () => void;
-	collapse: () => void;
-	toggleExpand: (options?: ExpandOptions | number) => Promise<void>;
-	readonly expanded: boolean;
-	readonly transform: Readonly<{ x: number; y: number; scale: number }>;
-}
-
 export interface ExpandOptions {
 	padding?: number; // px
 	duration?: number; // ms
@@ -41,7 +26,7 @@ export interface ExpandOptions {
 	fitRatio?: number; // ratio [0..0.5) used for zoomToFit before/after expand
 }
 
-export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
+export const usePanzoom = (opts: PanzoomOptions = {}) => {
 	// state
 	let x = opts.initialX ?? 0;
 	let y = opts.initialY ?? 0;
@@ -456,7 +441,9 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 
 	async function toggleExpand(): Promise<void> {
 		zoomToFit();
+
 		if (isExpanded) return collapse();
+
 		return expand();
 	}
 
@@ -489,7 +476,6 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 	}
 
 	function zoomBy(factor: number) {
-		console.log('zoomBy', factor);
 		if (!node) return;
 
 		// Use zoomAt with the center of the container for consistent behavior
@@ -511,7 +497,6 @@ export const usePanzoom = (opts: PanzoomOptions = {}): PanzoomInstance => {
 	}
 
 	function zoomOut(factor = 1.25) {
-		console.log('zoomOut', factor);
 		// zoom out by inverse multiplier
 		if (factor <= 0) return;
 		zoomBy(1 / factor);

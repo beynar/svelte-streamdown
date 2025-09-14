@@ -5,7 +5,7 @@ export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
 import type { Snippets } from './Streamdown.js';
 
 export const theme = {
-	a: {
+	link: {
 		base: 'text-blue-600 font-medium underline',
 		blocked: 'text-gray-500'
 	},
@@ -27,17 +27,18 @@ export const theme = {
 	h6: {
 		base: 'mt-6 mb-2 text-sm font-semibold'
 	},
-	p: {
+	paragraph: {
 		base: ''
 	},
 	ul: {
-		base: 'ml-4 list-outside list-disc whitespace-normal'
+		base: 'ml-4 list-inside list-disc whitespace-normal'
 	},
 	ol: {
-		base: 'ml-4 list-outside list-decimal whitespace-normal'
+		base: 'ml-4 list-inside whitespace-normal'
 	},
 	li: {
-		base: 'py-1'
+		base: 'py-1 marker:hidden',
+		checkbox: '-ml-2'
 	},
 	code: {
 		base: 'my-4 w-full overflow-hidden rounded-xl border border-gray-200 flex flex-col',
@@ -49,17 +50,14 @@ export const theme = {
 		skeleton: 'rounded-md font-mono text-transparent bg-gray-200 whitespace-nowrap inline-block',
 		pre: 'overflow-x-auto font-mono p-0 bg-gray-100/40'
 	},
-	inlineCode: {
-		base: 'bg-gray-100 rounded px-1.5 py-0.5 font-mono text-sm'
+	codespan: {
+		base: 'bg-gray-100 rounded px-1.5 py-0.5 font-mono text-[0.9em]'
 	},
-	img: {
+	image: {
 		base: 'group relative my-4  mx-auto w-fit block',
 		image: 'max-w-full rounded-lg',
 		downloadButton:
 			'absolute right-2 bottom-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-white/90 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white opacity-0 group-hover:opacity-100'
-	},
-	pre: {
-		base: 'overflow-x-auto font-mono text-xs p-4 bg-gray-100/40'
 	},
 	blockquote: {
 		base: 'border-gray-600/30 text-gray-600 my-4 border-l-4 pl-4 italic'
@@ -79,19 +77,22 @@ export const theme = {
 		table: 'w-full border-collapse min-w-full'
 	},
 	thead: {
-		base: 'bg-gray-100/80'
+		base: 'bg-gray-200/80'
 	},
 	tbody: {
-		base: 'divide-gray-200 bg-gray-100/40 divide-y'
+		base: ''
+	},
+	tfoot: {
+		base: 'bg-gray-100/50 border-t border-gray-300'
 	},
 	tr: {
-		base: 'border-gray-200 border-b'
-	},
-	th: {
-		base: 'px-4 py-3 text-left text-sm font-semibold whitespace-nowrap min-w-[200px]'
+		base: 'border-gray-200 border-b hover:bg-gray-100/50 transition-colors'
 	},
 	td: {
 		base: 'px-4 py-3 text-sm min-w-[200px] max-w-[400px] break-words'
+	},
+	th: {
+		base: 'px-4 py-3 text-sm text-foreground min-w-[200px] max-w-[400px] break-words'
 	},
 	sup: {
 		base: 'text-sm'
@@ -114,9 +115,10 @@ export const theme = {
 		buttons: 'absolute right-1 top-1 z-10 flex h-fit w-fit items-center gap-1'
 	},
 	math: {
-		base: ''
+		block: '',
+		inline: ''
 	},
-	inlineMath: {
+	br: {
 		base: ''
 	},
 	em: {
@@ -124,11 +126,17 @@ export const theme = {
 	},
 	del: {
 		base: 'line-through'
+	},
+	footnoteRef: {
+		base: 'text-gray-600 px-1 py-0.5 rounded-md bg-gray-100/80'
+	},
+	footnotePopover: {
+		base: 'fixed z-50 max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-background p-4 shadow'
 	}
-} satisfies Record<keyof Snippets, any>;
+} satisfies Record<keyof Omit<Snippets, 'heading'> | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6', any>;
 
 export const shadcnTheme = {
-	a: {
+	link: {
 		base: 'text-primary font-medium underline hover:text-primary/80',
 		blocked: 'text-muted-foreground'
 	},
@@ -150,17 +158,18 @@ export const shadcnTheme = {
 	h6: {
 		base: 'mt-6 mb-2 text-sm font-semibold text-foreground'
 	},
-	p: {
+	paragraph: {
 		base: 'text-foreground'
 	},
 	ul: {
-		base: 'ml-4 list-outside list-disc whitespace-normal text-foreground'
+		base: 'ml-4 list-inside list-disc whitespace-normal text-foreground'
 	},
 	ol: {
-		base: 'ml-4 list-outside list-decimal whitespace-normal text-foreground'
+		base: 'ml-4 list-inside whitespace-normal text-foreground'
 	},
 	li: {
-		base: 'py-1'
+		base: 'py-1',
+		checkbox: '-ml-2'
 	},
 	code: {
 		base: 'my-4 w-full overflow-hidden rounded-lg border border-border flex flex-col',
@@ -172,18 +181,16 @@ export const shadcnTheme = {
 		skeleton: 'rounded-md font-mono text-transparent bg-muted whitespace-nowrap inline-block',
 		pre: 'overflow-x-auto font-mono p-0 bg-muted/40'
 	},
-	inlineCode: {
-		base: 'bg-muted rounded px-1.5 py-0.5 font-mono text-sm text-foreground'
+	codespan: {
+		base: 'bg-muted rounded px-1.5 py-0.5 font-mono text-foreground text-[0.9em]'
 	},
-	img: {
+	image: {
 		base: 'group relative my-4 mx-auto w-fit block',
 		image: 'max-w-full rounded-lg',
 		downloadButton:
 			'absolute right-2 bottom-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-border bg-background/90 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-background opacity-0 group-hover:opacity-100'
 	},
-	pre: {
-		base: 'overflow-x-auto font-mono text-xs p-4 bg-muted/40'
-	},
+
 	blockquote: {
 		base: 'border-muted-foreground/30 text-muted-foreground my-4 border-l-4 pl-4 italic'
 	},
@@ -202,18 +209,21 @@ export const shadcnTheme = {
 		table: 'w-full border-collapse min-w-full'
 	},
 	thead: {
-		base: 'bg-muted/50'
+		base: 'bg-muted/80'
 	},
 	tbody: {
-		base: 'divide-border bg-card divide-y'
+		base: ''
+	},
+	tfoot: {
+		base: 'bg-muted/50 border-t border-border'
 	},
 	tr: {
 		base: 'border-border border-b hover:bg-muted/50 transition-colors'
 	},
-	th: {
-		base: 'px-4 py-3 text-left text-sm font-semibold whitespace-nowrap text-foreground min-w-[200px]'
-	},
 	td: {
+		base: 'px-4 py-3 text-sm text-foreground min-w-[200px] max-w-[400px] break-words'
+	},
+	th: {
 		base: 'px-4 py-3 text-sm text-foreground min-w-[200px] max-w-[400px] break-words'
 	},
 	sup: {
@@ -237,16 +247,23 @@ export const shadcnTheme = {
 		buttons: 'absolute right-1 top-1 z-10 flex h-fit w-fit items-center gap-1'
 	},
 	math: {
-		base: 'text-foreground'
+		block: 'text-foreground',
+		inline: 'text-foreground'
 	},
-	inlineMath: {
-		base: 'text-foreground'
+	br: {
+		base: ''
 	},
 	em: {
 		base: 'italic text-foreground'
 	},
 	del: {
 		base: 'line-through text-muted-foreground'
+	},
+	footnoteRef: {
+		base: 'text-muted-foreground px-1 text-sm inline-block rounded-full bg-muted/80 aspect-square border border-border'
+	},
+	footnotePopover: {
+		base: 'fixed z-50 max-h-[30vh] shadow max-w-3xl overflow-y-auto rounded-lg bg-background p-4'
 	}
 } satisfies Theme;
 

@@ -1,14 +1,21 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { useStreamdown } from '$lib/Streamdown.svelte';
-	import { clsx } from 'clsx';
-	import type { ElementProps } from './element.js';
+	import { useStreamdown } from '$lib/Streamdown.js';
 	import Slot from './Slot.svelte';
+	import type { MathToken } from '$lib/marked/index.js';
+	import type { Snippet } from 'svelte';
 	import type { KatexOptions } from 'katex';
 	import 'katex/dist/katex.min.css';
+
 	const streamdown = useStreamdown();
-	const { children, node, className, props }: ElementProps = $props();
-	const isInline = className?.some?.((c: string) => c.includes('inline')) ?? false;
+
+	const {
+		token
+	}: {
+		token: MathToken;
+	} = $props();
+
+	const isInline = $derived(token.isInline);
 
 	let katexInstance = $state<typeof import('katex') | null>(null);
 
@@ -30,7 +37,8 @@
 				? streamdown.katexConfig(isInline)
 				: streamdown.katexConfig || {})
 		};
-		const code = ((node.children[0] as any)?.value as string) ?? '';
+		const code = token.text;
+
 		try {
 			return katexInstance.renderToString(code, config);
 		} catch (error) {
@@ -41,25 +49,16 @@
 	});
 </script>
 
-<Slot
-	props={{
-		children,
-		node,
-		...props
-	}}
-	render={streamdown.snippets.math}
->
-	{#if isInline}
-		<span bind:this={inner} {...props} class={clsx(streamdown.theme.inlineMath.base, className)}>
-			{@html html}
-		</span>
-	{:else}
-		<div class="h-fit w-full">
-			<div class="overflow-x-auto">
-				<div bind:this={inner} {...props} class={clsx(streamdown.theme.math.base, className)}>
-					{@html html}
-				</div>
+{#if isInline}
+	<span bind:this={inner} class={streamdown.theme.math.inline}>
+		{@html html}
+	</span>
+{:else}
+	<div class="h-fit w-full">
+		<div class="overflow-x-auto">
+			<div bind:this={inner} class={streamdown.theme.math.block}>
+				{@html html}
 			</div>
 		</div>
-	{/if}
-</Slot>
+	</div>
+{/if}

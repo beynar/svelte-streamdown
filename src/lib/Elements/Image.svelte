@@ -1,19 +1,22 @@
 <script lang="ts">
-	import { useStreamdown } from '$lib/Streamdown.svelte';
+	import { useStreamdown } from '$lib/Streamdown.js';
 	import { transformUrl } from '$lib/utils/url.js';
-	import { clsx } from 'clsx';
-	import type { ElementProps } from './element.js';
 	import Slot from './Slot.svelte';
+	import type { Tokens } from 'marked';
+	import type { Snippet } from 'svelte';
 
 	const streamdown = useStreamdown();
 
-	const { children, node, className, props }: ElementProps = $props();
-
-	const src = $derived(node.properties.src);
-	const alt = $derived(node.properties.alt as string | undefined);
+	const {
+		children,
+		token
+	}: {
+		children: Snippet;
+		token: Tokens.Image;
+	} = $props();
 
 	const transformedUrl = $derived(
-		transformUrl(src, streamdown.allowedImagePrefixes ?? [], streamdown.defaultOrigin)
+		transformUrl(token.href, streamdown.allowedImagePrefixes ?? [], streamdown.defaultOrigin)
 	);
 </script>
 
@@ -21,24 +24,21 @@
 	<Slot
 		props={{
 			src: transformedUrl,
-			alt,
+			alt: token.text,
 			children,
-			...props
+			token
 		}}
-		render={streamdown.snippets.img}
+		render={streamdown.snippets.image}
 	>
-		<div class={clsx(streamdown.theme.img.base, className)} {...props}>
-			<img class={streamdown.theme.img.image} src={transformedUrl} {alt} />
+		<div class={streamdown.theme.image.base}>
+			<img class={streamdown.theme.image.image} src={transformedUrl} alt={token.text} />
 		</div>
 	</Slot>
 {:else}
 	<span
-		class={clsx(
-			'inline-block rounded bg-gray-200 px-3 py-1 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-400',
-			className?.toString()
-		)}
-		title={`Blocked URL: ${src}`}
+		class="inline-block rounded bg-gray-200 px-3 py-1 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+		title={`Blocked URL: ${token.href}`}
 	>
-		[Image blocked: {alt || 'No description'}]
+		[Image blocked: {token.text || 'No description'}]
 	</span>
 {/if}

@@ -1,0 +1,80 @@
+import { Lexer, Marked, type MarkedToken, type Tokens } from 'marked';
+import markedAlert, { type AlertToken } from './marked-alert.js';
+import markedFootnote, { type FootnoteToken } from './marked-footnotes.js';
+import { markedMath, type MathToken } from './marked-math.js';
+import markedSubSup, { type SubSupToken } from './marked-subsup.js';
+import { markedList, type ListItemToken, type ListToken } from './marked-list.js';
+import {
+	markedTable,
+	type TableToken,
+	type THead,
+	type TBody,
+	type TFoot,
+	type THeadRow,
+	type TRow,
+	type TH,
+	type TD
+} from './marked-table.js';
+
+export type StreamdownToken =
+	| Exclude<MarkedToken, Tokens.List | Tokens.ListItem | Tokens.Table>
+	| ListToken
+	| ListItemToken
+	| MathToken
+	| AlertToken
+	| FootnoteToken
+	| SubSupToken
+	| TableToken
+	| THead
+	| TBody
+	| TFoot
+	| THeadRow
+	| TRow
+	| TH
+	| TD;
+
+// Re-export table types from marked-table
+export type { TableToken, THead, TBody, TFoot, THeadRow, TRow, TH, TD } from './marked-table.js';
+
+const completeLexer = new Marked({
+	// Enable GFM features but disable built-in tables
+	gfm: true,
+	tokenizer: {
+		table: () => {
+			return false;
+		}
+	}
+})
+	.use(markedAlert())
+	.use(markedFootnote())
+	.use(markedMath())
+	.use(markedSubSup())
+	.use(markedList())
+	.use(markedTable());
+
+const blockLexer = new Lexer({
+	gfm: true,
+	extensions: {
+		childTokens: {},
+		renderers: {},
+		block: [markedFootnote().extensions[0].tokenizer, markedTable().extensions[0].tokenizer]
+	}
+});
+export const lex = (markdown: string): StreamdownToken[] => {
+	return completeLexer
+		.lexer(markdown)
+		.filter((token) => token.type !== 'space' && token.type !== 'footnote') as StreamdownToken[];
+};
+
+export const parseBlocks = (markdown: string): string[] => {
+	return blockLexer.blockTokens(markdown, []).reduce((acc, block) => {
+		if (block.type === 'space' || block.type === 'footnote') {
+			return acc;
+		} else {
+			acc.push(block.raw);
+		}
+		return acc;
+	}, [] as string[]);
+};
+
+export type { MathToken, AlertToken, FootnoteToken, SubSupToken };

@@ -1,18 +1,22 @@
 <script lang="ts">
-	import { useStreamdown } from '$lib/Streamdown.svelte';
+	import { useStreamdown } from '$lib/Streamdown.js';
 	import { save } from '$lib/utils/save.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
-	import { HighlighterManager, languageExtensionMap } from '$lib/hightlighter.svelte.js';
-	import { clsx } from 'clsx';
-	import type { ElementProps } from './element.js';
+	import { HighlighterManager, languageExtensionMap } from '$lib/utils/hightlighter.svelte.js';
+	import type { Tokens } from 'marked';
+	import type { Snippet } from 'svelte';
 
-	let { node, className, props }: ElementProps = $props();
+	const {
+		token
+	}: {
+		token: Tokens.Code;
+	} = $props();
 
 	const streamdown = useStreamdown();
 	const highlighter = HighlighterManager.create(streamdown.shikiPreloadThemes || []);
 	const theme = $derived(streamdown.shikiTheme);
-	let codeContent = $derived((node.children[0] as any).value);
-	const language = $derived(node.properties.language as string);
+	let codeContent = $derived(token.text);
+	const language = $derived(token.lang || '');
 	const copy = useCopy({
 		get content() {
 			return codeContent;
@@ -40,12 +44,8 @@
 	});
 </script>
 
-<div
-	{...props}
-	class={clsx(streamdown.theme.code.base, streamdown.theme.code.container, className)}
-	data-language={language}
->
-	<div class={clsx(streamdown.theme.code.header)} data-code-block-header data-language={language}>
+<div class={streamdown.theme.code.base} data-language={language}>
+	<div class={streamdown.theme.code.header} data-code-block-header data-language={language}>
 		<span class={streamdown.theme.code.language}>{language}</span>
 		<div class="flex items-center gap-2">
 			<!-- Download button snippet -->

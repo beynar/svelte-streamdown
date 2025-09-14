@@ -131,11 +131,12 @@ export const splitCells = (
 	prevRow: WorkingRow | null = null,
 	maxColspan: number | null = null
 ): WorkingRow => {
-	const cells = [...tableRow.matchAll(/(?:[^|\\]|\\.?)+(?:\|+|$)/g)].map((x) => x[0]);
+	// Split by pipe, but handle escaped pipes and empty cells
+	const cells = tableRow.split('|').map((cell) => cell.trim());
 
-	// Remove first/last cell in a row if whitespace only and no leading/trailing pipe
-	if (!cells[0]?.trim()) cells.shift();
-	if (!cells[cells.length - 1]?.trim()) cells.pop();
+	// Remove first/last cell if it's empty (from leading/trailing pipes)
+	if (cells.length > 0 && !cells[0]) cells.shift();
+	if (cells.length > 0 && !cells[cells.length - 1]) cells.pop();
 
 	return processSpans(cells, count, prevRow || [], maxColspan);
 };
@@ -154,31 +155,52 @@ const processSpans = (
 	// Track colspan cells that need rowspan
 	const colspanCells = new Map<string, { original: WorkingCell; newCell: WorkingCell }>();
 
-	// First pass: Process each cell's colspan
-	for (i = 0; i < cells.length; i++) {
-		trimmedCell = cells[i].split(/\|+$/)[0];
+	// First pass: Process each cell's colspan and merge consecutive empty cells
+	let cellIndex = 0;
+	const mergedIndices = new Set<number>();
 
-		// Calculate colspan and apply maxColspan limit if specified
-		let colspan = Math.max(cells[i].length - trimmedCell.length, 1);
+	for (i = 0; i < cells.length; i++) {
+		// Skip cells that were merged into previous colspans
+		if (mergedIndices.has(i)) continue;
+
+		trimmedCell = cells[i];
+
+		// Count consecutive empty cells for colspan
+		let colspan = 1;
+		if (!trimmedCell.trim()) {
+			// Count how many consecutive empty cells we have
+			let j = i + 1;
+			while (j < cells.length && !cells[j].trim()) {
+				colspan++;
+				mergedIndices.add(j); // Mark as merged
+				j++;
+			}
+		}
+
+		// Apply maxColspan limit if specified
 		if (maxColspan !== null && colspan > maxColspan) colspan = maxColspan;
 
-		processedCells[i] = {
+		processedCells[cellIndex] = {
 			rowspan: 1,
 			colspan: colspan,
 			text: trimmedCell.trim().replace(/\\\|/g, '|'),
 			position: numCols // Store original column position for better tracking
 		};
 
-		numCols += processedCells[i].colspan;
+		numCols += processedCells[cellIndex].colspan;
+		cellIndex++;
 	}
 
 	// Second pass: Process rowspan by matching cells by position
 	for (i = 0; i < processedCells.length; i++) {
 		const cell = processedCells[i];
-		const cellText = cell.text;
+		let cellText = cell.text;
 
 		// Handle Rowspan - cells ending with ^
 		if (cellText.slice(-1) === '^' && prevRow.length > 0) {
+			// Clean the ^ indicator from the cell text
+			cell.text = cellText.slice(0, -1).trim();
+			cellText = cell.text;
 			let targetFound = false;
 			const startPosition = cell.position || 0;
 			const endPosition = startPosition + cell.colspan - 1;
@@ -200,13 +222,17 @@ const processSpans = (
 						// If the cell spans exactly match, simple case
 						if (cell.colspan === prevCell.colspan && cell.position === prevCell.position) {
 							cell.rowSpanTarget = prevCell.rowSpanTarget ?? prevCell;
-							// Append text from rowspan cell to target cell (remove ^ indicator)
+							// Only append text if it's different from the target cell
 							const textToAppend = cell.text.slice(0, -1).trim();
-							if (textToAppend) {
-								cell.rowSpanTarget.text =
-									cell.rowSpanTarget.text.trim() +
-									(cell.rowSpanTarget.text.trim() ? ' ' : '') +
-									textToAppend;
+							const targetText = cell.rowSpanTarget.text.trim();
+
+							// Don't append if the text is the same or already contained (common case for rowspan indicators)
+							if (
+								textToAppend &&
+								textToAppend !== targetText &&
+								!targetText.includes(textToAppend)
+							) {
+								cell.rowSpanTarget.text = targetText + (targetText ? ' ' : '') + textToAppend;
 							}
 							cell.rowSpanTarget.rowspan += 1;
 							cell.rowspan = 0;
@@ -224,13 +250,13 @@ const processSpans = (
 					} else {
 						// Standard case of single column cell with rowspan
 						cell.rowSpanTarget = prevCell.rowSpanTarget ?? prevCell;
-						// Append text from rowspan cell to target cell (remove ^ indicator)
+						// Only append text if it's different from the target cell
 						const textToAppend = cell.text.slice(0, -1).trim();
-						if (textToAppend) {
-							cell.rowSpanTarget.text =
-								cell.rowSpanTarget.text.trim() +
-								(cell.rowSpanTarget.text.trim() ? ' ' : '') +
-								textToAppend;
+						const targetText = cell.rowSpanTarget.text.trim();
+
+						// Don't append if the text is the same or already contained (common case for rowspan indicators)
+						if (textToAppend && textToAppend !== targetText && !targetText.includes(textToAppend)) {
+							cell.rowSpanTarget.text = targetText + (targetText ? ' ' : '') + textToAppend;
 						}
 						cell.rowSpanTarget.rowspan += 1;
 						cell.rowspan = 0;
@@ -240,8 +266,10 @@ const processSpans = (
 				}
 			}
 
-			// If no target was found but it's a rowspan cell, handle as normal text
-			if (!targetFound && cell.rowspan > 0) cell.text = cell.text.slice(0, -1);
+			// If no target was found but it's a rowspan cell, clean the ^ indicator
+			if (!targetFound && cell.rowspan > 0) {
+				cell.text = cell.text.slice(0, -1);
+			}
 		}
 	}
 
@@ -374,23 +402,25 @@ function processRows(
 		processedHeaderRows[i] = splitCells(headerRows[i], colCount, prevRow, maxColspan);
 	}
 
-	// Convert header rows to THead
-	const theadRows: THeadRow[] = processedHeaderRows.map((row) => ({
-		type: 'tr',
-		tokens: row.map((cell) => {
-			// Use the cell's position to get the correct alignment
-			const cellAlignment = cell.position !== undefined ? alignment[cell.position] : null;
-			const th = workingCellToTH(cell, cellAlignment);
-			// Add inline tokens
-			th.tokens = lexer.inline(th.text, th.tokens as any);
-			return th;
-		})
-	}));
+	// Convert header rows to THead (only if we have header rows)
+	if (processedHeaderRows.length > 0) {
+		const theadRows: THeadRow[] = processedHeaderRows.map((row) => ({
+			type: 'tr',
+			tokens: row.map((cell) => {
+				// Use the cell's position to get the correct alignment
+				const cellAlignment = cell.position !== undefined ? alignment[cell.position] : null;
+				const th = workingCellToTH(cell, cellAlignment);
+				// Add inline tokens
+				th.tokens = lexer.inline(th.text, th.tokens as any);
+				return th;
+			})
+		}));
 
-	tokens.push({
-		type: 'thead',
-		tokens: theadRows
-	});
+		tokens.push({
+			type: 'thead',
+			tokens: theadRows
+		});
+	}
 
 	// Process body rows
 	if (bodyRows.length > 0) {
@@ -468,10 +498,19 @@ export function markedTable(options: SpanTableOptions = {}): MarkedExtension {
 				name: 'table',
 				level: 'block',
 				start(src: string) {
-					return src.match(/^\n *([^\n ].*\|.*)\n/)?.index;
+					// Check for table with potential header alignment
+					let match = src.match(/^\n *([^\n ].*\|.*)\n/);
+					if (match) return match.index;
+
+					// Check for simple table without header alignment
+					match = src.match(/^\n *(\|.*\|)\n/);
+					if (match) return match.index;
+
+					return undefined;
 				},
 				tokenizer(this: TokenizerThis, src: string): any {
-					const regex = new RegExp(
+					// Try to match table with header and alignment first
+					let regex = new RegExp(
 						'^' +
 							'([^\\n ].*\\|.*\\n(?: *[^\\s].*\\n)*?)' + // Header
 							' {0,3}(?:\\| *)?(:?-+:? *(?:\\| *:?-+:? *)*)(?:\\| *)?' + // Header Align
@@ -482,27 +521,87 @@ export function markedTable(options: SpanTableOptions = {}): MarkedExtension {
 							'caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?: +|\\n|\\/?>)|<(?:script|pre|style|textarea|!--)).*(?:\\n|$))*)\\n*|$)'
 					);
 
-					const cap = regex.exec(src);
+					let cap = regex.exec(src);
+					let hasHeaderAlignment = true;
+
+					// If no match with header alignment, try table without header alignment
+					if (!cap) {
+						// Simple regex for tables without header alignment
+						regex = /^(\|.*\|(?:\n\|.*\|)*)/;
+						cap = regex.exec(src);
+						hasHeaderAlignment = false;
+					}
+
 					if (!cap) return null;
 
-					const headerRows = cap[1].replace(/\n$/, '').split('\n');
-					const alignRow = cap[2].replace(/^ *|\| *$/g, '').split(/ *\| */);
-					const bodyRows = cap[3] ? cap[3].replace(/\n$/, '').split('\n') : [];
+					// Combine all captured groups to get complete table rows
+					let allTableContent = cap[1]; // Headers
+					if (cap[2]) allTableContent += '\n' + cap[2]; // Alignment row
+					if (cap[3]) allTableContent += '\n' + cap[3]; // Body rows
 
-					// Use alignment row length as the authoritative column count
-					const colCount = alignRow.length;
+					const allRows = allTableContent.replace(/\n$/, '').split('\n');
+					let headerRows: string[] = [];
+					let bodyRows: string[] = [];
+					let alignRow: string[] = [];
+					let alignment: (string | null)[] = [];
+					let colCount = 0;
 
-					// Validate that we have a reasonable table structure
-					if (colCount === 0) return null;
+					if (hasHeaderAlignment) {
+						// Traditional table with header and alignment
+						// Parse all rows and identify which are headers vs body
+						let headerEndIndex = -1;
 
-					// Process alignment
-					const alignment = processAlignment(alignRow);
+						// Find the FIRST alignment row (contains dashes/underscores/asterisks)
+						for (let i = 0; i < allRows.length; i++) {
+							const row = allRows[i].trim();
+							const isAlignment = /^ *(\| *)?:?-+:? *(\| *:?-+:? *)*(\| *)?$/.test(row);
+							// Check if this row matches alignment pattern (contains only |, spaces, and alignment chars)
+							if (isAlignment) {
+								headerEndIndex = i;
+								alignRow = row.replace(/^ *\| *| *\| *$/g, '').split(/ *\| */);
+								break; // Stop at the first alignment row
+							}
+						}
 
-					// Detect footer alignment row pattern in body rows
+						if (headerEndIndex === -1) {
+							// No alignment row found, treat as simple table
+							bodyRows = allRows;
+							colCount = bodyRows[0].split('|').filter((cell) => cell.trim() !== '').length;
+							alignment = new Array(colCount).fill(null);
+						} else {
+							// Found alignment row, split headers and body
+							// Filter out empty rows and the alignment row itself from headers
+							headerRows = allRows.slice(0, headerEndIndex).filter((row, index) => {
+								const trimmed = row.trim();
+								// Exclude empty rows and the alignment row
+								return trimmed !== '' && index !== headerEndIndex - 1;
+							});
+
+							bodyRows =
+								headerEndIndex + 1 < allRows.length ? allRows.slice(headerEndIndex + 1) : [];
+
+							// Use alignment row length as the authoritative column count
+							colCount = alignRow.length;
+
+							// Validate that we have a reasonable table structure
+							if (colCount === 0) return null;
+
+							// Process alignment
+							alignment = processAlignment(alignRow);
+						}
+					} else {
+						// Table without header alignment - treat all rows as body rows
+						bodyRows = allRows;
+						const firstRowCells = bodyRows[0].split('|').filter((cell) => cell.trim() !== '');
+						colCount = firstRowCells.length;
+						alignment = new Array(colCount).fill(null); // No alignment for tables without headers
+					}
+
+					// Detect footer alignment row pattern in body rows (only for tables with header alignment)
 					let shouldDetectFooter = false;
 					let processedBodyRows = bodyRows;
 
-					if (detectFooter && bodyRows.length > 0) {
+					if (detectFooter && hasHeaderAlignment && bodyRows.length > 0) {
 						// Check if any row matches the alignment pattern (contains only dashes, pipes, colons, and spaces)
 						for (let i = bodyRows.length - 1; i >= 0; i--) {
 							const row = bodyRows[i];

@@ -6,8 +6,12 @@ import type { TokenizerThis } from 'marked';
 type variantType = 'note' | 'tip' | 'important' | 'warning' | 'caution';
 const variants: variantType[] = ['note', 'tip', 'important', 'warning', 'caution'];
 
+// export function createSyntaxPattern(type: variantType): string {
+// 	return `^(?:\\[!${type.toUpperCase()}])\\s*?\n*`;
+// }
+
 export function createSyntaxPattern(type: variantType): string {
-	return `^(?:\\[!${type.toUpperCase()}])\\s*?\n*`;
+	return `^\\s*\\[!${type.toUpperCase()}\\]\\s+`;
 }
 
 export default function markedAlert(): {

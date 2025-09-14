@@ -124,6 +124,51 @@ export const getTableCell = (
 	return `${tag + text}</${type}>\n`;
 };
 
+function splitRow(src: string): string[] {
+	const out: string[] = [];
+	let buf = '';
+	let esc = false;
+	let inCode = false;
+	let fence = 0;
+
+	for (let i = 0; i < src.length; i++) {
+		const ch = src[i];
+		if (esc) {
+			buf += ch;
+			esc = false;
+			continue;
+		}
+		if (ch === '\\') {
+			esc = true;
+			buf += ch;
+			continue;
+		}
+		if (ch === '`') {
+			// count backticks
+			let run = 1;
+			while (i + run < src.length && src[i + run] === '`') run++;
+			if (!inCode) {
+				inCode = true;
+				fence = run;
+			} else if (run >= fence) {
+				inCode = false;
+				fence = 0;
+			}
+			buf += src.slice(i, i + run);
+			i += run - 1;
+			continue;
+		}
+		if (ch === '|' && !inCode) {
+			out.push(buf.trim());
+			buf = '';
+			continue;
+		}
+		buf += ch;
+	}
+	out.push(buf.trim());
+	return out;
+}
+
 // Splits a table row into cells and processes row/column spans
 export const splitCells = (
 	tableRow: string,
@@ -132,7 +177,7 @@ export const splitCells = (
 	maxColspan: number | null = null
 ): WorkingRow => {
 	// Split by pipe, but handle escaped pipes and empty cells
-	const cells = tableRow.split('|').map((cell) => cell.trim());
+	const cells = splitRow(tableRow);
 
 	// Remove first/last cell if it's empty (from leading/trailing pipes)
 	if (cells.length > 0 && !cells[0]) cells.shift();
@@ -571,11 +616,8 @@ export function markedTable(options: SpanTableOptions = {}): MarkedExtension {
 						} else {
 							// Found alignment row, split headers and body
 							// Filter out empty rows and the alignment row itself from headers
-							headerRows = allRows.slice(0, headerEndIndex).filter((row, index) => {
-								const trimmed = row.trim();
-								// Exclude empty rows and the alignment row
-								return trimmed !== '' && index !== headerEndIndex - 1;
-							});
+
+							headerRows = allRows.slice(0, headerEndIndex).filter((row) => row.trim() !== '');
 
 							bodyRows =
 								headerEndIndex + 1 < allRows.length ? allRows.slice(headerEndIndex + 1) : [];

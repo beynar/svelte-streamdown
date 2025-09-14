@@ -36,23 +36,23 @@ export const bulletPattern = `(?:[*+-]|(?:\\d{1,9}|[a-zA-Z]|${romanUpper}|${roma
 export const rule = `^( {0,3}${bulletPattern})([ \\t][^\\n]+?)?(?:\\n|$)`;
 
 function finalizeList(list: ListToken, lexer: Lexer) {
-	if (list.items.length === 0) return;
+	if (list.tokens.length === 0) return;
 
 	// Trim trailing newline from last item
-	const lastItem = list.items[list.items.length - 1];
+	const lastItem = list.tokens[list.tokens.length - 1];
 	lastItem.raw = lastItem.raw.trimEnd();
 	lastItem.text = lastItem.text.trimEnd();
 	list.raw = list.raw.trimEnd();
 
 	// Handle child tokens
-	for (const item of list.items) {
+	for (const item of list.tokens) {
 		lexer.state.top = false;
 		item.tokens = lexer.blockTokens(item.text, []);
 	}
 
 	// Mark list as loose if needed
 	if (list.loose) {
-		for (const item of list.items) {
+		for (const item of list.tokens) {
 			item.loose = true;
 		}
 	}
@@ -109,7 +109,7 @@ export function markedList(): {
 						ordered: isOrdered,
 						listType: isOrdered ? type : null,
 						loose: false,
-						items: [] as ListItemToken[]
+						tokens: [] as ListItemToken[]
 					} as ListToken;
 
 					// Get next list item
@@ -219,7 +219,7 @@ export function markedList(): {
 							value = romanToInt(bullet.slice(0, -1));
 						}
 
-						list.items.push({
+						list.tokens.push({
 							type: 'list_item',
 							raw,
 							task: !!isTask,
@@ -235,7 +235,7 @@ export function markedList(): {
 						list.raw += raw;
 					}
 
-					if (list.items.length === 0) return null;
+					if (list.tokens.length === 0) return null;
 
 					// Finalize the list
 					finalizeList(list, this.lexer);
@@ -252,7 +252,7 @@ export interface ListToken {
 	ordered: boolean;
 	listType: 'decimal' | 'lower-alpha' | 'upper-alpha' | 'lower-roman' | 'upper-roman' | null;
 	loose: boolean;
-	items: ListItemToken[];
+	tokens: ListItemToken[];
 }
 
 /**

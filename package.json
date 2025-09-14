@@ -69,12 +69,14 @@
 	},
 	"dependencies": {
 		"@floating-ui/dom": "^1.7.4",
-		"@fsegurai/marked-extended-lists": "^15.2.3",
+		"@fsegurai/marked-extended-tables": "^15.3.1",
 		"clsx": "^2.1.1",
 		"html-url-attributes": "^3.0.1",
+		"i": "^0.3.7",
 		"katex": "^0.16.22",
 		"marked": "^16.2.1",
 		"mermaid": "^11.11.0",
+		"npm": "^11.6.0",
 		"shiki": "^3.12.2",
 		"tailwind-merge": "^3.3.1"
 	}

@@ -76,17 +76,23 @@ export const theme = {
 		base: 'overflow-x-auto max-w-full my-4 border border-gray-200 rounded-lg',
 		table: 'w-full border-collapse min-w-full'
 	},
-	tableRow: {
-		base: 'border-gray-200 border-b hover:bg-gray-100/50 transition-colors'
-	},
-	tableHead: {
+	thead: {
 		base: 'bg-gray-200/80'
+	},
+	tbody: {
+		base: ''
+	},
+	tfoot: {
+		base: 'bg-gray-100/50 border-t border-gray-300'
+	},
+	tr: {
+		base: 'border-gray-200 border-b hover:bg-gray-100/50 transition-colors'
 	},
 	td: {
 		base: 'px-4 py-3 text-sm min-w-[200px] max-w-[400px] break-words'
 	},
 	th: {
-		base: 'text-left px-4 py-3 text-sm text-foreground min-w-[200px] max-w-[400px] break-words'
+		base: 'px-4 py-3 text-sm text-foreground min-w-[200px] max-w-[400px] break-words'
 	},
 	sup: {
 		base: 'text-sm'
@@ -202,17 +208,23 @@ export const shadcnTheme = {
 		base: 'overflow-x-auto max-w-full my-4 rounded-lg border border-border',
 		table: 'w-full border-collapse min-w-full'
 	},
-	tableRow: {
-		base: 'border-border border-b hover:bg-muted/50 transition-colors'
-	},
-	tableHead: {
+	thead: {
 		base: 'bg-muted/80'
+	},
+	tbody: {
+		base: ''
+	},
+	tfoot: {
+		base: 'bg-muted/50 border-t border-border'
+	},
+	tr: {
+		base: 'border-border border-b hover:bg-muted/50 transition-colors'
 	},
 	td: {
 		base: 'px-4 py-3 text-sm text-foreground min-w-[200px] max-w-[400px] break-words'
 	},
 	th: {
-		base: 'text-left px-4 py-3 text-sm text-foreground min-w-[200px] max-w-[400px] break-words'
+		base: 'px-4 py-3 text-sm text-foreground min-w-[200px] max-w-[400px] break-words'
 	},
 	sup: {
 		base: 'text-sm'

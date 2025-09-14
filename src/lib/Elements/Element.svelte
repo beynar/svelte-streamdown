@@ -3,13 +3,12 @@
 	import Link from './Link.svelte';
 	import Code from './Code.svelte';
 	import Image from './Image.svelte';
-	import Table from './Table.svelte';
 	import Mermaid from './Mermaid.svelte';
 	import Math from './Math.svelte';
 	import Alert from './Alert.svelte';
 	import type { StreamdownToken } from '$lib/marked/index.js';
 	import Slot from './Slot.svelte';
-	import { useStreamdown } from '$lib/Streamdown.svelte';
+	import { useStreamdown } from '$lib/Streamdown.js';
 	import FootnoteRef from './FootnoteRef.svelte';
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
 	const id = $props.id();
@@ -89,31 +88,67 @@
 		</li>
 	</Slot>
 {:else if token.type === 'table'}
-	<Table {token} {children} />
-{:else if token.type === 'tableRow'}
-	<Slot props={{ token, children }} render={streamdown.snippets.tableRow}>
-		<tr class={streamdown.theme.tableRow.base}>
-			{@render children?.()}
-		</tr>
+	<Slot props={{ token, children }} render={streamdown.snippets.table}>
+		<div class={streamdown.theme.table.base}>
+			<table class={streamdown.theme.table.table}>
+				{@render children()}
+			</table>
+		</div>
 	</Slot>
-{:else if token.type === 'tableHead'}
-	<Slot props={{ token, children }} render={streamdown.snippets.tableHead}>
-		<thead class={streamdown.theme.tableHead.base}>
+{:else if token.type === 'thead'}
+	<Slot props={{ token, children }} render={streamdown.snippets.thead}>
+		<thead class={streamdown.theme.thead.base}>
 			{@render children?.()}
 		</thead>
 	</Slot>
+{:else if token.type === 'tbody'}
+	<Slot props={{ token, children }} render={streamdown.snippets.tbody}>
+		<tbody class={streamdown.theme.tbody.base}>
+			{@render children?.()}
+		</tbody>
+	</Slot>
+{:else if token.type === 'tfoot'}
+	<Slot props={{ token, children }} render={streamdown.snippets.tfoot}>
+		<tfoot class={streamdown.theme.tfoot.base}>
+			{@render children?.()}
+		</tfoot>
+	</Slot>
+{:else if token.type === 'tr'}
+	<Slot props={{ token, children }} render={streamdown.snippets.tr}>
+		<tr class={streamdown.theme.tr.base}>
+			{@render children?.()}
+		</tr>
+	</Slot>
 {:else if token.type === 'td'}
-	<Slot props={{ children, token }} render={streamdown.snippets.td}>
-		<td class={streamdown.theme.td.base}>
-			{@render children?.()}
-		</td>
-	</Slot>
+	{#if token.rowspan > 0}
+		<Slot props={{ children, token }} render={streamdown.snippets.td}>
+			<td
+				class={streamdown.theme.td.base}
+				{...token.colspan > 1 ? { colspan: token.colspan } : {}}
+				{...token.rowspan > 1 ? { rowspan: token.rowspan } : {}}
+				{...token.align && ['left', 'center', 'right', 'justify', 'char'].includes(token.align)
+					? { align: token.align as 'left' | 'center' | 'right' | 'justify' | 'char' }
+					: { align: 'left' }}
+			>
+				{@render children?.()}
+			</td>
+		</Slot>
+	{/if}
 {:else if token.type === 'th'}
-	<Slot props={{ children, token }} render={streamdown.snippets.th}>
-		<th class={streamdown.theme.th.base}>
-			{@render children?.()}
-		</th>
-	</Slot>
+	{#if token.rowspan > 0}
+		<Slot props={{ children, token }} render={streamdown.snippets.th}>
+			<th
+				class={streamdown.theme.th.base}
+				{...token.colspan > 1 ? { colspan: token.colspan } : {}}
+				{...token.rowspan > 1 ? { rowspan: token.rowspan } : {}}
+				{...token.align && ['left', 'center', 'right', 'justify', 'char'].includes(token.align)
+					? { align: token.align as 'left' | 'center' | 'right' | 'justify' | 'char' }
+					: { align: 'left' }}
+			>
+				{@render children?.()}
+			</th>
+		</Slot>
+	{/if}
 {:else if token.type === 'image'}
 	<Image {token} {children} />
 {:else if token.type === 'link'}

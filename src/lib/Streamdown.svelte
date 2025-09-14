@@ -1,42 +1,10 @@
-<script lang="ts" module>
-	import { getContext, setContext } from 'svelte';
-
-	export interface StreamdownContext
-		extends Omit<StreamdownProps, keyof Snippets | 'class' | 'theme' | 'shikiTheme'> {
-		snippets: Snippets;
-		shikiTheme: BundledTheme;
-		theme: Theme;
-	}
-	export class StreamdownContext {
-		footnotes = {
-			refs: new Map<string, FootnoteRef>(),
-			footnotes: new Map<string, Footnote>()
-		};
-		constructor(props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets }) {
-			bind(this, props);
-			setContext('streamdown', this);
-		}
-	}
-	export const useStreamdown = () => {
-		const context = getContext<StreamdownContext>('streamdown');
-		if (!context) {
-			throw new Error('Streamdown context not found');
-		}
-		return context;
-	};
-</script>
-
 <script lang="ts">
 	import Block from './Block.svelte';
-	import type { Snippets, StreamdownProps } from './Streamdown.js';
-	import { bind } from './utils/bind.js';
+	import { StreamdownContext, type StreamdownProps } from './Streamdown.js';
 	import 'katex/dist/katex.min.css';
-	import { mergeTheme, type Theme, shadcnTheme } from './theme.js';
-	import type { BundledTheme } from 'shiki';
+	import { mergeTheme, shadcnTheme } from './theme.js';
 	import { parseBlocks } from './marked/index.js';
-	import { SvelteMap } from 'svelte/reactivity';
-	import type { FootnoteRef } from './marked/marked-footnotes.js';
-	import type { Footnote } from './marked/marked-footnotes.js';
+
 	let {
 		content = '',
 		class: className,
@@ -52,7 +20,6 @@
 		translations,
 		baseTheme,
 		mergeTheme: shouldMergeTheme = true,
-		customElements,
 		streamdown = $bindable(),
 		...snippets
 	}: StreamdownProps = $props();
@@ -97,9 +64,6 @@
 		},
 		get translations() {
 			return translations;
-		},
-		get customElements() {
-			return customElements;
 		},
 		get shikiPreloadThemes() {
 			return shikiPreloadThemes;

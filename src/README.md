@@ -20,6 +20,27 @@ Perfect for AI-powered applications that need to stream and render markdown cont
 
 ## ✨ Main Features
 
+
+### 🔄 Streaming-Optimized
+
+- **Incomplete Markdown Parsing**: Handles unterminated blocks gracefully
+- **Progressive Rendering**: Perfect for streaming AI responses
+- **Real-time Updates**: Optimized for dynamic content
+
+### 🔒 Security Hardening
+
+- **Image Origin Control**: Whitelist allowed image sources
+- **Link Safety**: Control link destinations
+- **HTML Sanitization**: Prevent XSS attacks
+
+### 🎯 Fully Customizable Components & Theming
+
+- **Every component customizable** with Svelte snippets
+- **Granular theming system** - customize every part of every component
+- Override default styling and behavior for any markdown element
+- Full control over rendering with type-safe props
+- Seamless integration with your design system
+
 ### 🎨 Built-in Typography Styles
 
 Beautiful, responsive typography with **built-in Tailwind CSS classes** for headings, lists, code blocks, and more. Comes with a complete default theme that works out of the box.
@@ -27,8 +48,6 @@ Beautiful, responsive typography with **built-in Tailwind CSS classes** for head
 ### 📝 GitHub Flavored Markdown
 
 Full support for GitHub Flavored Markdown including:
-
-- [ ] Task lists
 
 - Tables
 - ~~Strikethrough~~
@@ -100,30 +119,106 @@ pie title Project Time Allocation
     "Meetings" : 15
 ```
 
+### Complex table support
+
+#### Colspan
+
+| H1                        | H2  | H3  |
+| ------------------------- | --- | --- |
+| This cell spans 3 columns |||
+
+| Header 1                  | Header 2 | Header 3 |
+| ------------------------- | -------- | -------- |
+| This cell spans 2 columns || Normal
+| Normal                    | Normal   | Normal   |
+
+#### Rowspan
+| Header 1        | Header 2 |
+| --------------- | -------- |
+| This cell spans | Cell A   |
+| two rows ^      | Cell B   |
+#### Footer
+| Header 1        | Header 2 |
+| --------------- | -------- |
+| Cell B 		  | Cell A   |
+| --------------- | -------- |
+| Footer ||
+
+#### Column alignment
+
+| Left | Center | Right |
+| :--- | :----: | ----: |
+| A    |   B    |     C |
+
+#### Everything 
+
+
+| Product Category ||| Sales Data Q1-Q4 2024 ||||
+| Product | Region || Q1 | Q2 | Q3 | Q4 |
+| Name | Type | Area | Revenue | Revenue | Revenue | Revenue |
+|-------------|---------|------------|---------|---------|---------|---------|
+| Laptop Pro | Electronics | North America || $45,000 | $52,000 | $48,000 |
+| Laptop Pro | Electronics | North America || $45,000 | $52,000 | $48,000 |
+| Laptop Pro | Electronics | North America || $45,000 | $52,000 | $48,000 |
+| Laptop Pro | Electronics | North America || $45,000 | $52,000 | $48,000 |
+
+### Complex list support
+
+#### decimal
+
+1. First item  
+2. Second item  
+3. Third item
+
+#### lower-alpha
+
+a. First item  
+b. Second item  
+c. Third item
+
+#### upper-alpha
+
+A. First item  
+B. Second item  
+C. Third item
+
+#### lower-roman
+
+i. First item  
+ii. Second item  
+iii. Third item
+
+#### upper-roman
+
+I. First item  
+II. Second item  
+III. Third item
+
+#### Nested Lists
+
+1. First level (numeric)
+   a. Second level (lowercase alpha)
+      i. Third level (lowercase roman)
+         - Fourth level (bullet)
+            I. Fifth level (uppercase roman)
+               A. Sixth level (uppercase alpha)
+
+2. Back to the first level
+
+#### Task List
+
+- [ ] Uncompleted task
+- [x] Completed task
+- [ ] Another uncompleted task
+  - [ ] Nested uncompleted subtask
+  - [x] Nested completed subtask
+
+
 ### Alert Support
 
 > [!IMPORTANT]
 > Native support for Github style Alert
 
-### 🔄 Streaming-Optimized
-
-- **Incomplete Markdown Parsing**: Handles unterminated blocks gracefully
-- **Progressive Rendering**: Perfect for streaming AI responses
-- **Real-time Updates**: Optimized for dynamic content
-
-### 🔒 Security Hardening
-
-- **Image Origin Control**: Whitelist allowed image sources
-- **Link Safety**: Control link destinations
-- **HTML Sanitization**: Prevent XSS attacks
-
-### 🎯 Fully Customizable Components & Theming
-
-- **Every component customizable** with Svelte snippets
-- **Granular theming system** - customize every part of every component
-- Override default styling and behavior for any markdown element
-- Full control over rendering with type-safe props
-- Seamless integration with your design system
 
 ## 🔄 Differences from Original React Version
 

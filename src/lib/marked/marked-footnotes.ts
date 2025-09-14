@@ -1,7 +1,7 @@
 import type { TokenizerExtensionFunction, TokenizerThis } from 'marked';
 
 import { lex, type StreamdownToken } from './index.js';
-import { StreamdownContext } from '$lib/Streamdown.svelte';
+import { StreamdownContext } from '$lib/Streamdown.js';
 import { getContext } from 'svelte';
 
 const safeGetContext = () => {

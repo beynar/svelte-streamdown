@@ -3,20 +3,49 @@ import type { Snippet } from 'svelte';
 import type { Theme } from './theme.js';
 import type { MermaidConfig } from 'mermaid';
 import type { KatexOptions } from 'katex';
-import type { StreamdownContext } from './Streamdown.svelte';
+import { getContext, setContext } from 'svelte';
+
+export interface StreamdownContext
+	extends Omit<StreamdownProps, keyof Snippets | 'class' | 'theme' | 'shikiTheme'> {
+	snippets: Snippets;
+	shikiTheme: BundledTheme;
+	theme: Theme;
+}
+export class StreamdownContext {
+	footnotes = {
+		refs: new Map<string, FootnoteRef>(),
+		footnotes: new Map<string, Footnote>()
+	};
+	constructor(props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets }) {
+		bind(this, props);
+		setContext('streamdown', this);
+	}
+}
+export const useStreamdown = () => {
+	const context = getContext<StreamdownContext>('streamdown');
+	if (!context) {
+		throw new Error('Streamdown context not found');
+	}
+	return context;
+};
+
 import type {
 	AlertToken,
 	MathToken,
-	StreamdownToken,
 	SubSupToken,
-	TableHead,
-	TableRow,
+	TableToken,
+	THead,
+	TBody,
+	TFoot,
+	THeadRow,
+	TRow,
 	TD,
 	TH
 } from './marked/index.js';
 import type { Tokens } from 'marked';
 import type { ListItemToken, ListToken } from './marked/marked-list.js';
-import type { FootnoteRef, FootnoteToken } from './marked/marked-footnotes.js';
+import type { Footnote, FootnoteRef, FootnoteToken } from './marked/marked-footnotes.js';
+import { bind } from './utils/bind.js';
 
 type PredefinedElements =
 	| 'heading'
@@ -28,8 +57,10 @@ type PredefinedElements =
 	| 'ol'
 	| 'li'
 	| 'table'
-	| 'tableRow'
-	| 'tableHead'
+	| 'thead'
+	| 'tbody'
+	| 'tfoot'
+	| 'tr'
 	| 'td'
 	| 'th'
 	| 'image'
@@ -56,9 +87,11 @@ type TokenSnippet = {
 	ul: ListToken;
 	ol: ListToken;
 	li: ListItemToken;
-	table: Tokens.Table;
-	tableRow: TableRow;
-	tableHead: TableHead;
+	table: TableToken;
+	thead: THead;
+	tbody: TBody;
+	tfoot: TFoot;
+	tr: THeadRow | TRow;
 	td: TD;
 	th: TH;
 	image: Tokens.Image;

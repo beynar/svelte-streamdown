@@ -13,7 +13,7 @@
 	/><path d="M12 17h.01" />`
 	};
 
-	import { useStreamdown } from '$lib/Streamdown.svelte';
+	import { useStreamdown } from '$lib/Streamdown.js';
 	import Slot from './Slot.svelte';
 	import type { AlertToken } from '$lib/marked/index.js';
 	import type { Snippet } from 'svelte';

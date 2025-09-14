@@ -1,16 +1,14 @@
 <script lang="ts">
-	import { useStreamdown } from '$lib/Streamdown.svelte';
+	import { useStreamdown } from '$lib/Streamdown.js';
 	import Slot from './Slot.svelte';
 	import type { FootnoteRef } from '$lib/marked/marked-footnotes.js';
 	import {
 		autoPlacement,
 		computePosition,
-		flip,
 		autoUpdate,
 		hide,
 		offset,
-		shift,
-		size
+		shift
 	} from '@floating-ui/dom';
 	import { useClickOutside } from '$lib/utils/useClickOutside.svelte.js';
 	import { scale } from 'svelte/transition';
@@ -25,6 +23,7 @@
 		token: FootnoteRef;
 	} = $props();
 
+	const id = $props.id();
 	let isOpen = $state(false);
 
 	let reference = $state<HTMLButtonElement>();
@@ -57,11 +56,9 @@
 			shift({
 				mainAxis: true
 			}),
-			flip(),
 			autoPlacement({
 				allowedPlacements: ['top', 'top-end', 'top-start', 'bottom', 'bottom-end', 'bottom-start']
-			}),
-			size()
+			})
 		];
 		const { x, y, strategy, placement, middlewareData } = await computePosition(reference!, node, {
 			strategy: 'fixed',
@@ -94,6 +91,8 @@
 		render={streamdown.snippets.footnotePopover}
 	>
 		<dialog
+			id={'footnote-popover-' + id}
+			aria-modal="false"
 			transition:scale|global={{ start: 0.95, duration: 100 }}
 			{@attach clickOutside.attachment}
 			{@attach popoverAttachment}
@@ -117,7 +116,9 @@
 		bind:this={reference}
 		class={streamdown.theme.footnoteRef.base}
 		onclick={() => (isOpen = !isOpen)}
-		{@attach clickOutside.attachment}
+		aria-expanded={isOpen}
+		aria-haspopup="dialog"
+		aria-controls={'footnote-popover-' + id}
 	>
 		{token.label.replace('^', '')}
 	</button>

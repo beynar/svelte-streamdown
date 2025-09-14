@@ -59,18 +59,7 @@
 		cancelRequested = true;
 	};
 
-	let shikiTheme = $state('slack-ochin');
 	let streamSpeed = $state(2); // Default speed in milliseconds
-
-	const swapTheme = () => {
-		console.log('swapTheme');
-		shikiTheme = shikiTheme === 'slack-ochin' ? 'solarized-light' : 'slack-ochin';
-	};
-
-	let mermaidTheme = $state('dark');
-	const swapMermaidTheme = () => {
-		mermaidTheme = mermaidTheme === 'dark' ? 'default' : 'dark';
-	};
 
 	const theme = useTheme();
 </script>

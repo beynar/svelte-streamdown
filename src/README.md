@@ -30,7 +30,15 @@ Full support for GitHub Flavored Markdown including:
 
 - Task lists
 - Tables
-- Strikethrough text
+- ~~Strikethrough~~
+- Subscript (H~2~O)
+- Superscript (E = mc^2^)
+- Footnotes [^1]
+
+[^1]:
+    Reference render in a popover by default.
+    with _rich_ **content** support
+    and multiline
 
 ### 💻 Interactive Code Blocks
 
@@ -133,16 +141,14 @@ This Svelte port maintains feature parity with the original [Streamdown](https:/
 
 > [!NOTE]
 > Streamdown comes with **built-in Tailwind CSS classes** for beautiful default styling. To ensure all styles are included in your build, add the following to your `app.css` or main CSS file:
+> This setup is primarily necessary if you're using Tailwind CSS v4's new `@source` directive or if you have aggressive purging enabled in older versions. If you're using standard Tailwind CSS v3+ with default purging, Streamdown's styles should be automatically included when the component is imported and used in your application.
+> This ensures that all Streamdown's default styling is included in your Tailwind build process.
 
 ```css
 @import 'tailwindcss';
 /* Add Streamdown styles to your Tailwind build */
 @source "../node_modules/svelte-streamdown/**/*";
 ```
-
-This ensures that all Streamdown's default styling is included in your Tailwind build process.
-
-> **Note:** This setup is primarily necessary if you're using Tailwind CSS v4's new `@source` directive or if you have aggressive purging enabled in older versions. If you're using standard Tailwind CSS v3+ with default purging, Streamdown's styles should be automatically included when the component is imported and used in your application.
 
 ## 🚀 Quick Start
 

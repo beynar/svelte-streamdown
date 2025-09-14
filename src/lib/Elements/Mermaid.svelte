@@ -1,18 +1,24 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { useStreamdown } from '$lib/Streamdown.svelte';
-	import { clsx } from 'clsx';
-	import type { ElementProps } from './element.js';
 	import Slot from './Slot.svelte';
+	import type { Tokens } from 'marked';
+	import type { Snippet } from 'svelte';
 	import type { MermaidConfig } from 'mermaid';
 	import { on } from 'svelte/events';
 	import { usePanzoom } from '$lib/utils/panzoom.svelte';
 
 	const streamdown = useStreamdown();
 
-	const { children, node, className, props }: ElementProps = $props();
+	const {
+		children,
+		token
+	}: {
+		children: Snippet;
+		token: Tokens.Code;
+	} = $props();
 
-	const code = $derived((node.children[0] as any)?.value as string);
+	const code = $derived(token.text);
 	let mermaid = $state<any>(null);
 	onMount(async () => {
 		mermaid = (await import('mermaid')).default;
@@ -114,15 +120,13 @@
 <Slot
 	props={{
 		children,
-		node,
-		...props
+		token
 	}}
 	render={streamdown.snippets.mermaid}
 >
 	{#if mermaid}
 		<div
-			{...props}
-			class={clsx(streamdown.theme.mermaid.base, className)}
+			class={streamdown.theme.mermaid.base}
 			{@attach (node) => renderMermaid(code, node)}
 			{@attach insider.attach}
 			data-expanded={'false'}
@@ -225,7 +229,7 @@
 			<svg {@attach panzoom.attach} data-mermaid-svg></svg>
 		</div>
 	{:else}
-		<div {...props} class={clsx(streamdown.theme.mermaid.base, className)}></div>
+		<div class={streamdown.theme.mermaid.base}></div>
 	{/if}
 </Slot>
 

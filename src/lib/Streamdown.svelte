@@ -8,6 +8,10 @@
 		theme: Theme;
 	}
 	export class StreamdownContext {
+		footnotes = {
+			refs: new Map<string, FootnoteRef>(),
+			footnotes: new Map<string, Footnote>()
+		};
 		constructor(props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets }) {
 			bind(this, props);
 			setContext('streamdown', this);
@@ -26,11 +30,13 @@
 	import Block from './Block.svelte';
 	import type { Snippets, StreamdownProps } from './Streamdown.js';
 	import { bind } from './utils/bind.js';
-	import { parseMarkdownIntoBlocks } from './utils/parse-blocks.js';
 	import 'katex/dist/katex.min.css';
 	import { mergeTheme, type Theme, shadcnTheme } from './theme.js';
 	import type { BundledTheme } from 'shiki';
-
+	import { parseBlocks } from './marked/index.js';
+	import { SvelteMap } from 'svelte/reactivity';
+	import type { FootnoteRef } from './marked/marked-footnotes.js';
+	import type { Footnote } from './marked/marked-footnotes.js';
 	let {
 		content = '',
 		class: className,
@@ -40,15 +46,6 @@
 		defaultOrigin,
 		allowedLinkPrefixes = ['*'],
 		allowedImagePrefixes = ['*'],
-		allowElement,
-		allowedElements,
-		disallowedElements,
-		skipHtml,
-		unwrapDisallowed,
-		urlTransform,
-		remarkPlugins,
-		remarkRehypeOptions,
-		rehypePlugins,
 		theme,
 		mermaidConfig,
 		katexConfig,
@@ -56,10 +53,13 @@
 		baseTheme,
 		mergeTheme: shouldMergeTheme = true,
 		customElements,
+		streamdown = $bindable(),
 		...snippets
 	}: StreamdownProps = $props();
 
-	const streamdownContext = new StreamdownContext({
+	console.log('render');
+
+	streamdown = new StreamdownContext({
 		get content() {
 			return content;
 		},
@@ -74,33 +74,6 @@
 		},
 		get allowedImagePrefixes() {
 			return allowedImagePrefixes;
-		},
-		get allowElement() {
-			return allowElement;
-		},
-		get allowedElements() {
-			return allowedElements;
-		},
-		get disallowedElements() {
-			return disallowedElements;
-		},
-		get skipHtml() {
-			return skipHtml;
-		},
-		get unwrapDisallowed() {
-			return unwrapDisallowed;
-		},
-		get urlTransform() {
-			return urlTransform;
-		},
-		get remarkPlugins() {
-			return remarkPlugins;
-		},
-		get remarkRehypeOptions() {
-			return remarkRehypeOptions;
-		},
-		get rehypePlugins() {
-			return rehypePlugins;
 		},
 		get shikiTheme() {
 			return shikiTheme || 'github-light';
@@ -132,9 +105,10 @@
 			return shikiPreloadThemes;
 		}
 	});
+
 	const id = $props.id();
 
-	const blocks = $derived(parseMarkdownIntoBlocks(content));
+	const blocks = $derived(parseBlocks(content));
 </script>
 
 {#each blocks as block, index (`${id}-block-${index}`)}

@@ -15,6 +15,9 @@
 	const tokens = $derived(lex(parseIncompleteMarkdown(block.trim())));
 
 	const getChildren = (token: StreamdownToken) => {
+		if (!token) {
+			return [];
+		}
 		const children =
 			'tokens' in token ? ((token.tokens || []) as StreamdownToken[]) : ([] as StreamdownToken[]);
 
@@ -34,15 +37,17 @@
 
 {#snippet renderChildren(tokens: StreamdownToken[])}
 	{#each tokens as token}
-		{@const children = getChildren(token)}
-		{@const isTextOnlyNode = children.length === 0}
-		<Element {token}>
-			{#if isTextOnlyNode}
-				{'text' in token ? token.text : ''}
-			{:else}
-				{@render renderChildren(children)}
-			{/if}
-		</Element>
+		{#if token}
+			{@const children = getChildren(token)}
+			{@const isTextOnlyNode = children.length === 0}
+			<Element {token}>
+				{#if isTextOnlyNode}
+					{'text' in token ? token.text : ''}
+				{:else}
+					{@render renderChildren(children)}
+				{/if}
+			</Element>
+		{/if}
 	{/each}
 {/snippet}
 

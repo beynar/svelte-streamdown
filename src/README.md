@@ -158,9 +158,13 @@ pie title Project Time Allocation
 | Name | Type | Area | Revenue | Revenue | Revenue | Revenue |
 |-------------|---------|------------|---------|---------|---------|---------|
 | Laptop Pro | Electronics | North America || $45,000 | $52,000 | $48,000 |
-| Laptop Pro | Electronics | North America || $45,000 | $52,000 | $48,000 |
-| Laptop Pro | Electronics | North America || $45,000 | $52,000 | $48,000 |
-| Laptop Pro | Electronics | North America || $45,000 | $52,000 | $48,000 |
+| Laptop Pro ^ | ^ | Europe | $32,000 | $38,000 | $41,000 | $44,000 |
+| Laptop Pro ^ | ^ | Asia || $28,000 | $35,000 | $42,000 |
+| Office Chair | Furniture | North America | $15,000 | $18,000 | $16,000 | $17,000 |
+| Office Chair ^ | ^ | Europe | $12,000 | $14,000 | $15,000 | $16,000 |
+| Wireless Mouse | Electronics | Global ||| $25,000 | $28,000 |
+|-------------|---------|------------|---------|---------|---------|---------|
+| **Total Revenue** ||| **$152,000** | **$185,000** | **$187,000** | **$205,000** |
 
 ### Complex list support
 

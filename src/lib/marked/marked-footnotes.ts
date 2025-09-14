@@ -24,8 +24,8 @@ export default function markedFootnote(): {
 		if (!streamdown) {
 			if (!tokenizer.lexer.hasFootnotes) {
 				tokenizer.lexer.footnotes = {
-					refs: new Map<string, Footnote>(),
-					footnotes: new Map<string, FootnoteRef>()
+					refs: new Map<string, FootnoteRef>(),
+					footnotes: new Map<string, Footnote>()
 				};
 				tokenizer.lexer.hasFootnotes = true;
 			}

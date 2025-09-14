@@ -382,8 +382,7 @@ function processRows(
 			const cellAlignment = cell.position !== undefined ? alignment[cell.position] : null;
 			const th = workingCellToTH(cell, cellAlignment);
 			// Add inline tokens
-			th.tokens = [];
-			lexer.inline(th.text, th.tokens as any);
+			th.tokens = lexer.inline(th.text, th.tokens as any);
 			return th;
 		})
 	}));
@@ -421,8 +420,8 @@ function processRows(
 					const cellAlignment = cell.position !== undefined ? alignment[cell.position] : null;
 					const td = workingCellToTD(cell, cellAlignment);
 					// Add inline tokens
-					td.tokens = [];
-					lexer.inline(td.text, td.tokens as any);
+
+					td.tokens = lexer.inline(td.text, td.tokens as any);
 					return td;
 				})
 			}));
@@ -442,8 +441,7 @@ function processRows(
 					const cellAlignment = cell.position !== undefined ? alignment[cell.position] : null;
 					const td = workingCellToTD(cell, cellAlignment);
 					// Add inline tokens
-					td.tokens = [];
-					lexer.inline(td.text, td.tokens as any);
+					td.tokens = lexer.inline(td.text, td.tokens as any);
 					return td;
 				})
 			}));

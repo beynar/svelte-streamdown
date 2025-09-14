@@ -47,37 +47,6 @@ import type { ListItemToken, ListToken } from './marked/marked-list.js';
 import type { Footnote, FootnoteRef, FootnoteToken } from './marked/marked-footnotes.js';
 import { bind } from './utils/bind.js';
 
-type PredefinedElements =
-	| 'heading'
-	| 'paragraph'
-	| 'blockquote'
-	| 'code'
-	| 'codespan'
-	| 'ul'
-	| 'ol'
-	| 'li'
-	| 'table'
-	| 'thead'
-	| 'tbody'
-	| 'tfoot'
-	| 'tr'
-	| 'td'
-	| 'th'
-	| 'image'
-	| 'link'
-	| 'strong'
-	| 'em'
-	| 'del'
-	| 'hr'
-	| 'br'
-	| 'math'
-	| 'alert'
-	| 'mermaid'
-	| 'footnoteRef'
-	| 'footnotePopover'
-	| 'sup'
-	| 'sub';
-
 type TokenSnippet = {
 	heading: Tokens.Heading;
 	paragraph: Tokens.Paragraph;
@@ -109,6 +78,9 @@ type TokenSnippet = {
 	sup: SubSupToken;
 	sub: SubSupToken;
 };
+
+type PredefinedElements = keyof TokenSnippet;
+
 export type Snippets = {
 	[K in PredefinedElements]?: Snippet<
 		[

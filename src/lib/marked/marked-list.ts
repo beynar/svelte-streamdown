@@ -57,7 +57,9 @@ function finalizeList(list: ListToken, lexer: Lexer) {
 		}
 	}
 }
-
+function escapeForRegex(s: string) {
+	return s.replace(/[\\^$.*+?()[\]{}|]/g, '\\$&');
+}
 export function markedList(): {
 	extensions: Array<{
 		name: string;
@@ -79,7 +81,7 @@ export function markedList(): {
 					const isOrdered = bullet !== '*' && bullet !== '-' && bullet !== '+';
 					let bull;
 					let type = '';
-					let expectedValue = 1;
+					let expectedValue: number | null = null;
 
 					// Detect list type (Roman, alphabetic, numeric)
 					if (isOrdered) {
@@ -101,6 +103,7 @@ export function markedList(): {
 						}
 					} else {
 						bull = this.lexer.options.pedantic ? bullet : '[*+-]';
+						bull = this.lexer.options.pedantic ? escapeForRegex(bullet) : '[*+-]';
 					}
 
 					const list = {
@@ -219,6 +222,20 @@ export function markedList(): {
 							value = romanToInt(bullet.slice(0, -1));
 						}
 
+						// Handle expectedValue initialization and validation
+						let skipped = false;
+						if (isOrdered) {
+							if (expectedValue === null) {
+								// First item: set expectedValue to this item's value (or 1 if parsing failed)
+								expectedValue = value ?? 1;
+							} else {
+								// Subsequent items: check if value matches expected
+								skipped = value !== null && value !== expectedValue;
+								// Increment expectedValue for next item
+								expectedValue += 1;
+							}
+						}
+
 						list.tokens.push({
 							type: 'list_item',
 							raw,
@@ -227,11 +244,9 @@ export function markedList(): {
 							loose: false,
 							text: itemContents,
 							value,
-							skipped: isOrdered && value !== expectedValue,
+							skipped,
 							tokens: []
 						});
-
-						expectedValue = (value ?? 0) + 1;
 						list.raw += raw;
 					}
 

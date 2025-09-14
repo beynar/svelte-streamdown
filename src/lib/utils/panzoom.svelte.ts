@@ -441,7 +441,7 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 
 	async function toggleExpand(): Promise<void> {
 		zoomToFit();
-		console.log('toggleExpand', isExpanded);
+
 		if (isExpanded) return collapse();
 
 		return expand();
@@ -476,7 +476,6 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 	}
 
 	function zoomBy(factor: number) {
-		console.log('zoomBy', factor);
 		if (!node) return;
 
 		// Use zoomAt with the center of the container for consistent behavior
@@ -498,7 +497,6 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 	}
 
 	function zoomOut(factor = 1.25) {
-		console.log('zoomOut', factor);
 		// zoom out by inverse multiplier
 		if (factor <= 0) return;
 		zoomBy(1 / factor);

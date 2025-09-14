@@ -17,8 +17,6 @@
 
 	const isInline = $derived(token.isInline);
 
-	console.log({ token });
-
 	let katexInstance = $state<typeof import('katex') | null>(null);
 
 	onMount(() => {
@@ -40,7 +38,7 @@
 				: streamdown.katexConfig || {})
 		};
 		const code = token.text;
-		console.log({ code });
+
 		try {
 			return katexInstance.renderToString(code, config);
 		} catch (error) {

@@ -24,8 +24,6 @@
 		...snippets
 	}: StreamdownProps = $props();
 
-	console.log('render');
-
 	streamdown = new StreamdownContext({
 		get content() {
 			return content;

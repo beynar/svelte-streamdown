@@ -35,7 +35,6 @@
 <Slot
 	props={{
 		children,
-		alertType,
 		token
 	}}
 	render={streamdown.snippets.alert}

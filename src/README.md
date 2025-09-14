@@ -28,7 +28,8 @@ Beautiful, responsive typography with **built-in Tailwind CSS classes** for head
 
 Full support for GitHub Flavored Markdown including:
 
-- Task lists
+- [ ] Task lists
+
 - Tables
 - ~~Strikethrough~~
 - Subscript (H~2~O)
@@ -128,14 +129,15 @@ pie title Project Time Allocation
 
 This Svelte port maintains feature parity with the original [Streamdown](https://streamdown.ai/) while adapting to Svelte's patterns:
 
-| Aspect            | Original (React) | Svelte Port               |
-| ----------------- | ---------------- | ------------------------- |
-| **Framework**     | React            | Svelte 5                  |
-| **Component API** | JSX Components   | Svelte Snippets           |
-| **Styling**       | Tailwind CSS     | Tailwind CSS (compatible) |
-| **Context**       | React Context    | Svelte Context            |
-| **Build System**  | Vite/React       | Vite/SvelteKit            |
-| **TypeScript**    | Full TS support  | Full TS support           |
+| Aspect            | Original (React)         | Svelte Port               |
+| ----------------- | ------------------------ | ------------------------- |
+| **Framework**     | React                    | Svelte 5                  |
+| **Component API** | JSX Components           | Svelte Snippets           |
+| **Styling**       | Tailwind CSS             | Tailwind CSS (compatible) |
+| **Context**       | React Context            | Svelte Context            |
+| **Build System**  | Vite/React               | Vite/SvelteKit            |
+| **TypeScript**    | Full TS support          | Full TS support           |
+| **Engine**        | Remark / Rehype + marked | marked only               |
 
 ### Tailwind CSS Setup
 
@@ -184,13 +186,13 @@ This heading will use a custom component!`;
 	// Custom heading component
 </script>
 
-{#snippet customH1({ children, props })}
-	<h1 class="mb-4 text-4xl font-bold text-blue-600" {...props}>
-		{children}
+{#snippet customHeading({ children, token })}
+	<h1 class="mb-4 text-4xl font-bold text-blue-600" {...token.props}>
+		{@render children()}
 	</h1>
 {/snippet}
 
-<Streamdown {content} h1={customH1} />
+<Streamdown {content} heading={customHeading} />
 ```
 
 ### Security Configuration
@@ -220,9 +222,6 @@ This heading will use a custom component!`;
 | `defaultOrigin`           | `string`                                              | -                | Default origin for relative URLs               |
 | `allowedLinkPrefixes`     | `string[]`                                            | `['*']`          | Allowed URL prefixes for links                 |
 | `allowedImagePrefixes`    | `string[]`                                            | `['*']`          | Allowed URL prefixes for images                |
-| `allowElement`            | `AllowElement \| null`                                | -                | Custom element filtering function              |
-| `allowedElements`         | `readonly string[] \| null`                           | -                | Whitelist of allowed HTML elements             |
-| `disallowedElements`      | `readonly string[] \| null`                           | -                | Blacklist of disallowed HTML elements          |
 | `skipHtml`                | `boolean`                                             | -                | Skip HTML parsing entirely                     |
 | `unwrapDisallowed`        | `boolean`                                             | -                | Unwrap instead of removing disallowed elements |
 | `urlTransform`            | `UrlTransform \| null`                                | -                | Custom URL transformation function             |
@@ -232,14 +231,13 @@ This heading will use a custom component!`;
 | `shikiTheme`              | `BundledTheme`                                        | `'github-light'` | Code highlighting theme                        |
 | `mermaidConfig`           | `MermaidConfig`                                       | -                | Mermaid diagram configuration                  |
 | `katexConfig`             | `KatexOptions \| ((inline: boolean) => KatexOptions)` | -                | KaTeX math rendering options                   |
-| `remarkPlugins`           | `PluggableList`                                       | -                | Additional remark plugins                      |
-| `rehypePlugins`           | `PluggableList`                                       | -                | Additional rehype plugins                      |
-| `remarkRehypeOptions`     | `RemarkRehypeOptions`                                 | -                | Remark-rehype conversion options               |
-| `customElements`          | `Record<string, Snippet<[ElementProps]>>`             | -                | Custom snippets for not handled nodes          |
 
 ### Custom Component Props
 
-**Every single markdown element** can be customized with Svelte snippets, giving you complete control over styling and behavior:
+**Every single markdown element** can be customized with Svelte snippets, giving you
+complete control over styling and behavior:
+
+Each snippet receives `{ children, token }` where `token` is a typed token object containing the parsed markdown token with its properties and children is a snippet to be rendered.
 
 ```svelte
 <script>
@@ -250,36 +248,36 @@ This heading will use a custom component!`;
 This heading uses a custom component with your design system!`;
 </script>
 
-{#snippet customH1({ children, ...props })}
+{#snippet customHeading({ children, token })}
 	<h1
 		class="text-gradient mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent"
-		{...props}
+		{...token.props}
 	>
 		{@render children()}
 	</h1>
 {/snippet}
 
-{#snippet customCode({ children, ...props })}
-	<code class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-gray-800" {...props}>
+{#snippet customCode({ children, token })}
+	<code class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-gray-800" {...token.props}>
 		{@render children()}
 	</code>
 {/snippet}
 
-{#snippet customBlockquote({ children, ...props })}
+{#snippet customBlockquote({ children, token })}
 	<blockquote
 		class="border-l-4 border-blue-500 pl-4 text-gray-600 italic dark:text-gray-300"
-		{...props}
+		{...token.props}
 	>
 		{@render children()}
 	</blockquote>
 {/snippet}
 
-<Streamdown {content} h1={customH1} code={customCode} blockquote={customBlockquote} />
+<Streamdown {content} heading={customHeading} code={customCode} blockquote={customBlockquote} />
 ```
 
 #### All Available Customizable Elements:
 
-**Text Elements**: `h1`, `h2`, `h3`, `h4`, `h5`, `h6`, `p`, `strong`, `em`, `del`
+**Text Elements**: `heading`, `p`, `strong`, `em`, `del`
 
 **Links & Media**: `a`, `img`
 
@@ -291,95 +289,7 @@ This heading uses a custom component with your design system!`;
 
 **Special Content**: `blockquote`, `hr`, `alert`, `mermaid`, `math`, `inlineMath`
 
-**Note**: The above elements are **supported by Streamdown** and should be customized using individual props or the theme system. Use `customElements` only for HTML elements **not in this list** (like `div`, `span`, `section`, `article`, etc.).
-
-Each snippet receives `{ children, ...props }` where `props` contains all element attributes and classes.
-
-### Using `customElements` Record
-
-The `customElements` prop is specifically for HTML elements that are **not handled by the library by default**. For elements already supported by Streamdown (like `h1`, `p`, `code`, etc.), use individual props or the theme system instead.
-
-```svelte
-<script>
-	import { Streamdown } from 'svelte-streamdown';
-
-	let content = `# Custom Elements Example
-
-This content contains HTML elements not handled by Streamdown by default:
-
-<div class="special">This is a custom div element</div>
-
-<span class="highlight">This is a custom span element</span>
-
-<section class="wrapper">
-	<article>This is a custom article inside a section</article>
-</section>`;
-
-	// Define custom components for unsupported HTML elements
-</script>
-
-{#snippet customDiv({ children, props, className, node })}
-	<div class="rounded-lg border-2 border-blue-500 p-4 {className}" {...props}>
-		{@render children()}
-	</div>
-{/snippet}
-
-{#snippet customSpan({ children, props, className, node })}
-	<span class="rounded bg-yellow-200 px-2 py-1 {className}" {...props}>
-		{@render children()}
-	</span>
-{/snippet}
-
-{#snippet customSection({ children, props, className, node })}
-	<section class="my-8 rounded-xl bg-gray-50 p-6 {className}" {...props}>
-		{@render children()}
-	</section>
-{/snippet}
-
-{#snippet customArticle({ children, props, className, node })}
-	<article class="prose max-w-none {className}" {...props}>
-		{@render children()}
-	</article>
-{/snippet}
-
-<Streamdown
-	{content}
-	customElements={{
-		div: customDiv,
-		span: customSpan,
-		section: customSection,
-		article: customArticle
-	}}
-/>
-```
-
-### Benefits of `customElements`
-
-- **Handle Unsupported Elements**: Define components for HTML elements not built into Streamdown
-- **Semantic HTML Support**: Use elements like `<section>`, `<article>`, `<aside>`, `<nav>`, etc.
-- **Fallback Support**: Automatically handles unknown elements that would otherwise be ignored
-- **Type Safety**: Full TypeScript support with `ElementProps` interface
-
-### `customElements` vs Individual Props
-
-Use the right approach for the right elements:
-
-**Individual Props** (for supported Streamdown elements):
-
-```svelte
-<Streamdown {content} h1={customH1} p={customP} code={customCode} />
-```
-
-**CustomElements Record** (for unsupported HTML elements):
-
-```svelte
-<Streamdown
-	{content}
-	customElements={{ div: customDiv, span: customSpan, section: customSection }}
-/>
-```
-
-**Note**: For supported elements (h1, p, code, etc.), use individual props or the theme system. For unsupported elements (div, span, section, etc.), use `customElements`.
+**Note**: The above elements are **supported by Streamdown** and should be customized using individual props or the theme system.
 
 ## 🎨 Advanced Theming System
 

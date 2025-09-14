@@ -4,7 +4,6 @@ export const useKeyDown = (opts: { isActive: boolean; callback: () => void; keys
 	let listener: (() => void) | null;
 
 	const eventCallback = (event: KeyboardEvent) => {
-		console.log(event.key);
 		if (opts.keys.includes(event.key)) {
 			event.preventDefault();
 			opts.callback();
@@ -18,5 +17,10 @@ export const useKeyDown = (opts: { isActive: boolean; callback: () => void; keys
 			listener?.();
 			listener = null;
 		}
+
+		return () => {
+			listener?.();
+			listener = null;
+		};
 	});
 };

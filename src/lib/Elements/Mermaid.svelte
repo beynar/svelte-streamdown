@@ -11,10 +11,8 @@
 	const streamdown = useStreamdown();
 
 	const {
-		children,
 		token
 	}: {
-		children: Snippet;
 		token: Tokens.Code;
 	} = $props();
 
@@ -117,121 +115,113 @@
 	};
 </script>
 
-<Slot
-	props={{
-		children,
-		token
-	}}
-	render={streamdown.snippets.mermaid}
->
-	{#if mermaid}
-		<div
-			class={streamdown.theme.mermaid.base}
-			{@attach (node) => renderMermaid(code, node)}
-			{@attach insider.attach}
-			data-expanded={'false'}
-		>
-			<div class={streamdown.theme.mermaid.buttons}>
-				<button
-					class={streamdown.theme.mermaid.button}
-					aria-label="Zoom to fit"
-					onclick={() => panzoom.zoomToFit()}
-					data-panzoom-ignore
+{#if mermaid}
+	<div
+		class={streamdown.theme.mermaid.base}
+		{@attach (node) => renderMermaid(code, node)}
+		{@attach insider.attach}
+		data-expanded={'false'}
+	>
+		<div class={streamdown.theme.mermaid.buttons}>
+			<button
+				class={streamdown.theme.mermaid.button}
+				aria-label="Zoom to fit"
+				onclick={() => panzoom.zoomToFit()}
+				data-panzoom-ignore
+			>
+				<svg
+					class={streamdown.theme.mermaid.icon}
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path
+						d="M21 17v2a2 2 0 0 1-2 2h-2"
+					/><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><rect
+						width="10"
+						height="8"
+						x="7"
+						y="8"
+						rx="1"
+					/></svg
 				>
-					<svg
-						class={streamdown.theme.mermaid.icon}
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						><path d="M3 7V5a2 2 0 0 1 2-2h2" /><path d="M17 3h2a2 2 0 0 1 2 2v2" /><path
-							d="M21 17v2a2 2 0 0 1-2 2h-2"
-						/><path d="M7 21H5a2 2 0 0 1-2-2v-2" /><rect
-							width="10"
-							height="8"
-							x="7"
-							y="8"
-							rx="1"
-						/></svg
-					>
-				</button>
-				<button
-					class={streamdown.theme.mermaid.button}
-					aria-label="Zoom in"
-					onclick={() => panzoom.zoomIn()}
-					data-panzoom-ignore
+			</button>
+			<button
+				class={streamdown.theme.mermaid.button}
+				aria-label="Zoom in"
+				onclick={() => panzoom.zoomIn()}
+				data-panzoom-ignore
+			>
+				<svg
+					class={streamdown.theme.mermaid.icon}
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					><circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line
+						x1="11"
+						x2="11"
+						y1="8"
+						y2="14"
+					/><line x1="8" x2="14" y1="11" y2="11" /></svg
 				>
-					<svg
-						class={streamdown.theme.mermaid.icon}
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						><circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line
-							x1="11"
-							x2="11"
-							y1="8"
-							y2="14"
-						/><line x1="8" x2="14" y1="11" y2="11" /></svg
-					>
-				</button>
-				<button
-					class={streamdown.theme.mermaid.button}
-					aria-label="Zoom out"
-					onclick={() => panzoom.zoomOut()}
-					data-panzoom-ignore
-					><svg
-						class={streamdown.theme.mermaid.icon}
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						><circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line
-							x1="8"
-							x2="14"
-							y1="11"
-							y2="11"
-						/></svg
-					></button
+			</button>
+			<button
+				class={streamdown.theme.mermaid.button}
+				aria-label="Zoom out"
+				onclick={() => panzoom.zoomOut()}
+				data-panzoom-ignore
+				><svg
+					class={streamdown.theme.mermaid.icon}
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					><circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line
+						x1="8"
+						x2="14"
+						y1="11"
+						y2="11"
+					/></svg
+				></button
+			>
+			<button
+				class={streamdown.theme.mermaid.button}
+				aria-label="Toggle expand"
+				onclick={() => panzoom.toggleExpand()}
+				data-panzoom-ignore
+			>
+				<svg
+					class={streamdown.theme.mermaid.icon}
+					xmlns="http://www.w3.org/2000/svg"
+					viewBox="0 0 24 24"
+					fill="none"
+					stroke="currentColor"
+					stroke-width="2"
+					stroke-linecap="round"
+					stroke-linejoin="round"
+					><path d="m15 15 6 6" /><path d="m15 9 6-6" /><path d="M21 16v5h-5" /><path
+						d="M21 8V3h-5"
+					/><path d="M3 16v5h5" /><path d="m3 21 6-6" /><path d="M3 8V3h5" /><path
+						d="M9 9 3 3"
+					/></svg
 				>
-				<button
-					class={streamdown.theme.mermaid.button}
-					aria-label="Toggle expand"
-					onclick={() => panzoom.toggleExpand()}
-					data-panzoom-ignore
-				>
-					<svg
-						class={streamdown.theme.mermaid.icon}
-						xmlns="http://www.w3.org/2000/svg"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						stroke-width="2"
-						stroke-linecap="round"
-						stroke-linejoin="round"
-						><path d="m15 15 6 6" /><path d="m15 9 6-6" /><path d="M21 16v5h-5" /><path
-							d="M21 8V3h-5"
-						/><path d="M3 16v5h5" /><path d="m3 21 6-6" /><path d="M3 8V3h5" /><path
-							d="M9 9 3 3"
-						/></svg
-					>
-				</button>
-			</div>
-			<svg {@attach panzoom.attach} data-mermaid-svg></svg>
+			</button>
 		</div>
-	{:else}
-		<div class={streamdown.theme.mermaid.base}></div>
-	{/if}
-</Slot>
+		<svg {@attach panzoom.attach} data-mermaid-svg></svg>
+	</div>
+{:else}
+	<div class={streamdown.theme.mermaid.base}></div>
+{/if}
 
 <style>
 	/* View Transition styles for zoom effect */
@@ -269,7 +259,7 @@
 		}
 	}
 
-	[data-expanded='true'] {
+	:global([data-expanded='true']) {
 		::view-transition-old(panzoom-element),
 		::view-transition-new(panzoom-element) {
 			animation-duration: 0.3s;

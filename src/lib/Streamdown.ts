@@ -4,7 +4,19 @@ import type { Theme } from './theme.js';
 import type { MermaidConfig } from 'mermaid';
 import type { KatexOptions } from 'katex';
 import type { StreamdownContext } from './Streamdown.svelte';
-import type { StreamdownToken } from './marked/index.js';
+import type {
+	AlertToken,
+	MathToken,
+	StreamdownToken,
+	SubSupToken,
+	TableHead,
+	TableRow,
+	TD,
+	TH
+} from './marked/index.js';
+import type { Tokens } from 'marked';
+import type { ListItemToken, ListToken } from './marked/marked-list.js';
+import type { FootnoteRef, FootnoteToken } from './marked/marked-footnotes.js';
 
 type PredefinedElements =
 	| 'heading'
@@ -34,12 +46,42 @@ type PredefinedElements =
 	| 'footnotePopover'
 	| 'sup'
 	| 'sub';
+
+type TokenSnippet = {
+	heading: Tokens.Heading;
+	paragraph: Tokens.Paragraph;
+	blockquote: Tokens.Blockquote;
+	code: Tokens.Code;
+	codespan: Tokens.Codespan;
+	ul: ListToken;
+	ol: ListToken;
+	li: ListItemToken;
+	table: Tokens.Table;
+	tableRow: TableRow;
+	tableHead: TableHead;
+	td: TD;
+	th: TH;
+	image: Tokens.Image;
+	link: Tokens.Link;
+	strong: Tokens.Strong;
+	em: Tokens.Em;
+	del: Tokens.Del;
+	hr: Tokens.Hr;
+	br: Tokens.Br;
+	math: MathToken;
+	alert: AlertToken;
+	mermaid: Tokens.Code;
+	footnoteRef: FootnoteRef;
+	footnotePopover: FootnoteToken;
+	sup: SubSupToken;
+	sub: SubSupToken;
+};
 export type Snippets = {
 	[K in PredefinedElements]?: Snippet<
 		[
 			{
 				children: Snippet;
-				token: StreamdownToken;
+				token: TokenSnippet[K];
 			}
 		]
 	>;
@@ -73,15 +115,15 @@ export type StreamdownProps = {
 			important?: string;
 		};
 	};
-	customElements?: Record<
-		string,
-		Snippet<
-			[
-				{
-					children: Snippet;
-					token: StreamdownToken;
-				}
-			]
-		>
-	>;
+	// customElements?: Record<
+	// 	string,
+	// 	Snippet<
+	// 		[
+	// 			{
+	// 				children: Snippet;
+	// 				token: StreamdownToken;
+	// 			}
+	// 		]
+	// 	>
+	// >;
 } & Partial<Snippets>;

@@ -43,9 +43,13 @@
 		</blockquote>
 	</Slot>
 {:else if token.type === 'code' && token.lang === 'mermaid'}
-	<Mermaid {token} {children} />
+	<Slot props={{ children, token }} render={streamdown.snippets.code}>
+		<Mermaid {token} />
+	</Slot>
 {:else if token.type === 'code'}
-	<Code {token} {children} />
+	<Slot props={{ children, token }} render={streamdown.snippets.code}>
+		<Code {token} />
+	</Slot>
 {:else if token.type === 'codespan'}
 	<Slot props={{ children, token }} render={streamdown.snippets.codespan}>
 		<code class={streamdown.theme.codespan.base}>
@@ -54,8 +58,6 @@
 	</Slot>
 {:else if token.type === 'list'}
 	{#if token.ordered}
-		{@const firstItemValue = token.items[0]?.value || 1}
-		{@const counterName = `counter-${id}`}
 		<Slot props={{ children, token }} render={streamdown.snippets.ol}>
 			<ol style:list-style-type={token.listType} class={streamdown.theme.ol.base}>
 				{@render children()}
@@ -72,7 +74,7 @@
 	<Slot props={{ children, token }} render={streamdown.snippets.li}>
 		<li
 			style:list-style-type={token.task ? 'none' : undefined}
-			value={token.value}
+			{...token.value && !token.task ? { value: token.value } : {}}
 			class={streamdown.theme.li.base}
 		>
 			{#if token.task}
@@ -153,7 +155,15 @@
 {:else if token.type === 'br'}
 	<br />
 {:else if token.type === 'math'}
-	<Math {token} {children} />
+	<Slot
+		props={{
+			children,
+			token
+		}}
+		render={streamdown.snippets.math}
+	>
+		<Math {token} />
+	</Slot>
 {:else if token.type === 'alert'}
 	<Alert {token} {children} />
 {:else if token.type === 'footnoteRef'}

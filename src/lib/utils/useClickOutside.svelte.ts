@@ -40,7 +40,6 @@ export const useClickOutside = (props: ClickOutsideHandlerOptions) => {
 							if (listener && refs.size === 0) {
 								listener();
 								listener = null;
-								console.log('clean up', listener);
 							}
 						};
 					}

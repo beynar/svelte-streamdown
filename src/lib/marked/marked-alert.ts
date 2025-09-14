@@ -39,37 +39,20 @@ export default function markedAlert(): {
 	};
 }
 
-export function processAlertToken(token: Token, tokenizer: Tokenizer): void {
+export function processAlertToken(token: Tokens.Blockquote, tokenizer: Tokenizer): void {
 	const matchedVariant = variants.find((type) =>
 		new RegExp(createSyntaxPattern(type)).test(('text' in token && token.text) || '')
 	);
 
 	if (!matchedVariant) return;
 
-	const typeRegexp = new RegExp(createSyntaxPattern(matchedVariant));
-
-	// Transform the token into an alert token
-	Object.assign(token, {
-		type: 'alert',
-		variant: matchedVariant
+	const tokens = token.tokens.map((token) => {
+		return tokenizer.lexer.blockTokens(
+			token.raw.replaceAll(`[!${matchedVariant.toUpperCase()}]`, '').trim(),
+			[]
+		)[0];
 	});
 
-	const firstLine = ('tokens' in token && token.tokens?.[0]) as Tokens.Paragraph;
-	const firstLineText = firstLine.raw?.replace(typeRegexp, '').trim();
-
-	const lines = token.raw
-		.split('>')
-		.filter((line) => line.trim().replace(typeRegexp, '').length > 0);
-
-	const tokens = lines.map((line) => {
-		const lineTokens = tokenizer.lexer.inlineTokens(line);
-		return {
-			type: 'paragraph',
-			tokens: lineTokens
-		};
-	});
-
-	// Transform the token into an alert token
 	Object.assign(token, {
 		type: 'alert',
 		variant: matchedVariant,

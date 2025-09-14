@@ -2,7 +2,16 @@
 	import { useStreamdown } from '$lib/Streamdown.svelte';
 	import Slot from './Slot.svelte';
 	import type { FootnoteRef } from '$lib/marked/marked-footnotes.js';
-	import { autoPlacement, computePosition, hide, offset, shift, size } from '@floating-ui/dom';
+	import {
+		autoPlacement,
+		computePosition,
+		flip,
+		autoUpdate,
+		hide,
+		offset,
+		shift,
+		size
+	} from '@floating-ui/dom';
 	import { useClickOutside } from '$lib/utils/useClickOutside.svelte.js';
 	import { scale } from 'svelte/transition';
 	import Block from '$lib/Block.svelte';
@@ -44,9 +53,11 @@
 		const middleware = [
 			hide(),
 			offset(0),
+			,
 			shift({
 				mainAxis: true
 			}),
+			flip(),
 			autoPlacement({
 				allowedPlacements: ['top', 'top-end', 'top-start', 'bottom', 'bottom-end', 'bottom-start']
 			}),
@@ -67,9 +78,9 @@
 	const popoverAttachment = (node: HTMLDialogElement) => {
 		content = node;
 		void place(node);
-
+		const off = autoUpdate(reference!, node, () => place(node));
 		return () => {
-			//
+			off();
 		};
 	};
 </script>

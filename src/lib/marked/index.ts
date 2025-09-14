@@ -1,4 +1,4 @@
-import { Lexer, marked, type MarkedToken, type Tokens } from 'marked';
+import { Lexer, Marked, type MarkedToken, type Tokens } from 'marked';
 import markedAlert, { type AlertToken } from './marked-alert.js';
 import markedFootnote, { type FootnoteToken } from './marked-footnotes.js';
 import { markedMath, type MathToken } from './marked-math.js';
@@ -40,31 +40,35 @@ export type TableHead = {
 	tokens: TableRow[];
 };
 
+const completeLexer = new Marked()
+	.use({
+		gfm: true
+	})
+	.use({
+		gfm: true
+	})
+	.use(markedAlert())
+	.use(markedFootnote())
+	.use(markedMath())
+	.use(markedSubSup())
+	.use(markedList());
+
+const blockLexer = new Lexer({
+	gfm: true,
+	extensions: {
+		childTokens: {},
+		renderers: {},
+		block: [markedFootnote().extensions[0].tokenizer]
+	}
+});
 export const lex = (markdown: string): StreamdownToken[] => {
-	return marked
-		.use({
-			gfm: true
-		})
-		.use(markedAlert())
-		.use(markedFootnote())
-		.use(markedMath())
-		.use(markedSubSup())
-		.use(markedList())
+	return completeLexer
 		.lexer(markdown)
 		.filter((token) => token.type !== 'space' && token.type !== 'footnote') as StreamdownToken[];
 };
 
 export const parseBlocks = (markdown: string): string[] => {
-	const lexer = new Lexer({
-		gfm: true,
-		extensions: {
-			childTokens: {},
-			renderers: {},
-			block: [markedFootnote().extensions[0].tokenizer]
-		}
-	});
-
-	return lexer.blockTokens(markdown, []).reduce((acc, block) => {
+	return blockLexer.blockTokens(markdown, []).reduce((acc, block) => {
 		if (block.type === 'space' || block.type === 'footnote') {
 			return acc;
 		} else {

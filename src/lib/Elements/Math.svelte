@@ -10,10 +10,8 @@
 	const streamdown = useStreamdown();
 
 	const {
-		children,
 		token
 	}: {
-		children: Snippet;
 		token: MathToken;
 	} = $props();
 
@@ -53,24 +51,16 @@
 	});
 </script>
 
-<Slot
-	props={{
-		children,
-		token
-	}}
-	render={streamdown.snippets.math}
->
-	{#if isInline}
-		<span bind:this={inner} class={streamdown.theme.math.inline}>
-			{@html html}
-		</span>
-	{:else}
-		<div class="h-fit w-full">
-			<div class="overflow-x-auto">
-				<div bind:this={inner} class={streamdown.theme.math.block}>
-					{@html html}
-				</div>
+{#if isInline}
+	<span bind:this={inner} class={streamdown.theme.math.inline}>
+		{@html html}
+	</span>
+{:else}
+	<div class="h-fit w-full">
+		<div class="overflow-x-auto">
+			<div bind:this={inner} class={streamdown.theme.math.block}>
+				{@html html}
 			</div>
 		</div>
-	{/if}
-</Slot>
+	</div>
+{/if}

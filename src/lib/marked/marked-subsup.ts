@@ -8,7 +8,7 @@ export default function markedSubSup(): {
 		name: string;
 		level: 'inline';
 		tokenizer: TokenizerExtensionFunction;
-		start?: (src: string) => number | void;
+		start?: (src: string) => number | undefined;
 	}[];
 } {
 	return {
@@ -17,7 +17,8 @@ export default function markedSubSup(): {
 				name: 'sub',
 				level: 'inline',
 				start(src: string) {
-					return src.indexOf('~');
+					const i = src.indexOf('~');
+					return i === -1 ? undefined : i;
 				},
 				tokenizer(this: TokenizerThis, src: string) {
 					const match = src.match(subRule);

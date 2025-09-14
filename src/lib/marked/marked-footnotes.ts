@@ -98,8 +98,6 @@ export default function markedFootnote(): {
 
 						const footnote = maps.footnotes.get(label);
 
-						console.log({ footnote });
-
 						const token: FootnoteRef = {
 							type: 'footnoteRef',
 							raw,

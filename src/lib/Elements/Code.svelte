@@ -7,11 +7,9 @@
 	import type { Snippet } from 'svelte';
 
 	const {
-		token,
-		children
+		token
 	}: {
 		token: Tokens.Code;
-		children: Snippet;
 	} = $props();
 
 	const streamdown = useStreamdown();

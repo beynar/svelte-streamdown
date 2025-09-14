@@ -107,7 +107,7 @@ export function markedList(): {
 						type: 'list',
 						raw: '',
 						ordered: isOrdered,
-						listType: type,
+						listType: isOrdered ? type : null,
 						loose: false,
 						items: [] as ListItemToken[]
 					} as ListToken;
@@ -250,7 +250,7 @@ export interface ListToken {
 	type: 'list';
 	raw: string;
 	ordered: boolean;
-	listType: 'decimal' | 'lower-alpha' | 'upper-alpha' | 'lower-roman' | 'upper-roman';
+	listType: 'decimal' | 'lower-alpha' | 'upper-alpha' | 'lower-roman' | 'upper-roman' | null;
 	loose: boolean;
 	items: ListItemToken[];
 }

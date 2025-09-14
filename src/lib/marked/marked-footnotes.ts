@@ -1,6 +1,5 @@
 import type { TokenizerExtensionFunction, TokenizerThis } from 'marked';
-
-import { lex, type StreamdownToken } from './index.js';
+import { type StreamdownToken } from './index.js';
 import { StreamdownContext } from '$lib/Streamdown.js';
 import { getContext } from 'svelte';
 

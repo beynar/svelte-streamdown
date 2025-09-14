@@ -48,6 +48,7 @@ function copyReadmePlugin() {
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit(), devtoolsJson(), copyReadmePlugin()],
 	assetsInclude: ['**/*.md'],
+
 	test: {
 		expect: { requireAssertions: true },
 		projects: [

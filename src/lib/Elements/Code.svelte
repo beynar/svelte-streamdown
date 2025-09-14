@@ -65,7 +65,10 @@
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
 		<div>
+			<!-- {@render Skeleton()} -->
 			{#if highlighter.isReady(theme, language as any)}
+				<!-- {@render Skeleton()} -->
+
 				{@const code = highlighter.highlightCode(
 					codeContent,
 					language as any,
@@ -80,16 +83,15 @@
 	</div>
 </div>
 
-<!-- Need to improve this -->
 {#snippet Skeleton()}
-	{@const lines = codeContent.split('\n')}
+	{@const lines = token.text.split('\n')}
 	<!--  -->
 
 	<!--  --><code
 		class={streamdown.theme.code.pre}
 		style="height: fit-content; width: 100%; display: flex; flex-direction: column;"
 		><!--  -->{#each lines as line}<!--  --><span class={streamdown.theme.code.skeleton}
-				>{line}</span
+				>{line.trim().length > 0 ? line : '\u200B'}</span
 			><!--  -->
 			<!--  -->{/each}<!--  --></code
 	><!--  -->

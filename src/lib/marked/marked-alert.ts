@@ -6,10 +6,6 @@ import type { TokenizerThis } from 'marked';
 type variantType = 'note' | 'tip' | 'important' | 'warning' | 'caution';
 const variants: variantType[] = ['note', 'tip', 'important', 'warning', 'caution'];
 
-// export function createSyntaxPattern(type: variantType): string {
-// 	return `^(?:\\[!${type.toUpperCase()}])\\s*?\n*`;
-// }
-
 export function createSyntaxPattern(type: variantType): string {
 	return `^\\s*\\[!${type.toUpperCase()}\\]\\s+`;
 }
@@ -29,7 +25,7 @@ export default function markedAlert(): {
 			{
 				name: 'alert',
 				level: 'block',
-				tokenizer(this: TokenizerThis, src: string, tokens: Token[]): Tokens.Generic | undefined {
+				tokenizer(this: TokenizerThis, src: string): Tokens.Generic | undefined {
 					const cap = defaultTokenizer.rules.block.blockquote.exec(src);
 					if (cap) {
 						const blockquoteToken = defaultTokenizer.blockquote(src);
@@ -50,12 +46,14 @@ export function processAlertToken(token: Tokens.Blockquote, tokenizer: Tokenizer
 
 	if (!matchedVariant) return;
 
-	const tokens = token.tokens.map((token) => {
-		return tokenizer.lexer.blockTokens(
-			token.raw.replaceAll(`[!${matchedVariant.toUpperCase()}]`, '').trim(),
-			[]
-		)[0];
-	});
+	const tokens = token.tokens
+		.map((token) => {
+			return tokenizer.lexer.blockTokens(
+				token.raw.replaceAll(`[!${matchedVariant.toUpperCase()}]`, '').trim(),
+				[]
+			)[0];
+		})
+		.filter(Boolean);
 
 	Object.assign(token, {
 		type: 'alert',

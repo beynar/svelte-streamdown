@@ -1,4 +1,4 @@
-import type { MarkedExtension, TokenizerThis } from 'marked';
+import type { MarkedExtension, TokenizerExtensionFunction, TokenizerThis } from 'marked';
 
 // Configuration options for the extended tables extension
 export interface SpanTableOptions {
@@ -533,7 +533,14 @@ function processRows(
 
 // Adds support for extended tables in marked with row spanning, column spanning,
 // multi-row headers, and column alignment
-export function markedTable(options: SpanTableOptions = {}): MarkedExtension {
+export function markedTable(options: SpanTableOptions = {}): {
+	extensions: {
+		name: string;
+		level: 'block' | 'inline';
+		start: (src: string) => number | undefined;
+		tokenizer: TokenizerExtensionFunction;
+	}[];
+} {
 	const config = { ...DEFAULT_OPTIONS, ...options };
 	const { detectFooter, maxColspan } = config;
 

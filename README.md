@@ -45,14 +45,21 @@ Perfect for AI-powered applications that need to stream and render markdown cont
 
 Beautiful, responsive typography with **built-in Tailwind CSS classes** for headings, lists, code blocks, and more. Comes with a complete default theme that works out of the box.
 
-### 📝 GitHub Flavored Markdown
+### 📝 Extensive Markdown Features
 
-Full support for GitHub Flavored Markdown including:
-
-- Tables
-- ~~Strikethrough~~
-- Subscript (H~2~O)
-- Superscript (E = mc^2^)
+Full support for 
+- Basic text marks: **bold**, *italic*, `code`, ~~Strikethrough~~
+- ~Subscript~ and ^Superscript^
+- [Links](https://svelte-streamdown.beynar.workers.dev/)
+- Headings (H1–H6)
+- Blockquotes
+- Github alert
+- Ordered & unordered lists (including roman, alpha, nested)
+- Task lists ([ ] and [x])
+- Code blocks 
+- Mermaid diagrams
+- Math $expressions$
+- Complex tables
 - Footnotes [^1]
 
 [^1]:
@@ -243,6 +250,7 @@ This Svelte port maintains feature parity with the original [Streamdown](https:/
 > [!NOTE]
 > Streamdown comes with **built-in Tailwind CSS classes** for beautiful default styling. To ensure all styles are included in your build, add the following to your `app.css` or main CSS file:
 > This setup is primarily necessary if you're using Tailwind CSS v4's new `@source` directive or if you have aggressive purging enabled in older versions. If you're using standard Tailwind CSS v3+ with default purging, Streamdown's styles should be automatically included when the component is imported and used in your application.
+> 
 > This ensures that all Streamdown's default styling is included in your Tailwind build process.
 
 ```css

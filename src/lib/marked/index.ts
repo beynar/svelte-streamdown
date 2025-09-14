@@ -17,7 +17,7 @@ import {
 } from './marked-table.js';
 
 export type StreamdownToken =
-	| Exclude<MarkedToken, Tokens.List | Tokens.ListItem | Tokens.Table>
+	| Exclude<MarkedToken, Tokens.List | Tokens.ListItem>
 	| ListToken
 	| ListItemToken
 	| MathToken
@@ -37,8 +37,6 @@ export type StreamdownToken =
 export type { TableToken, THead, TBody, TFoot, THeadRow, TRow, TH, TD } from './marked-table.js';
 
 const completeLexer = new Marked({
-	// Enable GFM features but disable built-in tables
-	gfm: true,
 	tokenizer: {
 		table: () => {
 			return false;
@@ -53,7 +51,6 @@ const completeLexer = new Marked({
 	.use(markedTable());
 
 const blockLexer = new Lexer({
-	gfm: true,
 	extensions: {
 		childTokens: {},
 		renderers: {},

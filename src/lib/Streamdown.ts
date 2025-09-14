@@ -120,15 +120,4 @@ export type StreamdownProps = {
 			important?: string;
 		};
 	};
-	// customElements?: Record<
-	// 	string,
-	// 	Snippet<
-	// 		[
-	// 			{
-	// 				children: Snippet;
-	// 				token: StreamdownToken;
-	// 			}
-	// 		]
-	// 	>
-	// >;
 } & Partial<Snippets>;

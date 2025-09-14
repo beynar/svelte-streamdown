@@ -73,6 +73,8 @@
 	const blocks = $derived(parseBlocks(content));
 </script>
 
-{#each blocks as block, index (`${id}-block-${index}`)}
-	<Block {block} />
-{/each}
+<div class={className}>
+	{#each blocks as block, index (`${id}-block-${index}`)}
+		<Block {block} />
+	{/each}
+</div>

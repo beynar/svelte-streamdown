@@ -7,7 +7,7 @@ type variantType = 'note' | 'tip' | 'important' | 'warning' | 'caution';
 const variants: variantType[] = ['note', 'tip', 'important', 'warning', 'caution'];
 
 export function createSyntaxPattern(type: variantType): string {
-	return `^\\s*\\[!${type.toUpperCase()}\\]\\s+`;
+	return `^\\s*[\\*_]*\\[!${type.toUpperCase()}\\][\\*_]*\\s*`;
 }
 
 export default function markedAlert(): {
@@ -48,10 +48,11 @@ export function processAlertToken(token: Tokens.Blockquote, tokenizer: Tokenizer
 
 	const tokens = token.tokens
 		.map((token) => {
-			return tokenizer.lexer.blockTokens(
-				token.raw.replaceAll(`[!${matchedVariant.toUpperCase()}]`, '').trim(),
-				[]
-			)[0];
+			let cleanedRaw = token.raw;
+			// Remove alert markers with any markdown formatting (asterisks/underscores)
+			const alertPattern = new RegExp(`[\\*_]*\\[!${matchedVariant.toUpperCase()}\\][\\*_]*`, 'g');
+			cleanedRaw = cleanedRaw.replaceAll(alertPattern, '').trim();
+			return tokenizer.lexer.blockTokens(cleanedRaw, [])[0];
 		})
 		.filter(Boolean);
 

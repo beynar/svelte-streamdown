@@ -61,8 +61,103 @@
 		}
 	});
 
+	const sanitizeMermaidCode = (code: string): string => {
+		try {
+			let sanitized = code;
+
+			// 1. Remove Byte Order Mark (BOM)
+			sanitized = sanitized.replace(/^\uFEFF/, '');
+
+			// 2. Normalize Unicode (NFC form for consistent rendering)
+			sanitized = sanitized.normalize('NFC');
+
+			// 3. Remove invisible/zero-width characters
+			sanitized = sanitized.replace(/[\u200B-\u200F\u2028-\u202F\u205F-\u206F]/g, '');
+
+			// 4. Remove control characters (except tab, line feed, carriage return)
+			sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+			// 5. Normalize line endings to LF
+			sanitized = sanitized.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+			// 6. Decode common HTML entities that might appear in Mermaid code
+			const htmlEntities: Record<string, string> = {
+				'&lt;': '<',
+				'&gt;': '>',
+				'&amp;': '&',
+				'&quot;': '"',
+				'&#39;': "'",
+				'&apos;': "'",
+				'&nbsp;': ' ',
+				'&hellip;': '...',
+				'&mdash;': '--',
+				'&ndash;': '-',
+				'&lsquo;': "'",
+				'&rsquo;': "'",
+				'&ldquo;': '"',
+				'&rdquo;': '"'
+			};
+
+			for (const [entity, replacement] of Object.entries(htmlEntities)) {
+				sanitized = sanitized.replace(new RegExp(entity, 'g'), replacement);
+			}
+
+			// 7. Convert smart quotes and other quote variants to standard quotes
+			sanitized = sanitized
+				.replace(/[\u2018\u2019]/g, "'") // Smart single quotes
+				.replace(/[\u201C\u201D]/g, '"') // Smart double quotes
+				.replace(/[\u2013\u2014]/g, '-') // Em/en dashes
+				.replace(/\u2026/g, '...'); // Horizontal ellipsis
+
+			// 8. Trim leading/trailing whitespace from each line and remove empty lines
+			sanitized = sanitized
+				.split('\n')
+				.map((line) => line.trim())
+				.filter((line) => line.length > 0)
+				.join('\n');
+
+			// 9. Normalize multiple spaces/tabs to single space (but preserve indentation in code blocks)
+			sanitized = sanitized.replace(/[ \t]+/g, ' ');
+
+			// 10. Handle over-escaped characters (common in copied code)
+			// Convert double backslashes to single (except in JSON strings)
+			sanitized = sanitized.replace(/\\\\(?![\\"])/g, '\\');
+
+			// 11. Remove non-breaking spaces and other special spaces
+			sanitized = sanitized.replace(/[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]/g, ' ');
+
+			// 12. Ensure proper spacing around operators and keywords
+			// Add space after commas if missing (common in CSV-like data)
+			sanitized = sanitized.replace(/,([^\s])/g, ', $1');
+
+			// 13. Clean up Mermaid-specific issues
+			// Remove trailing semicolons that might break parsing
+			sanitized = sanitized.replace(/;+\s*$/gm, '');
+
+			// Ensure proper spacing in flowchart syntax
+			sanitized = sanitized.replace(
+				/([A-Za-z0-9_]+)(\-\-|\-\-\>|\-\.\-|\-\.\-\>|\=\=|\=\=\>|\=\.\=\>|\=\.\-\>)/g,
+				'$1 $2'
+			);
+
+			// 14. Final cleanup: trim and ensure single trailing newline
+			sanitized = sanitized.trim();
+			if (sanitized && !sanitized.endsWith('\n')) {
+				sanitized += '\n';
+			}
+
+			return sanitized;
+		} catch (error) {
+			console.warn('Error during Mermaid code sanitization:', error);
+			// Return original code if sanitization fails
+			return code;
+		}
+	};
+
 	const renderMermaid = async (code: string, element: HTMLElement) => {
 		try {
+			// Sanitize the code first
+
 			// Default configuration
 			const defaultConfig: MermaidConfig = {
 				theme: 'base',
@@ -83,20 +178,16 @@
 			const mergedConfig = { ...defaultConfig };
 			mermaid.initialize(mergedConfig);
 
-			// Validate and render the diagram
-			const isValidDiagram = await mermaid.parse(code);
-			if (!isValidDiagram) {
-				throw new Error('Invalid mermaid diagram syntax');
-			}
 			// Use a stable ID based on chart content hash and timestamp to ensure uniqueness
 			const chartHash = code.split('').reduce((acc, char) => {
 				// biome-ignore lint/suspicious/noBitwiseOperators: "Required for Mermaid"
 				return ((acc << 5) - acc + char.charCodeAt(0)) | 0;
 			}, 0);
+
 			const uniqueId = `mermaid-${Math.abs(chartHash)}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 			// Render the diagram
-			const { svg: svgString } = await mermaid.render(uniqueId, code);
+			const { svg: svgString } = await mermaid.render(uniqueId, sanitizeMermaidCode(code));
 			const svg = new DOMParser().parseFromString(svgString, 'image/svg+xml').documentElement;
 
 			const svgTarget = element.querySelector('[data-mermaid-svg]')!;
@@ -110,7 +201,10 @@
 			panzoom.zoomToFit();
 			panzoom.zoomToFit();
 		} catch (err) {
-			// Do nothing
+			const sanitizedCode = sanitizeMermaidCode(code);
+			console.error('Mermaid rendering error:', err);
+			console.error('Original code:', code);
+			console.error('Sanitized code:', sanitizedCode);
 		}
 	};
 </script>

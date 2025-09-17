@@ -47,21 +47,23 @@
 <div class={streamdown.theme.code.base} data-language={language}>
 	<div class={streamdown.theme.code.header} data-code-block-header data-language={language}>
 		<span class={streamdown.theme.code.language}>{language}</span>
-		<div class="flex items-center gap-2">
-			<!-- Download button snippet -->
-			<button
-				class={streamdown.theme.code.button}
-				onclick={downloadCode}
-				title="Download file"
-				type="button"
-			>
-				{@render downloadIcon()}
-			</button>
+		{#if streamdown.controls.code}
+			<div class="flex items-center gap-2">
+				<!-- Download button snippet -->
+				<button
+					class={streamdown.theme.code.button}
+					onclick={downloadCode}
+					title="Download file"
+					type="button"
+				>
+					{@render downloadIcon()}
+				</button>
 
-			<button class={streamdown.theme.code.button} onclick={copy.copy} type="button">
-				{@render copyIcon()}
-			</button>
-		</div>
+				<button class={streamdown.theme.code.button} onclick={copy.copy} type="button">
+					{@render copyIcon()}
+				</button>
+			</div>
+		{/if}
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
 		<div>

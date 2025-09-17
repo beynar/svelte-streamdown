@@ -1,4 +1,4 @@
 export { default as Streamdown } from './Streamdown.svelte';
-export { useStreamdown } from './Streamdown.js';
-export * from './Elements/index.js';
-export { theme, shadcnTheme, mergeTheme, cn, type Theme } from './theme.js';
+export { useStreamdown, type StreamdownProps } from './Streamdown.js';
+export { theme, shadcnTheme, mergeTheme, type Theme } from './theme.js';
+export { lex, parseBlocks, type StreamdownToken } from './marked/index.js';

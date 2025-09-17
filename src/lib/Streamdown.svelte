@@ -21,6 +21,8 @@
 		baseTheme,
 		mergeTheme: shouldMergeTheme = true,
 		streamdown = $bindable(),
+		renderHtml,
+		controls,
 		...snippets
 	}: StreamdownProps = $props();
 
@@ -60,11 +62,22 @@
 		get katexConfig() {
 			return katexConfig;
 		},
+		get renderHtml() {
+			return renderHtml;
+		},
 		get translations() {
 			return translations;
 		},
 		get shikiPreloadThemes() {
 			return shikiPreloadThemes;
+		},
+		get controls() {
+			const codeControls = controls?.code ?? true;
+			const mermaidControls = controls?.mermaid ?? true;
+			return {
+				code: codeControls,
+				mermaid: mermaidControls
+			};
 		}
 	});
 

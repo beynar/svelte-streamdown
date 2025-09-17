@@ -6,7 +6,7 @@ import type { Snippets } from './Streamdown.js';
 
 export const theme = {
 	link: {
-		base: 'text-blue-600 font-medium underline',
+		base: 'text-blue-600 font-medium underline wrap-anywhere hover:text-blue-600/80',
 		blocked: 'text-gray-500'
 	},
 	h1: {
@@ -42,8 +42,8 @@ export const theme = {
 	},
 	code: {
 		base: 'my-4 w-full overflow-hidden rounded-xl border border-gray-200 flex flex-col',
-		container: ' relative overflow-visible bg-gray-100 rounded p-2 font-mono text-sm ',
-		header: 'flex items-center justify-between bg-gray-100/80 p-2 pb-0	 text-gray-600 text-xs',
+		container: ' relative overflow-visible bg-gray-100 p-2 font-mono text-sm ',
+		header: 'flex items-center justify-between bg-gray-100/80 p-2	 text-gray-600 text-xs',
 		button:
 			'cursor-pointer size-6 p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100',
 		language: 'ml-1 font-mono lowercase',
@@ -138,7 +138,7 @@ export const theme = {
 
 export const shadcnTheme = {
 	link: {
-		base: 'text-primary font-medium underline hover:text-primary/80',
+		base: 'text-primary wrap-anywhere  font-medium underline hover:text-primary/80',
 		blocked: 'text-muted-foreground'
 	},
 	h1: {
@@ -174,8 +174,8 @@ export const shadcnTheme = {
 	},
 	code: {
 		base: 'my-4 w-full overflow-hidden rounded-lg border border-border flex flex-col',
-		container: 'relative overflow-visible bg-muted rounded p-2 font-mono text-sm',
-		header: 'flex items-center justify-between bg-muted/80 p-2 pb-0 text-muted-foreground text-xs',
+		container: 'relative overflow-visible bg-muted p-2 font-mono text-sm',
+		header: 'flex items-center justify-between bg-muted/80 px-2 py-1 text-muted-foreground text-xs',
 		button:
 			'cursor-pointer size-6 p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-muted',
 		language: 'ml-1 font-mono lowercase',

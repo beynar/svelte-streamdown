@@ -203,6 +203,12 @@
 	<Alert {token} {children} />
 {:else if token.type === 'footnoteRef'}
 	<FootnoteRef {token} />
+{:else if token.type === 'html'}
+	{#if streamdown.renderHtml}
+		{@const content =
+			typeof streamdown.renderHtml === 'function' ? streamdown.renderHtml(token) : token.raw}
+		{@html content}
+	{/if}
 {:else}
 	<!-- For tokens we don't handle specifically, render children or fallback -->
 	{@render children?.()}

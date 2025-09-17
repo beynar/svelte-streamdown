@@ -10,6 +10,10 @@ export interface StreamdownContext
 	snippets: Snippets;
 	shikiTheme: BundledTheme;
 	theme: Theme;
+	controls: {
+		code: boolean;
+		mermaid: boolean;
+	};
 }
 export class StreamdownContext {
 	footnotes = {
@@ -110,7 +114,6 @@ export type StreamdownProps = {
 	shikiPreloadThemes?: BundledTheme[];
 	mermaidConfig?: MermaidConfig;
 	katexConfig?: KatexOptions | ((inline: boolean) => KatexOptions);
-
 	translations?: {
 		alert?: {
 			note?: string;
@@ -120,4 +123,9 @@ export type StreamdownProps = {
 			important?: string;
 		};
 	};
+	controls?: {
+		code?: boolean;
+		mermaid?: boolean;
+	};
+	renderHtml?: boolean | ((token: Tokens.HTML | Tokens.Tag) => string);
 } & Partial<Snippets>;

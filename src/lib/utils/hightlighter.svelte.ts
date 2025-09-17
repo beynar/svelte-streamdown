@@ -1,6 +1,10 @@
-import { type BundledLanguage, type BundledTheme } from 'shiki';
+import { type BundledLanguage, type BundledTheme, bundledLanguages } from 'shiki';
 import { untrack } from 'svelte';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
+
+const isLanguageSupported = (language: string) => {
+	return Object.hasOwn(bundledLanguages, language);
+};
 
 // Remove background styles from <pre> tags (inline style)
 const removePreBackground = (html: string) => {
@@ -25,7 +29,6 @@ type Highlighter = Awaited<ReturnType<CreateHighlighter>>;
 
 class HighlighterManager {
 	initialized = $state(false);
-	private highlighter: Highlighter | null = null;
 	private highlighters = new SvelteMap<string, Highlighter>();
 	private createHighlighter: CreateHighlighter | null = null;
 	private engine: Engine | null = null;
@@ -64,7 +67,7 @@ class HighlighterManager {
 					}
 					const highlighter = await this.createHighlighter?.({
 						themes: [theme],
-						langs: [language],
+						langs: isLanguageSupported(language) ? [language] : ['text'],
 						engine: this.engine
 					});
 					this.highlighters.set(`${theme}:${language}`, highlighter);
@@ -86,7 +89,7 @@ class HighlighterManager {
 			if (!this.highlighters.has(`${theme}:${language}`)) {
 				const highlighter = await this.createHighlighter({
 					themes: [theme],
-					langs: [language],
+					langs: isLanguageSupported(language) ? [language] : ['text'],
 					engine: this.engine
 				});
 				this.highlighters.set(`${theme}:${language}`, highlighter);
@@ -111,7 +114,7 @@ class HighlighterManager {
 		}
 
 		let html = highlighter.codeToHtml(code, {
-			lang: language,
+			lang: isLanguageSupported(language) ? language : 'text',
 			theme: theme
 		});
 

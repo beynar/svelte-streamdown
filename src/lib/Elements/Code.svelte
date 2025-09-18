@@ -95,7 +95,7 @@
 {/snippet}
 {#snippet Skeleton(lines: string[])}
 	{#each lines as line}
-		<span class={streamdown.theme.code.line}>
+		<span class={streamdown.theme.code.skeleton}>
 			{line.trim().length > 0 ? line : '\u200B'}
 		</span>
 	{/each}

@@ -48,7 +48,7 @@ export const theme = {
 			'cursor-pointer size-6 p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100',
 		language: 'ml-1 font-mono lowercase',
 		skeleton:
-			'rounded-md font-mono text-transparent bg-gray-200 scale-y-90 animate-pulse whitespace-nowrap inline-block',
+			'block rounded-md font-mono text-transparent bg-gray-200 scale-y-90 animate-pulse whitespace-nowrap',
 		pre: 'overflow-x-auto font-mono p-0 bg-gray-100/40',
 		line: 'block'
 	},
@@ -181,7 +181,7 @@ export const shadcnTheme = {
 			'cursor-pointer size-6 p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-muted',
 		language: 'ml-1 font-mono lowercase',
 		skeleton:
-			'rounded-md font-mono text-transparent bg-border/80 scale-y-90 w-fit animate-pulse whitespace-nowrap inline-block',
+			'block rounded-md font-mono text-transparent bg-border/80 scale-y-90 w-fit animate-pulse whitespace-nowrap',
 		pre: 'overflow-x-auto font-mono p-0 bg-muted/40',
 		line: 'block '
 	},

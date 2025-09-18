@@ -49,7 +49,8 @@ export const theme = {
 		language: 'ml-1 font-mono lowercase',
 		skeleton:
 			'rounded-md font-mono text-transparent bg-gray-200 scale-y-90 animate-pulse whitespace-nowrap inline-block',
-		pre: 'overflow-x-auto font-mono p-0 bg-gray-100/40'
+		pre: 'overflow-x-auto font-mono p-0 bg-gray-100/40',
+		line: 'block'
 	},
 	codespan: {
 		base: 'bg-gray-100 rounded px-1.5 py-0.5 font-mono text-[0.9em]'
@@ -181,7 +182,8 @@ export const shadcnTheme = {
 		language: 'ml-1 font-mono lowercase',
 		skeleton:
 			'rounded-md font-mono text-transparent bg-border/80 scale-y-90 w-fit animate-pulse whitespace-nowrap inline-block',
-		pre: 'overflow-x-auto font-mono p-0 bg-muted/40'
+		pre: 'overflow-x-auto font-mono p-0 bg-muted/40',
+		line: 'block '
 	},
 	codespan: {
 		base: 'bg-muted rounded px-1.5 py-0.5 font-mono text-foreground text-[0.9em]'

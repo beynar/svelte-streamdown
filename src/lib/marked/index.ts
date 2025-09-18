@@ -99,7 +99,16 @@ const parseExtensions = (...ext: (typeof extensions)[number][]) => {
 
 const blockLexer = new Lexer(parseExtensions(markedFootnote(), markedTable()));
 export const lex = (markdown: string): StreamdownToken[] => {
-	return new Lexer(parseExtensions(...extensions))
+	return new Lexer(
+		parseExtensions(
+			markedTable(),
+			markedFootnote(),
+			markedAlert(),
+			markedMath(),
+			markedSubSup(),
+			markedList()
+		)
+	)
 		.lex(markdown)
 		.filter((token) => token.type !== 'space' && token.type !== 'footnote') as StreamdownToken[];
 };

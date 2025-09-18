@@ -27,21 +27,25 @@ export class StreamdownContext {
 	isMounted = $state(false);
 
 	animationTextStyle = $derived(
-		`animation-name: sd-${this.animation.type};
+		this.animation.enabled
+			? `animation-name: sd-${this.animation.type};
 animation-duration: ${this.animation.duration}ms;
 animation-timing-function: ${this.animation.timingFunction};
 animation-iteration-count: 1;
 animation-fill-mode: forwards;
 white-space: pre-wrap;
 display: inline-block;`
+			: undefined
 	);
 
 	animationBlockStyle = $derived(
-		`animation-name: sd-${this.animation.type};
+		this.animation.enabled
+			? `animation-name: sd-${this.animation.type};
 animation-duration: ${this.animation.duration}ms;
 animation-timing-function: ${this.animation.timingFunction};
 animation-iteration-count: 1;
 animation-fill-mode: forwards;`
+			: undefined
 	);
 
 	constructor(props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets }) {

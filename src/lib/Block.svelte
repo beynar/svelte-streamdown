@@ -3,7 +3,7 @@
 	import Element from './Elements/Element.svelte';
 	import { lex, type StreamdownToken } from './marked/index.js';
 	import AnimatedText from './AnimatedText.svelte';
-	import { useStreamdown } from './streamdown.svelte.js';
+	import { useStreamdown } from './context.svelte.js';
 	import AnimatedBlock from './AnimatedBlock.svelte';
 
 	let {

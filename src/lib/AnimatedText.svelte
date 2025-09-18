@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useStreamdown } from './streamdown.svelte.js';
+	import { useStreamdown } from './context.svelte.js';
 	let { text }: { text: string } = $props();
 
 	const streamdown = useStreamdown();

@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useStreamdown } from '$lib/streamdown.svelte.js';
+	import { useStreamdown } from '$lib/context.svelte.js';
 	import { save } from '$lib/utils/save.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
 	import { HighlighterManager, languageExtensionMap } from '$lib/utils/hightlighter.svelte.js';

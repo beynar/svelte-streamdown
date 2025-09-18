@@ -1,6 +1,6 @@
 <script lang="ts">
 	import Block from './Block.svelte';
-	import { StreamdownContext, type StreamdownProps } from './streamdown.svelte.js';
+	import { StreamdownContext, type StreamdownProps } from './context.svelte.js';
 	import { mergeTheme, shadcnTheme } from './theme.js';
 	import { parseBlocks } from './marked/index.js';
 

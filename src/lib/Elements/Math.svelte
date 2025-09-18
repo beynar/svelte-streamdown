@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { useStreamdown } from '$lib/streamdown.svelte.js';
+	import { useStreamdown } from '$lib/context.svelte.js';
 	import type { MathToken } from '$lib/marked/index.js';
 	import type { KatexOptions } from 'katex';
 	import 'katex/dist/katex.min.css';

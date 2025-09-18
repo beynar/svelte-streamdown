@@ -1,6 +1,6 @@
 import type { TokenizerExtensionFunction, TokenizerThis } from 'marked';
 import { type StreamdownToken } from './index.js';
-import { StreamdownContext } from '$lib/streamdown.svelte.js';
+import { StreamdownContext } from '$lib/context.svelte.js';
 import { getContext } from 'svelte';
 
 const safeGetContext = () => {

@@ -1,9 +1,7 @@
 <script lang="ts">
-	import { flushSync, onMount, tick } from 'svelte';
-	import { useStreamdown } from '$lib/Streamdown.js';
-	import Slot from './Slot.svelte';
+	import { onMount } from 'svelte';
+	import { useStreamdown } from '$lib/streamdown.svelte.js';
 	import type { Tokens } from 'marked';
-	import type { Snippet } from 'svelte';
 	import type { MermaidConfig } from 'mermaid';
 	import { on } from 'svelte/events';
 	import { usePanzoom } from '$lib/utils/panzoom.svelte';

@@ -3,7 +3,7 @@ import type { Snippet } from 'svelte';
 import type { Theme } from './theme.js';
 import type { MermaidConfig } from 'mermaid';
 import type { KatexOptions } from 'katex';
-import { getContext, setContext } from 'svelte';
+import { getContext, onMount, setContext } from 'svelte';
 
 export interface StreamdownContext
 	extends Omit<StreamdownProps, keyof Snippets | 'class' | 'theme' | 'shikiTheme'> {
@@ -14,15 +14,44 @@ export interface StreamdownContext
 		code: boolean;
 		mermaid: boolean;
 	};
+	animation: {
+		enabled: boolean;
+	} & StreamdownProps['animation'];
 }
 export class StreamdownContext {
 	footnotes = {
 		refs: new Map<string, FootnoteRef>(),
 		footnotes: new Map<string, Footnote>()
 	};
+
+	isMounted = $state(false);
+
+	animationTextStyle = $derived(
+		`
+animation-name: sd-${this.animation.type};  
+animation-duration: ${this.animation.duration}ms;  
+animation-timing-function: ${this.animation.timingFunction};  
+animation-iteration-count: 1;	
+white-space: pre-wrap;
+display: inline-block; 
+		`
+	);
+
+	animationBlockStyle = $derived(
+		`
+animation-name: sd-${this.animation.type};  
+animation-duration: ${this.animation.duration}ms;  
+animation-timing-function: ${this.animation.timingFunction};  
+animation-iteration-count: 1;	
+		`
+	);
+
 	constructor(props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets }) {
 		bind(this, props);
 		setContext('streamdown', this);
+		onMount(() => {
+			this.isMounted = true;
+		});
 	}
 }
 export const useStreamdown = () => {
@@ -98,6 +127,7 @@ export type Snippets = {
 
 export type StreamdownProps = {
 	streamdown?: StreamdownContext;
+	element?: HTMLElement;
 	content: string;
 	class?: string;
 	parseIncompleteMarkdown?: boolean;
@@ -128,4 +158,12 @@ export type StreamdownProps = {
 		mermaid?: boolean;
 	};
 	renderHtml?: boolean | ((token: Tokens.HTML | Tokens.Tag) => string);
+
+	animation?: {
+		enabled?: boolean;
+		type?: 'fade' | 'blur' | 'typewriter' | 'slideUp' | 'slideDown';
+		duration?: number;
+		timingFunction?: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear';
+		tokenize?: 'word' | 'char';
+	};
 } & Partial<Snippets>;

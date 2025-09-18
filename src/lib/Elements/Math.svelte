@@ -1,9 +1,7 @@
 <script lang="ts">
 	import { onMount, untrack } from 'svelte';
-	import { useStreamdown } from '$lib/Streamdown.js';
-	import Slot from './Slot.svelte';
+	import { useStreamdown } from '$lib/streamdown.svelte.js';
 	import type { MathToken } from '$lib/marked/index.js';
-	import type { Snippet } from 'svelte';
 	import type { KatexOptions } from 'katex';
 	import 'katex/dist/katex.min.css';
 
@@ -47,10 +45,16 @@
 			});
 		}
 	});
+
+	const isMounted = streamdown.isMounted;
 </script>
 
 {#if isInline}
-	<span bind:this={inner} class={streamdown.theme.math.inline}>
+	<span
+		style={isMounted ? streamdown.animationBlockStyle : ''}
+		bind:this={inner}
+		class={streamdown.theme.math.inline}
+	>
 		{@html html}
 	</span>
 {:else}

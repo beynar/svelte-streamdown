@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useStreamdown } from '$lib/Streamdown.js';
+	import { useStreamdown } from '$lib/streamdown.svelte.js';
 	import Slot from './Slot.svelte';
 	import type { FootnoteRef } from '$lib/marked/marked-footnotes.js';
 	import {
@@ -80,6 +80,7 @@
 			off();
 		};
 	};
+	const isMounted = streamdown.isMounted;
 </script>
 
 {#if isOpen}
@@ -113,6 +114,7 @@
 	render={streamdown.snippets.footnoteRef}
 >
 	<button
+		style={isMounted ? streamdown.animationBlockStyle : ''}
 		bind:this={reference}
 		class={streamdown.theme.footnoteRef.base}
 		onclick={() => (isOpen = !isOpen)}

@@ -1,7 +1,6 @@
 <script lang="ts">
 	import Block from './Block.svelte';
-	import { StreamdownContext, type StreamdownProps } from './Streamdown.js';
-	import 'katex/dist/katex.min.css';
+	import { StreamdownContext, type StreamdownProps } from './streamdown.svelte.js';
 	import { mergeTheme, shadcnTheme } from './theme.js';
 	import { parseBlocks } from './marked/index.js';
 
@@ -23,10 +22,15 @@
 		streamdown = $bindable(),
 		renderHtml,
 		controls,
+		animation,
+		element = $bindable(),
 		...snippets
 	}: StreamdownProps = $props();
 
 	streamdown = new StreamdownContext({
+		get element() {
+			return element;
+		},
 		get content() {
 			return content;
 		},
@@ -71,6 +75,20 @@
 		get shikiPreloadThemes() {
 			return shikiPreloadThemes;
 		},
+
+		get animation() {
+			if (!animation?.enabled)
+				return {
+					enabled: false
+				};
+			return {
+				enabled: true,
+				type: animation.type || 'blur',
+				duration: animation.duration || 500,
+				timingFunction: animation.timingFunction || 'ease-in',
+				tokenize: animation.tokenize || 'word'
+			};
+		},
 		get controls() {
 			const codeControls = controls?.code ?? true;
 			const mermaidControls = controls?.mermaid ?? true;
@@ -86,8 +104,64 @@
 	const blocks = $derived(parseBlocks(content));
 </script>
 
-<div class={className}>
+<div bind:this={element} class={className}>
 	{#each blocks as block, index (`${id}-block-${index}`)}
 		<Block {block} />
 	{/each}
 </div>
+
+<style global>
+	:global {
+		@keyframes sd-fade {
+			from {
+				opacity: 0;
+			}
+			to {
+				opacity: 1;
+			}
+		}
+
+		@keyframes sd-blur {
+			from {
+				opacity: 0;
+				filter: blur(5px);
+			}
+			to {
+				opacity: 1;
+				filter: blur(0px);
+			}
+		}
+
+		@keyframes sd-typewriter {
+			from {
+				width: 0;
+				overflow: hidden;
+			}
+			to {
+				width: fit-content;
+			}
+		}
+
+		@keyframes sd-slideUp {
+			from {
+				transform: translateY(10%);
+				opacity: 0;
+			}
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
+		}
+
+		@keyframes sd-slideDown {
+			from {
+				transform: translateY(-10%);
+				opacity: 0;
+			}
+			to {
+				transform: translateY(0);
+				opacity: 1;
+			}
+		}
+	}
+</style>

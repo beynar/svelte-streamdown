@@ -1,6 +1,6 @@
 # Svelte Streamdown
 
-[![npm version](https://badge.fury.io/js/svelte-streamdown.svg)](https://badge.fury.io/js/svelte-streamdown)
+![npm version](https://badge.fury.io/js/svelte-streamdown.svg)
 
 A **Svelte port** of [Streamdown](https://streamdown.ai/) by Vercel - an all in one markdown renderer, designed specifically for AI-powered streaming applications.
 

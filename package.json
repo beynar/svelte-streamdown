@@ -47,6 +47,7 @@
 		"prettier-plugin-svelte": "^3.3.3",
 		"prettier-plugin-tailwindcss": "^0.6.11",
 		"publint": "^0.3.2",
+		"stick-to-bottom-svelte": "^1.0.1",
 		"svelte": "^5.0.0",
 		"svelte-check": "^4.0.0",
 		"svelte-themes": "^2.0.8",

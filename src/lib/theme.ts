@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
-import type { Snippets } from './Streamdown.js';
+import type { Snippets } from './streamdown.svelte.js';
 
 export const theme = {
 	link: {

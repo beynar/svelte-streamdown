@@ -69,6 +69,9 @@ importers:
       publint:
         specifier: ^0.3.2
         version: 0.3.12
+      stick-to-bottom-svelte:
+        specifier: ^1.0.1
+        version: 1.0.1(svelte@5.38.7)
       svelte:
         specifier: ^5.0.0
         version: 5.38.7
@@ -1972,6 +1975,11 @@ packages:
 
   std-env@3.9.0:
     resolution: {integrity: sha512-UGvjygr6F6tpH7o2qyqR6QYpwraIjKSdtzyBdyytFOHmPZY917kwdwLG0RbOjWOnKmnm3PeHjaoLLMie7kPLQw==}
+
+  stick-to-bottom-svelte@1.0.1:
+    resolution: {integrity: sha512-KKaXY+xJM2myoa77hceSdm2GxgcTfKWBKW1BEV/tTtoxfoZ1UQvQEQsd+55iC7/+Dk4CdvMiWR9TWiFt7qZL7A==}
+    peerDependencies:
+      svelte: ^5.0.0
 
   stoppable@1.1.0:
     resolution: {integrity: sha512-KXDYZ9dszj6bzvnEMRYvxgeTHU74QBFL54XKtP3nyMuJ81CFYtABZ3bAzL2EdFUaEwJOBOgENyFj3R7oTzDyyw==}
@@ -3995,6 +4003,10 @@ snapshots:
   stackback@0.0.2: {}
 
   std-env@3.9.0: {}
+
+  stick-to-bottom-svelte@1.0.1(svelte@5.38.7):
+    dependencies:
+      svelte: 5.38.7
 
   stoppable@1.1.0: {}
 

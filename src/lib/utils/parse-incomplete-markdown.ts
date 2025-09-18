@@ -1,5 +1,5 @@
 const linkImagePattern = /(!?\[)([^\]]*?)$/;
-const boldPattern = /(\*\*)(.*)$/;
+const boldPattern = /(\*\*)([^\n]*?)$/;
 const italicPattern = /(__)([^_]*?)$/;
 const boldItalicPattern = /(\*\*\*)([^*]*?)$/;
 const singleAsteriskPattern = /(\*)([^*]*?)$/;
@@ -46,21 +46,21 @@ const handleIncompleteBold = (text: string): string => {
 	const boldMatch = text.match(boldPattern);
 
 	if (boldMatch) {
+		// Find the position of the last ** marker
+		const lastDoubleAsteriskIndex = text.lastIndexOf('**');
+		const contentAfterMarker = text.substring(lastDoubleAsteriskIndex + 2);
+
 		// Don't close if there's no meaningful content after the opening markers
-		// boldMatch[2] contains the content after **
 		// Check if content is only whitespace or other emphasis markers
-		const contentAfterMarker = boldMatch[2];
 		if (!contentAfterMarker || /^[\s_~*`]*$/.test(contentAfterMarker)) {
 			return text;
 		}
 
 		// Check if the bold marker is in a list item context
-		// Find the position of the matched bold marker
-		const markerIndex = text.lastIndexOf(boldMatch[1]);
-		const beforeMarker = text.substring(0, markerIndex);
+		const beforeMarker = text.substring(0, lastDoubleAsteriskIndex);
 		const lastNewlineBeforeMarker = beforeMarker.lastIndexOf('\n');
 		const lineStart = lastNewlineBeforeMarker === -1 ? 0 : lastNewlineBeforeMarker + 1;
-		const lineBeforeMarker = text.substring(lineStart, markerIndex);
+		const lineBeforeMarker = text.substring(lineStart, lastDoubleAsteriskIndex);
 
 		// Check if this line is a list item with just the bold marker
 		if (/^[\s]*[-*+][\s]+$/.test(lineBeforeMarker)) {
@@ -73,25 +73,17 @@ const handleIncompleteBold = (text: string): string => {
 			}
 		}
 
-		// Count all ** sequences and single * at the end after **
-		const doubleAsteriskMatches = text.match(/\*\*/g) || [];
-		let doubleAsteriskCount = doubleAsteriskMatches.length;
-
 		// Check if the content after ** ends with a single * (incomplete closing marker)
-		const lastDoubleAsteriskIndex = text.lastIndexOf('**');
-		if (lastDoubleAsteriskIndex !== -1) {
-			const afterLastDoubleAsterisk = text.substring(lastDoubleAsteriskIndex + 2);
-			if (afterLastDoubleAsterisk.endsWith('*') && !afterLastDoubleAsterisk.endsWith('**')) {
-				// The content ends with a single *, treat it as an incomplete closing marker
-				// Remove the trailing * and add complete closing **
-				const contentWithoutTrailingAsterisk = afterLastDoubleAsterisk.slice(0, -1);
-				return (
-					text.substring(0, lastDoubleAsteriskIndex + 2) + contentWithoutTrailingAsterisk + '**'
-				);
-			}
+		if (contentAfterMarker.endsWith('*') && !contentAfterMarker.endsWith('**')) {
+			// The content ends with a single *, treat it as an incomplete closing marker
+			// Remove the trailing * and add complete closing **
+			const contentWithoutTrailingAsterisk = contentAfterMarker.slice(0, -1);
+			return text.substring(0, lastDoubleAsteriskIndex + 2) + contentWithoutTrailingAsterisk + '**';
 		}
 
-		// If we have an odd number of ** sequences, we have an unmatched opening **
+		// Count all ** sequences - if odd, we have an unmatched opening **
+		const doubleAsteriskMatches = text.match(/\*\*/g) || [];
+		const doubleAsteriskCount = doubleAsteriskMatches.length;
 		if (doubleAsteriskCount % 2 === 1) {
 			return `${text}**`;
 		}
@@ -207,6 +199,23 @@ const handleIncompleteSingleAsteriskItalic = (text: string): string => {
 		// Check if there's meaningful content after the asterisk
 		// Don't close if content is only whitespace or emphasis markers
 		if (!contentAfterFirstAsterisk || /^[\s_~*`]*$/.test(contentAfterFirstAsterisk)) {
+			return text;
+		}
+
+		// Additional check: be more conservative about single asterisks
+		// Only complete if the asterisk appears to be intended for formatting
+		const prevChar = firstSingleAsteriskIndex > 0 ? text[firstSingleAsteriskIndex - 1] : '';
+		const nextChar =
+			firstSingleAsteriskIndex < text.length - 1 ? text[firstSingleAsteriskIndex + 1] : '';
+
+		// If asterisk is surrounded by word characters, it's likely literal (e.g., test*var)
+		if (/\w/.test(prevChar) && /\w/.test(nextChar)) {
+			return text;
+		}
+
+		// If asterisk is at the end of a word/phrase, be more cautious
+		// Only complete if there's clear whitespace before it (typical italic pattern)
+		if (/\w/.test(prevChar) && !/\s/.test(prevChar)) {
 			return text;
 		}
 

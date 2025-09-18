@@ -275,14 +275,20 @@ export const mergeTheme = (customTheme?: Partial<Theme>, baseTheme?: 'tailwind' 
 	if (!customTheme) return base;
 	const mergedTheme = { ...base };
 	for (const key in customTheme) {
-		const baseGroup = mergedTheme[key as keyof Theme] as any;
-		const customGroup = customTheme[key as keyof Theme] as any;
-		if (!baseGroup || !customGroup) continue;
+		const origGroup = (mergedTheme as any)[key as keyof Theme] as
+			| Record<string, ClassValue>
+			| undefined;
+		const customGroup = (customTheme as any)[key as keyof Theme] as
+			| Record<string, ClassValue>
+			| undefined;
+		if (!origGroup || !customGroup) continue;
+		const mergedGroup: Record<string, ClassValue> = { ...origGroup };
 		for (const subKey in customGroup) {
-			const baseVal = baseGroup[subKey];
+			const baseVal = origGroup[subKey];
 			const customVal = customGroup[subKey];
-			Object.assign(baseGroup, { [subKey]: cn(baseVal, customVal) });
+			mergedGroup[subKey] = cn(baseVal as ClassValue, customVal as ClassValue);
 		}
+		(mergedTheme as any)[key] = mergedGroup;
 	}
 	return mergedTheme;
 };

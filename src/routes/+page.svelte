@@ -8,7 +8,7 @@
 	let isStreaming = $state(false);
 	let streamingProgress = $state(0);
 	let cancelRequested = $state(false);
-	let progress = $state(10);
+	let progress = $state(100);
 
 	// Update content based on progress percentage
 	$effect(() => {

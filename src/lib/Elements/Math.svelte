@@ -45,13 +45,11 @@
 			});
 		}
 	});
-
-	const isMounted = streamdown.isMounted;
 </script>
 
 {#if isInline}
 	<span
-		style={isMounted ? streamdown.animationBlockStyle : ''}
+		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 		bind:this={inner}
 		class={streamdown.theme.math.inline}
 	>

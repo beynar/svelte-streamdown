@@ -21,11 +21,9 @@
 	let tokens = $derived.by(() => {
 		return tokenizeNewContent(text);
 	});
-
-	const isMounted = streamdown.isMounted;
 </script>
 
-{#if isMounted}
+{#if streamdown.isMounted}
 	<span>
 		{#each tokens as token}
 			<span style={streamdown.animationTextStyle}>

@@ -79,7 +79,6 @@
 			off();
 		};
 	};
-	const isMounted = streamdown.isMounted;
 </script>
 
 {#if isOpen}
@@ -113,7 +112,7 @@
 	render={streamdown.snippets.footnoteRef}
 >
 	<button
-		style={isMounted ? streamdown.animationBlockStyle : ''}
+		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 		bind:this={reference}
 		class={streamdown.theme.footnoteRef.base}
 		onclick={() => (isOpen = !isOpen)}

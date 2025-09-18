@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useStreamdown } from '$lib/streamdown.svelte.js';
+	import { useStreamdown } from '$lib/context.svelte.js';
 	import { transformUrl } from '$lib/utils/url.js';
 	import Slot from './Slot.svelte';
 	import type { Tokens } from 'marked';

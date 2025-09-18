@@ -1,6 +1,5 @@
 <script lang="ts">
-	import { useStreamdown } from './streamdown.svelte.js';
-
+	import { useStreamdown } from './context.svelte.js';
 	let { text }: { text: string } = $props();
 
 	const streamdown = useStreamdown();
@@ -17,10 +16,8 @@
 
 		return text.split(splitRegex).filter((token) => token.length > 0);
 	};
-
-	let tokens = $derived.by(() => {
-		return tokenizeNewContent(text);
-	});
+  
+	const tokens = $derived(tokenizeNewContent(text));
 </script>
 
 {#if streamdown.isMounted}

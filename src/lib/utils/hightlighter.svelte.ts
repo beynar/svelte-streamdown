@@ -1,16 +1,9 @@
-import { type BundledLanguage, type BundledTheme, bundledLanguages } from 'shiki';
+import { type BundledLanguage, type BundledTheme, type ThemedToken, bundledLanguages } from 'shiki';
 import { untrack } from 'svelte';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
 
 const isLanguageSupported = (language: string) => {
 	return Object.hasOwn(bundledLanguages, language);
-};
-
-// Remove background styles from <pre> tags (inline style)
-const removePreBackground = (html: string) => {
-	return html.replace(/<pre[^>]*style="[^"]*background[^";]*;?[^"]*"[^>]*>/g, (match) =>
-		match.replace(/style="[^"]*background[^";]*;?[^"]*"/, '')
-	);
 };
 
 export const loadShiki = async () => {
@@ -102,30 +95,18 @@ class HighlighterManager {
 	/**
 	 * Highlights code synchronously. Must call isReady() first.
 	 */
-	highlightCode(
-		code: string,
-		language: BundledLanguage,
-		theme: BundledTheme,
-		preClassName?: string
-	): string {
+	highlightCode(code: string, language: BundledLanguage, theme: BundledTheme): ThemedToken[][] {
 		const highlighter = this.highlighters.get(`${theme}:${language}`);
 		if (!highlighter) {
-			return '';
+			return [];
 		}
 
-		let html = highlighter.codeToHtml(code, {
+		const tokens = highlighter.codeToTokensBase(code, {
 			lang: isLanguageSupported(language) ? language : 'text',
 			theme: theme
 		});
 
-		// Remove background and add custom class if needed
-		html = removePreBackground(html);
-
-		if (preClassName) {
-			html = html.replace(/<pre(\s|>)/, `<pre class="${preClassName}"$1`);
-		}
-
-		return html;
+		return tokens;
 	}
 
 	static create(preloadedThemes: BundledTheme[]): HighlighterManager {

@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
-	import { useStreamdown } from '$lib/streamdown.svelte.js';
+	import { useStreamdown } from '$lib/context.svelte.js';
 	import type { Tokens } from 'marked';
 	import type { MermaidConfig } from 'mermaid';
 	import { on } from 'svelte/events';

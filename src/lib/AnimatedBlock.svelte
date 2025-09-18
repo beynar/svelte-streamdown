@@ -1,6 +1,6 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
-	import { useStreamdown } from './streamdown.svelte.js';
+	import { useStreamdown } from './context.svelte.js';
 
 	let { children }: { children: Snippet } = $props();
 

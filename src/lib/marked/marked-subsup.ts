@@ -1,4 +1,4 @@
-import type { TokenizerExtensionFunction, TokenizerThis, Tokens } from 'marked';
+import type { TokenizerExtensionFunction, TokenizerStartFunction, TokenizerThis } from 'marked';
 
 const subRule = /^~([^~\s](?:[^~]*[^~\s])?)~/; // ~text~
 const supRule = /^\^([^\^\s](?:[^\^]*[^\^\s])?)\^/; // ^text^
@@ -8,7 +8,7 @@ export default function markedSubSup(): {
 		name: string;
 		level: 'inline';
 		tokenizer: TokenizerExtensionFunction;
-		start?: (src: string) => number | undefined;
+		start?: TokenizerStartFunction;
 	}[];
 } {
 	return {
@@ -51,7 +51,7 @@ export default function markedSubSup(): {
 				}
 			}
 		]
-	};
+	} as const;
 }
 
 /**

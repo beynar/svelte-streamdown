@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { useStreamdown } from '$lib/streamdown.svelte.js';
+	import { useStreamdown } from '$lib/context.svelte.js';
 	import Slot from './Slot.svelte';
 	import type { FootnoteRef } from '$lib/marked/marked-footnotes.js';
 	import {
@@ -99,7 +99,7 @@
 			class={`${streamdown.theme.footnotePopover.base}`}
 		>
 			{#each token.content.lines as line}
-				<Block block={line} />
+				<Block insideFootnote block={line} />
 			{/each}
 		</dialog>
 	</Slot>

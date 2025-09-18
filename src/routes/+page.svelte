@@ -182,7 +182,7 @@
 
 <div class="pr-10 pl-10">
 	<div
-		class="mx-auto max-w-4xl border border-t-0 border-dashed border-border px-4 pt-10 [&>h1]:mt-0"
+		class="mx-auto mb-48 max-w-4xl border border-t-0 border-dashed border-border px-4 pt-10 [&>h1]:mt-0"
 	>
 		<Streamdown
 			animation={{

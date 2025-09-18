@@ -8,7 +8,7 @@
 	import Alert from './Alert.svelte';
 	import type { StreamdownToken } from '$lib/marked/index.js';
 	import Slot from './Slot.svelte';
-	import { useStreamdown } from '$lib/streamdown.svelte.js';
+	import { useStreamdown } from '$lib/context.svelte.js';
 	import FootnoteRef from './FootnoteRef.svelte';
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
 	const streamdown = useStreamdown();

@@ -1,9 +1,10 @@
 <script lang="ts">
-	import { useStreamdown } from '$lib/streamdown.svelte.js';
+	import { useStreamdown } from '$lib/context.svelte.js';
 	import { save } from '$lib/utils/save.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
 	import { HighlighterManager, languageExtensionMap } from '$lib/utils/hightlighter.svelte.js';
 	import type { Tokens } from 'marked';
+	import { type ThemedToken } from 'shiki';
 
 	const {
 		token
@@ -41,6 +42,8 @@
 	$effect(() => {
 		void highlighter.load(theme, language as any);
 	});
+
+	const isMounted = streamdown.isMounted;
 </script>
 
 <div class={streamdown.theme.code.base} data-language={language}>
@@ -65,37 +68,37 @@
 		{/if}
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
-		<div>
-			<!-- {@render Skeleton()} -->
-			{#if highlighter.isReady(theme, language as any)}
-				<!-- {@render Skeleton()} -->
-
-				{@const code = highlighter.highlightCode(
-					codeContent,
-					language as any,
-					theme,
-					streamdown.theme.code.pre
-				)}
-				{@html code}
-			{:else}
-				{@render Skeleton()}
-			{/if}
-		</div>
+		{#if highlighter.isReady(theme, language as any)}
+			{@const tokens = highlighter.highlightCode(codeContent, language as any, theme)}
+			<pre class={streamdown.theme.code.pre}><code>{@render Tokens(tokens)}</code></pre>
+		{:else}
+			<pre class={streamdown.theme.code.pre}><code>{@render Skeleton(token.text.split('\n'))}</code
+				></pre>
+		{/if}
 	</div>
 </div>
 
-{#snippet Skeleton()}
-	{@const lines = token.text.split('\n')}
-	<!--  -->
-
-	<!--  --><code
-		class={streamdown.theme.code.pre}
-		style="height: fit-content; width: 100%; display: flex; flex-direction: column;"
-		><!--  -->{#each lines as line}<!--  --><span class={streamdown.theme.code.skeleton}
-				>{line.trim().length > 0 ? line : '\u200B'}</span
-			><!--  -->
-			<!--  -->{/each}<!--  --></code
-	><!--  -->
+{#snippet Tokens(tokens: ThemedToken[][])}
+	{#each tokens as line}
+		<span class={streamdown.theme.code.line}>
+			{#each line as token}
+				<span
+					style={isMounted ? streamdown.animationTextStyle : undefined}
+					style:color={token.color}
+					style:background-color={token.bgColor}
+				>
+					{token.content}
+				</span>
+			{/each}
+		</span>
+	{/each}
+{/snippet}
+{#snippet Skeleton(lines: string[])}
+	{#each lines as line}
+		<span class={streamdown.theme.code.line}>
+			{line.trim().length > 0 ? line : '\u200B'}
+		</span>
+	{/each}
 {/snippet}
 {#snippet copyIcon()}
 	<svg

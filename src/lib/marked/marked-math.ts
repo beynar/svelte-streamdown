@@ -1,23 +1,15 @@
 import type { TokenizerExtensionFunction, TokenizerStartFunction, TokenizerThis } from 'marked';
 import type { TokenizerAndRendererExtension } from 'marked';
 
-// const inlineRule =
-// 	/^(\${1,2})(?!\$)((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\1(?=[\s?!\.,:？！。，：]|$)/;
-const inlineRuleNonStandard = /^(\${1,2})(?!\$)((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\1/; // Non-standard, even if there are no spaces before and after $ or $$, try to parse
+// Use the standard rule that requires proper spacing after math expressions
+const inlineRule = /^(\${1,2})(?!\$)((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\1(?=[\s?!\.,:？！。，：]|$)/;
 const blockRule = /^(\${1,2})\n((?:\\[\s\S]|[^\\])+?)\n\1(?:\n|$)/;
 
-export function markedMath(): {
-	extensions: Array<{
-		name: string;
-		level: 'block' | 'inline';
-		start?: TokenizerStartFunction;
-		tokenizer: TokenizerExtensionFunction;
-	}>;
-} {
+export function markedMath() {
 	return {
 		extensions: [
 			{
-				name: 'block-math',
+				name: 'math',
 				level: 'block',
 				tokenizer(this: TokenizerThis, src: string) {
 					const match = src.match(blockRule);
@@ -30,12 +22,15 @@ export function markedMath(): {
 							text: match[2].trim()
 						} satisfies MathToken;
 					}
+				},
+				renderer(token: any) {
+					return `<div class="math block">$$\n${token.text}\n$$</div>`;
 				}
 			},
 			{
-				name: 'inline-math',
+				name: 'math',
 				level: 'inline',
-				start(src) {
+				start(src: string) {
 					let index;
 					let indexSrc = src;
 
@@ -48,7 +43,7 @@ export function markedMath(): {
 						if (f) {
 							const possibleKatex = indexSrc.substring(index);
 
-							if (possibleKatex.match(inlineRuleNonStandard)) {
+							if (possibleKatex.match(inlineRule)) {
 								return index;
 							}
 						}
@@ -57,7 +52,7 @@ export function markedMath(): {
 					}
 				},
 				tokenizer(this: TokenizerThis, src: string) {
-					const match = src.match(inlineRuleNonStandard);
+					const match = src.match(inlineRule);
 					if (match) {
 						return {
 							type: 'math',
@@ -66,15 +61,18 @@ export function markedMath(): {
 							text: match[2].trim()
 						} satisfies MathToken;
 					}
+				},
+				renderer(token: any) {
+					return `<span class="math inline">$${token.text}$</span>`;
 				}
 			}
 		]
-	} as const;
+	};
 }
 
 export type MathToken = {
 	type: 'math';
-	isInline: boolean;
 	raw: string;
 	text: string;
+	isInline: boolean;
 };

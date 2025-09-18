@@ -57,14 +57,15 @@
 			allowedLinkPrefixes={['*']}
 			shikiTheme="vitesse-dark"
 			content={`
-[testJesuisunsuperlongtextequivafaireplusieurslignesetquivaêtrecoupéparleblocdecodeci-dessus ](https://www.google.com)
+When choosing between the Garmin HRM 600 and the Garmin HRM-Pro Plus, consider the following:
 
-First Term
-: This is the definition of the first term.
-
-Second Term
-: This is one definition of the second term.
-: This is another definition of the second term.
+*   **Battery Life:** The HRM-Pro Plus offers up to one year of battery life, while the HRM 600 has up to two months.
+*   **Running Dynamics:** Both offer advanced running dynamics, but the HRM-Pro Plus is specifically highlighted for improving running form and enabling running power on compatible Garmin watches.
+*   **Swim Activity:** Both devices can record swim activities.
+*   **Connectivity:** Both connect to compatible devices and apps via ANT+ and BLE.
+*   **Price:** The HRM 600 is priced at $169.99, and the HRM-Pro Plus is priced at $119.93.
+*   **Customer Ratings:** The HRM 600 has a rating of 3.0 out of 5 stars, while the HRM-Pro Plus has a higher rating of 4.5 out of 5 stars.
+*   **Battery Replacement:** The HRM-Pro Plus has a tool-free battery cover, suggesting easier battery replacement compared to the HRM 600 which has a rechargeable battery with a 2-month lifespan.
 
 
 			`}

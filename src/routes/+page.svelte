@@ -64,6 +64,8 @@
 		}
 	};
 
+	let animationEnabled = $state(true);
+
 	const stopStreaming = () => {
 		if (!isStreaming) return;
 		cancelRequested = true;
@@ -115,6 +117,14 @@
 			}}
 		>
 			🗑️ Clear
+		</button>
+		<button
+			class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+			onclick={() => {
+				animationEnabled = !animationEnabled;
+			}}
+		>
+			{animationEnabled ? '🔄 Disable Animation' : '🔄 Enable Animation'}
 		</button>
 
 		<div class="ml-4 flex items-center gap-2">
@@ -177,7 +187,7 @@
 		{content}
 		<Streamdown
 			animation={{
-				enabled: true
+				enabled: animationEnabled
 			}}
 			baseTheme="shadcn"
 			mermaidConfig={{

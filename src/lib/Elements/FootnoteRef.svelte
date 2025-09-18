@@ -52,7 +52,6 @@
 		const middleware = [
 			hide(),
 			offset(0),
-			,
 			shift({
 				mainAxis: true
 			}),

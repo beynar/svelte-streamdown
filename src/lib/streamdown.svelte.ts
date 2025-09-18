@@ -27,23 +27,19 @@ export class StreamdownContext {
 	isMounted = $state(false);
 
 	animationTextStyle = $derived(
-		`
-animation-name: sd-${this.animation.type};  
+		`animation-name: sd-${this.animation.type};  
 animation-duration: ${this.animation.duration}ms;  
 animation-timing-function: ${this.animation.timingFunction};  
 animation-iteration-count: 1;	
 white-space: pre-wrap;
-display: inline-block; 
-		`
+display: inline-block;`
 	);
 
 	animationBlockStyle = $derived(
-		`
-animation-name: sd-${this.animation.type};  
+		`animation-name: sd-${this.animation.type};  
 animation-duration: ${this.animation.duration}ms;  
 animation-timing-function: ${this.animation.timingFunction};  
-animation-iteration-count: 1;	
-		`
+animation-iteration-count: 1;`
 	);
 
 	constructor(props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets }) {

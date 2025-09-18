@@ -1,7 +1,7 @@
 import devtoolsJson from 'vite-plugin-devtools-json';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
-import { defineConfig } from 'vite';
+import { defineConfig } from 'vitest/config';
 import { copyFileSync, watchFile } from 'fs';
 import { resolve } from 'path';
 
@@ -31,9 +31,7 @@ function copyReadmePlugin() {
 				if (curr.mtime !== prev.mtime) {
 					copyReadme();
 					// Trigger HMR update
-					server.ws.send({
-						type: 'full-reload'
-					});
+					server.ws.send({ type: 'full-reload' });
 				}
 			});
 
@@ -48,7 +46,6 @@ function copyReadmePlugin() {
 export default defineConfig({
 	plugins: [tailwindcss(), sveltekit(), devtoolsJson(), copyReadmePlugin()],
 	assetsInclude: ['**/*.md'],
-
 	test: {
 		expect: { requireAssertions: true },
 		projects: [

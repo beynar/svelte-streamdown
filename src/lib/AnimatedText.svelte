@@ -22,17 +22,11 @@
 		return tokenizeNewContent(text);
 	});
 
-	const logDom = () => {
-		if (text === 'Svelte Streamdown') {
-			console.log(streamdown.animationTextStyle);
-		}
-	};
-
 	const isMounted = streamdown.isMounted;
 </script>
 
 {#if isMounted}
-	<span {@attach logDom}>
+	<span>
 		{#each tokens as token}
 			<span style={streamdown.animationTextStyle}>
 				{token}

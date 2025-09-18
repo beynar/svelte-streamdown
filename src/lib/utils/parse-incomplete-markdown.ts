@@ -1,5 +1,5 @@
 const linkImagePattern = /(!?\[)([^\]]*?)$/;
-const boldPattern = /(\*\*)([^*]*?)$/;
+const boldPattern = /(\*\*)(.*)$/;
 const italicPattern = /(__)([^_]*?)$/;
 const boldItalicPattern = /(\*\*\*)([^*]*?)$/;
 const singleAsteriskPattern = /(\*)([^*]*?)$/;
@@ -73,8 +73,26 @@ const handleIncompleteBold = (text: string): string => {
 			}
 		}
 
-		const asteriskPairs = (text.match(/\*\*/g) || []).length;
-		if (asteriskPairs % 2 === 1) {
+		// Count all ** sequences and single * at the end after **
+		const doubleAsteriskMatches = text.match(/\*\*/g) || [];
+		let doubleAsteriskCount = doubleAsteriskMatches.length;
+
+		// Check if the content after ** ends with a single * (incomplete closing marker)
+		const lastDoubleAsteriskIndex = text.lastIndexOf('**');
+		if (lastDoubleAsteriskIndex !== -1) {
+			const afterLastDoubleAsterisk = text.substring(lastDoubleAsteriskIndex + 2);
+			if (afterLastDoubleAsterisk.endsWith('*') && !afterLastDoubleAsterisk.endsWith('**')) {
+				// The content ends with a single *, treat it as an incomplete closing marker
+				// Remove the trailing * and add complete closing **
+				const contentWithoutTrailingAsterisk = afterLastDoubleAsterisk.slice(0, -1);
+				return (
+					text.substring(0, lastDoubleAsteriskIndex + 2) + contentWithoutTrailingAsterisk + '**'
+				);
+			}
+		}
+
+		// If we have an odd number of ** sequences, we have an unmatched opening **
+		if (doubleAsteriskCount % 2 === 1) {
 			return `${text}**`;
 		}
 	}

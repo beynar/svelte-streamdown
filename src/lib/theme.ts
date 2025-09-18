@@ -275,10 +275,13 @@ export const mergeTheme = (customTheme?: Partial<Theme>, baseTheme?: 'tailwind' 
 	if (!customTheme) return base;
 	const mergedTheme = { ...base };
 	for (const key in customTheme) {
-		for (const subKey in customTheme[key as keyof Theme]) {
-			Object.assign(mergedTheme[key as keyof Theme], {
-				[subKey]: cn(mergedTheme[key as keyof Theme], customTheme[key as keyof Theme])
-			});
+		const baseGroup = mergedTheme[key as keyof Theme] as any;
+		const customGroup = customTheme[key as keyof Theme] as any;
+		if (!baseGroup || !customGroup) continue;
+		for (const subKey in customGroup) {
+			const baseVal = baseGroup[subKey];
+			const customVal = customGroup[subKey];
+			Object.assign(baseGroup, { [subKey]: cn(baseVal, customVal) });
 		}
 	}
 	return mergedTheme;

@@ -12,6 +12,8 @@
 	import FootnoteRef from './FootnoteRef.svelte';
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
 	const streamdown = useStreamdown();
+
+	const isMounted = streamdown.isMounted;
 </script>
 
 {#if token.type === 'heading'}
@@ -91,6 +93,7 @@
 {:else if token.type === 'list_item'}
 	<Slot props={{ children, token }} render={streamdown.snippets.li}>
 		<li
+			style={isMounted ? streamdown.animationBlockStyle : undefined}
 			style:list-style-type={token.task ? 'none' : undefined}
 			{...token.value && !token.task ? { value: token.value } : {}}
 			class={streamdown.theme.li.base}

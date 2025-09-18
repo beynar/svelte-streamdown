@@ -8,16 +8,13 @@
 	import Alert from './Alert.svelte';
 	import type { StreamdownToken } from '$lib/marked/index.js';
 	import Slot from './Slot.svelte';
-	import { useStreamdown } from '$lib/Streamdown.js';
+	import { useStreamdown } from '$lib/streamdown.svelte.js';
 	import FootnoteRef from './FootnoteRef.svelte';
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
-	const id = $props.id();
 	const streamdown = useStreamdown();
 </script>
 
 {#if token.type === 'heading'}
-	{@const level = `h${token.depth}` as 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6'}
-	{@const className = streamdown.theme[level].base}
 	<Slot
 		props={{
 			children,
@@ -25,9 +22,31 @@
 		}}
 		render={streamdown.snippets.heading}
 	>
-		<svelte:element this={level} class={className}>
-			{@render children()}
-		</svelte:element>
+		{#if token.depth === 1}
+			<h1 class={streamdown.theme[`h${token.depth}`].base}>
+				{@render children()}
+			</h1>
+		{:else if token.depth === 2}
+			<h2 class={streamdown.theme[`h${token.depth}`].base}>
+				{@render children()}
+			</h2>
+		{:else if token.depth === 3}
+			<h3 class={streamdown.theme[`h${token.depth}`].base}>
+				{@render children()}
+			</h3>
+		{:else if token.depth === 4}
+			<h4 class={streamdown.theme[`h${token.depth}`].base}>
+				{@render children()}
+			</h4>
+		{:else if token.depth === 5}
+			<h5 class={streamdown.theme[`h${token.depth}`].base}>
+				{@render children()}
+			</h5>
+		{:else if token.depth === 6}
+			<h6 class={streamdown.theme[`h${token.depth}`].base}>
+				{@render children()}
+			</h6>
+		{/if}
 	</Slot>
 {:else if token.type === 'paragraph'}
 	<Slot props={{ children, token }} render={streamdown.snippets.paragraph}>
@@ -52,7 +71,7 @@
 {:else if token.type === 'codespan'}
 	<Slot props={{ children, token }} render={streamdown.snippets.codespan}>
 		<code class={streamdown.theme.codespan.base}>
-			{token.text}
+			{@render children()}
 		</code>
 	</Slot>
 {:else if token.type === 'list'}

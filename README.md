@@ -1,6 +1,6 @@
 # Svelte Streamdown
 
-[![npm version](https://badge.fury.io/js/svelte-streamdown.svg)](https://badge.fury.io/js/svelte-streamdown)
+![npm version](https://badge.fury.io/js/svelte-streamdown.svg)
 
 A **Svelte port** of [Streamdown](https://streamdown.ai/) by Vercel - an all in one markdown renderer, designed specifically for AI-powered streaming applications.
 
@@ -26,6 +26,8 @@ Perfect for AI-powered applications that need to stream and render markdown cont
 - **Incomplete Markdown Parsing**: Handles unterminated blocks gracefully
 - **Progressive Rendering**: Perfect for streaming AI responses
 - **Real-time Updates**: Optimized for dynamic content
+- **Smooth Animations**: Animate tokens and blocks as they are streamed.
+
 
 ### 🔒 Security Hardening
 
@@ -259,6 +261,46 @@ This Svelte port maintains feature parity with the original [Streamdown](https:/
 @source "../node_modules/svelte-streamdown/**/*";
 ```
 
+
+
+## 🎭 Animation System
+
+Streamdown includes a sophisticated animation system designed specifically for streaming AI content, providing smooth and engaging visual feedback as text appears on screen.
+
+### How It Works
+
+The animation system works by:
+
+1. **Tokenization**: Text is broken down into tokens (words or characters) based on your configuration
+2. **Sequential Animation**: Each token animates in sequence with configurable timing
+3. **Block-level Animation**: Entire blocks (paragraphs, headings, code blocks) animate as units
+
+### Animation Types
+
+Choose from five distinct animation styles:
+
+#### `fade`
+A clean fade-in effect where text smoothly appears from transparent to opaque.
+
+#### `blur`
+Text starts slightly blurred and comes into focus while fading in, creating a smooth reveal effect.
+
+#### `typewriter`
+A typewriter effect where text appears character by character, mimicking the look of someone typing.
+
+#### `slideUp`
+Text slides up from below while fading in, creating a dynamic upward motion.
+
+#### `slideDown`
+Text slides down from above while fading in, creating a dynamic downward motion.
+
+> [!TIP]
+> For production applications where the LLM is not streaming (static content), disable animations entirely by setting `animation.enabled = false` to minimize DOM elements and improve performance.
+
+> [!WARNING]
+> Character-level tokenization (`tokenize: 'char'`) creates significantly more DOM elements than word-level tokenization. Use character tokenization sparingly and only when the typewriter effect is essential for your user experience.
+
+
 ## 🚀 Quick Start
 
 ### Basic Usage
@@ -338,6 +380,12 @@ This heading will use a custom component!`;
 | `shikiTheme`              | `BundledTheme`                                        | `'github-light'` | Code highlighting theme                        |
 | `mermaidConfig`           | `MermaidConfig`                                       | -                | Mermaid diagram configuration                  |
 | `katexConfig`             | `KatexOptions \| ((inline: boolean) => KatexOptions)` | -                | KaTeX math rendering options                   |
+| `animation`               | `AnimationConfig`                                     | -                | Animation configuration for streaming content  |
+| `animation.enabled`       | `boolean`                                             | `false`          | Enable/disable animations                      |
+| `animation.type`          | `'fade' \| 'blur' \| 'typewriter' \| 'slideUp' \| 'slideDown'` | `'blur'`         | Animation style for text appearance           |
+| `animation.duration`      | `number`                                              | `500`            | Animation duration in milliseconds             |
+| `animation.timingFunction`| `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'` | `'ease-in'`      | CSS timing function for animations             |
+| `animation.tokenize`      | `'word' \| 'char'`                                    | `'word'`         | Tokenization method for text animations        |
 
 ### Custom Component Props
 

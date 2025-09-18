@@ -8,6 +8,16 @@
 	let isStreaming = $state(false);
 	let streamingProgress = $state(0);
 	let cancelRequested = $state(false);
+	let progress = $state(100);
+
+	// Update content based on progress percentage
+	$effect(() => {
+		if (!isStreaming) {
+			const totalLength = data.readme.length;
+			const showLength = Math.floor((progress / 100) * totalLength);
+			content = data.readme.slice(0, showLength);
+		}
+	});
 
 	const simulateStreaming = async () => {
 		if (isStreaming) return;
@@ -53,6 +63,8 @@
 			streamingProgress = 100;
 		}
 	};
+
+	let animationEnabled = $state(true);
 
 	const stopStreaming = () => {
 		if (!isStreaming) return;
@@ -106,6 +118,14 @@
 		>
 			🗑️ Clear
 		</button>
+		<button
+			class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-3 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50"
+			onclick={() => {
+				animationEnabled = !animationEnabled;
+			}}
+		>
+			{animationEnabled ? '🔄 Disable Animation' : '🔄 Enable Animation'}
+		</button>
 
 		<div class="ml-4 flex items-center gap-2">
 			<label for="speed-slider" class="text-xs text-muted-foreground">Speed:</label>
@@ -121,6 +141,20 @@
 			/>
 			<span class="w-8 text-xs text-muted-foreground">{streamSpeed}ms</span>
 		</div>
+	</div>
+	<div class="ml-4 flex w-full flex-1 items-center gap-2">
+		<label for="progress-slider" class="text-xs text-muted-foreground">Progress:</label>
+		<input
+			id="progress-slider"
+			type="range"
+			min="0"
+			max="100"
+			step="0.5"
+			bind:value={progress}
+			disabled={isStreaming}
+			class="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted outline-none disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:bg-foreground [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:transition-colors hover:[&::-webkit-slider-thumb]:bg-foreground/80"
+		/>
+		<span class="w-8 text-xs text-muted-foreground">{progress}%</span>
 	</div>
 
 	<div>
@@ -151,6 +185,9 @@
 		class="mx-auto max-w-4xl border border-t-0 border-dashed border-border px-4 pt-10 [&>h1]:mt-0"
 	>
 		<Streamdown
+			animation={{
+				enabled: animationEnabled
+			}}
 			baseTheme="shadcn"
 			mermaidConfig={{
 				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'

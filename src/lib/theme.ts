@@ -2,7 +2,7 @@ import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
 export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
-import type { Snippets } from './Streamdown.js';
+import type { Snippets } from './streamdown.svelte.js';
 
 export const theme = {
 	link: {
@@ -275,11 +275,20 @@ export const mergeTheme = (customTheme?: Partial<Theme>, baseTheme?: 'tailwind' 
 	if (!customTheme) return base;
 	const mergedTheme = { ...base };
 	for (const key in customTheme) {
-		for (const subKey in customTheme[key as keyof Theme]) {
-			Object.assign(mergedTheme[key as keyof Theme], {
-				[subKey]: cn(mergedTheme[key as keyof Theme], customTheme[key as keyof Theme])
-			});
+		const origGroup = (mergedTheme as any)[key as keyof Theme] as
+			| Record<string, ClassValue>
+			| undefined;
+		const customGroup = (customTheme as any)[key as keyof Theme] as
+			| Record<string, ClassValue>
+			| undefined;
+		if (!origGroup || !customGroup) continue;
+		const mergedGroup: Record<string, ClassValue> = { ...origGroup };
+		for (const subKey of Object.keys(customGroup)) {
+			const baseVal = origGroup[subKey as keyof typeof origGroup];
+			const customVal = customGroup[subKey as keyof typeof customGroup];
+			mergedGroup[subKey] = cn(baseVal as ClassValue, customVal as ClassValue);
 		}
+		(mergedTheme as any)[key] = mergedGroup;
 	}
 	return mergedTheme;
 };

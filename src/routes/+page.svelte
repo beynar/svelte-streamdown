@@ -184,7 +184,6 @@
 	<div
 		class="mx-auto max-w-4xl border border-t-0 border-dashed border-border px-4 pt-10 [&>h1]:mt-0"
 	>
-		{content}
 		<Streamdown
 			animation={{
 				enabled: animationEnabled

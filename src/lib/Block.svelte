@@ -7,9 +7,11 @@
 	import AnimatedBlock from './AnimatedBlock.svelte';
 
 	let {
-		block
+		block,
+		insideFootnote = false
 	}: {
 		block: string;
+		insideFootnote?: boolean;
 	} = $props();
 	const id = $props.id();
 	const tokens = $derived(lex(parseIncompleteMarkdown(block.trim())));
@@ -23,7 +25,7 @@
 			{@const isTextOnlyNode = children.length === 0}
 			<Element {token}>
 				{#if isTextOnlyNode}
-					{#if streamdown.animation.enabled}
+					{#if streamdown.animation.enabled && !insideFootnote}
 						<AnimatedText text={'text' in token ? token.text : ''} />
 					{:else}
 						{'text' in token ? token.text : ''}
@@ -36,7 +38,7 @@
 	{/each}
 {/snippet}
 
-{#if streamdown.animation.enabled}
+{#if streamdown.animation.enabled && !insideFootnote}
 	<AnimatedBlock>
 		{@render renderChildren(tokens)}
 	</AnimatedBlock>

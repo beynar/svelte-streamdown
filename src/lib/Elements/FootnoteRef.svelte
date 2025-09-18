@@ -100,7 +100,7 @@
 			class={`${streamdown.theme.footnotePopover.base}`}
 		>
 			{#each token.content.lines as line}
-				<Block block={line} />
+				<Block insideFootnote block={line} />
 			{/each}
 		</dialog>
 	</Slot>

@@ -1,4 +1,4 @@
-import type { MarkedExtension, TokenizerExtensionFunction, TokenizerThis } from 'marked';
+import type { TokenizerExtensionFunction, TokenizerStartFunction, TokenizerThis } from 'marked';
 
 // Configuration options for the extended tables extension
 export interface SpanTableOptions {
@@ -537,7 +537,7 @@ export function markedTable(options: SpanTableOptions = {}): {
 	extensions: {
 		name: string;
 		level: 'block' | 'inline';
-		start: (src: string) => number | undefined;
+		start: TokenizerStartFunction;
 		tokenizer: TokenizerExtensionFunction;
 	}[];
 } {

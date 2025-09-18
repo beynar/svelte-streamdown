@@ -1,4 +1,11 @@
-import { Lexer, Marked, type MarkedToken, type Tokens } from 'marked';
+import {
+	Lexer,
+	type MarkedToken,
+	type RendererExtensionFunction,
+	type TokenizerExtensionFunction,
+	type TokenizerStartFunction,
+	type Tokens
+} from 'marked';
 import markedAlert, { type AlertToken } from './marked-alert.js';
 import markedFootnote, { type FootnoteToken } from './marked-footnotes.js';
 import { markedMath, type MathToken } from './marked-math.js';
@@ -36,30 +43,64 @@ export type StreamdownToken =
 // Re-export table types from marked-table
 export type { TableToken, THead, TBody, TFoot, THeadRow, TRow, TH, TD } from './marked-table.js';
 
-const completeLexer = new Marked({
-	tokenizer: {
-		table: () => {
-			return false;
-		}
-	}
-})
-	.use(markedAlert())
-	.use(markedFootnote())
-	.use(markedMath())
-	.use(markedSubSup())
-	.use(markedList())
-	.use(markedTable());
+const extensions = [
+	markedTable(),
+	markedFootnote(),
+	markedAlert(),
+	markedMath(),
+	markedSubSup(),
+	markedList()
+] as const;
 
-const blockLexer = new Lexer({
-	extensions: {
-		childTokens: {},
-		renderers: {},
-		block: [markedFootnote().extensions[0].tokenizer, markedTable().extensions[0].tokenizer]
-	}
-});
+const parseExtensions = (...ext: (typeof extensions)[number][]) => {
+	const options: {
+		gfm: boolean;
+		extensions: {
+			block: TokenizerExtensionFunction[];
+			inline: TokenizerExtensionFunction[];
+			childTokens: Record<string, string[]>;
+			renderers: Record<string, RendererExtensionFunction>;
+			startBlock: TokenizerStartFunction[];
+			startInline: TokenizerStartFunction[];
+		};
+	} = {
+		gfm: true,
+
+		extensions: {
+			block: [],
+			inline: [],
+			childTokens: {},
+			renderers: {},
+			startBlock: [],
+			startInline: []
+		}
+	};
+
+	ext.forEach(({ extensions }) => {
+		extensions.forEach(({ level, name, tokenizer, ...rest }) => {
+			if ('start' in rest && rest.start) {
+				if (level === 'block') {
+					options.extensions.startBlock!.push(rest.start as TokenizerStartFunction);
+				} else {
+					options.extensions.startInline!.push(rest.start as TokenizerStartFunction);
+				}
+			}
+			if (tokenizer) {
+				if (level === 'block') {
+					options.extensions.block.push(tokenizer);
+				} else {
+					options.extensions.inline.push(tokenizer);
+				}
+			}
+		});
+	});
+	return options;
+};
+
+const blockLexer = new Lexer(parseExtensions(markedFootnote(), markedTable()));
 export const lex = (markdown: string): StreamdownToken[] => {
-	return completeLexer
-		.lexer(markdown)
+	return new Lexer(parseExtensions(...extensions))
+		.lex(markdown)
 		.filter((token) => token.type !== 'space' && token.type !== 'footnote') as StreamdownToken[];
 };
 

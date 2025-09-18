@@ -283,9 +283,9 @@ export const mergeTheme = (customTheme?: Partial<Theme>, baseTheme?: 'tailwind' 
 			| undefined;
 		if (!origGroup || !customGroup) continue;
 		const mergedGroup: Record<string, ClassValue> = { ...origGroup };
-		for (const subKey in customGroup) {
-			const baseVal = origGroup[subKey];
-			const customVal = customGroup[subKey];
+		for (const subKey of Object.keys(customGroup)) {
+			const baseVal = origGroup[subKey as keyof typeof origGroup];
+			const customVal = customGroup[subKey as keyof typeof customGroup];
 			mergedGroup[subKey] = cn(baseVal as ClassValue, customVal as ClassValue);
 		}
 		(mergedTheme as any)[key] = mergedGroup;

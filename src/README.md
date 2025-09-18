@@ -26,7 +26,7 @@ Perfect for AI-powered applications that need to stream and render markdown cont
 - **Incomplete Markdown Parsing**: Handles unterminated blocks gracefully
 - **Progressive Rendering**: Perfect for streaming AI responses
 - **Real-time Updates**: Optimized for dynamic content
-- **Smooth Animations**: Animate token and blocks as they are streamed.
+- **Smooth Animations**: Animate tokens and blocks as they are streamed.
 
 
 ### 🔒 Security Hardening

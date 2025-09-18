@@ -197,9 +197,6 @@
 			panzoom.zoomToFit();
 		} catch (err) {
 			const sanitizedCode = sanitizeMermaidCode(code);
-			console.error('Mermaid rendering error:', err);
-			console.error('Original code:', code);
-			console.error('Sanitized code:', sanitizedCode);
 		}
 	};
 </script>

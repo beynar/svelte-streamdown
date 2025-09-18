@@ -83,6 +83,7 @@
 				};
 			return {
 				enabled: true,
+				animateOnMount: animation.animateOnMount ?? false,
 				type: animation.type || 'blur',
 				duration: animation.duration || 500,
 				timingFunction: animation.timingFunction || 'ease-in',

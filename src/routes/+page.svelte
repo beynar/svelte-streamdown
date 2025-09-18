@@ -184,18 +184,21 @@
 	<div
 		class="mx-auto mb-48 max-w-4xl border border-t-0 border-dashed border-border px-4 pt-10 [&>h1]:mt-0"
 	>
-		<Streamdown
-			animation={{
-				enabled: animationEnabled
-			}}
-			baseTheme="shadcn"
-			mermaidConfig={{
-				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
-			}}
-			shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
-			shikiPreloadThemes={['github-dark', 'github-light']}
-			allowedLinkPrefixes={['*']}
-			{content}
-		/>
+		{#if content.length > 0}
+			<Streamdown
+				animation={{
+					animateOnMount: false,
+					enabled: animationEnabled
+				}}
+				baseTheme="shadcn"
+				mermaidConfig={{
+					theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
+				}}
+				shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
+				shikiPreloadThemes={['github-dark', 'github-light']}
+				allowedLinkPrefixes={['*']}
+				{content}
+			/>
+		{/if}
 	</div>
 </div>

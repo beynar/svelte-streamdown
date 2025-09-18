@@ -386,6 +386,7 @@ This heading will use a custom component!`;
 | `animation.duration`      | `number`                                              | `500`            | Animation duration in milliseconds             |
 | `animation.timingFunction`| `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'` | `'ease-in'`      | CSS timing function for animations             |
 | `animation.tokenize`      | `'word' \| 'char'`                                    | `'word'`         | Tokenization method for text animations        |
+| `animation.animateOnMount`      | `boolean`                                    | `false`         | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM        |
 
 ### Custom Component Props
 

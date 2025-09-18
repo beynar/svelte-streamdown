@@ -24,7 +24,7 @@ export class StreamdownContext {
 		footnotes: new Map<string, Footnote>()
 	};
 
-	isMounted = $state(false);
+	isMounted = false;
 
 	animationTextStyle = $derived(
 		this.animation.enabled
@@ -51,6 +51,9 @@ animation-fill-mode: forwards;`
 	constructor(props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets }) {
 		bind(this, props);
 		setContext('streamdown', this);
+		if (this.animation.animateOnMount) {
+			this.isMounted = true;
+		}
 		onMount(() => {
 			this.isMounted = true;
 		});
@@ -165,6 +168,7 @@ export type StreamdownProps = {
 	renderHtml?: boolean | ((token: Tokens.HTML | Tokens.Tag) => string);
 
 	animation?: {
+		animateOnMount?: boolean;
 		enabled?: boolean;
 		type?: 'fade' | 'blur' | 'typewriter' | 'slideUp' | 'slideDown';
 		duration?: number;

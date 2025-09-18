@@ -18,6 +18,7 @@ yarn add svelte-streamdown
 
 Perfect for AI-powered applications that need to stream and render markdown content safely and beautifully, with support for incomplete markdown blocks, security hardening, and rich features like code highlighting, math expressions, and interactive diagrams.
 
+
 ## ✨ Main Features
 
 

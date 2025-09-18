@@ -5,11 +5,9 @@
 	let { children }: { children: Snippet } = $props();
 
 	const streamdown = useStreamdown();
-
-	const isMounted = streamdown.isMounted;
 </script>
 
-{#if isMounted}
+{#if streamdown.isMounted}
 	<div style={streamdown.animationBlockStyle}>
 		{@render children()}
 	</div>

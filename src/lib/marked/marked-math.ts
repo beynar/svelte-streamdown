@@ -2,7 +2,8 @@ import type { TokenizerExtensionFunction, TokenizerStartFunction, TokenizerThis 
 import type { TokenizerAndRendererExtension } from 'marked';
 
 // Use the standard rule that requires proper spacing after math expressions
-const inlineRule = /^(\${1,2})(?!\$)((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\1(?=[\s?!\.,:？！。，：]|$)/;
+const inlineRule =
+	/^(\${1,2})(?!\$)((?:\\.|[^\\\n])*?(?:\\.|[^\\\n\$]))\1(?=[\s?!\.,:？！。，：]|$)/;
 const blockRule = /^(\${1,2})\n((?:\\[\s\S]|[^\\])+?)\n\1(?:\n|$)/;
 
 export function markedMath() {
@@ -22,9 +23,6 @@ export function markedMath() {
 							text: match[2].trim()
 						} satisfies MathToken;
 					}
-				},
-				renderer(token: any) {
-					return `<div class="math block">$$\n${token.text}\n$$</div>`;
 				}
 			},
 			{
@@ -61,9 +59,6 @@ export function markedMath() {
 							text: match[2].trim()
 						} satisfies MathToken;
 					}
-				},
-				renderer(token: any) {
-					return `<span class="math inline">$${token.text}$</span>`;
 				}
 			}
 		]

@@ -154,11 +154,8 @@ class HighlighterManager {
 				lang: this.isLanguageSupported(language) ? language : 'bash',
 				theme
 			});
-
-			console.log('highlightCode', tokens);
 			return tokens;
 		} catch (error) {
-			console.error('highlightCode', error);
 			return [];
 		}
 	}

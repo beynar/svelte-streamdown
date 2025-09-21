@@ -4,7 +4,7 @@ import { parseIncompleteMarkdown } from '../lib/utils/parse-incomplete-markdown.
 
 // Helper functions
 function getTokensByType(tokens: any[], type: string) {
-	return tokens.filter((token) => token.type === token);
+	return tokens.filter((token) => token.type === type);
 }
 
 function getFirstTokenByType(tokens: any[], type: string) {

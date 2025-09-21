@@ -8,7 +8,7 @@
 	let isStreaming = $state(false);
 	let streamingProgress = $state(0);
 	let cancelRequested = $state(false);
-	let progress = $state(9);
+	let progress = $state(100);
 
 	// Update content based on progress percentage
 	$effect(() => {
@@ -198,7 +198,5 @@
 			allowedLinkPrefixes={['*']}
 			{content}
 		/>
-		<hr />
-		{content}
 	</div>
 </div>

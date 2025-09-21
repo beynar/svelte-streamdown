@@ -39,8 +39,9 @@
 
 	$effect(() => {
 		const theme = streamdown.shikiTheme;
+		const lang = token.lang;
 		untrack(() => {
-			void highlighter.load(theme, token.lang);
+			void highlighter.load(theme, lang);
 		});
 	});
 

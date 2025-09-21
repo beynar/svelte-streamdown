@@ -311,4 +311,44 @@ describe('incomplete markdown', () => {
 		// Should complete the math block with newline
 		expect(result).toBe('$$\nE = mc^2\nF = ma\n$$');
 	});
+
+	test('should not complete currency symbols as incomplete math', () => {
+		const input = 'This costs $199 and that costs $299';
+		const result = parseIncompleteMarkdown(input);
+
+		// Should remain unchanged as these are currency symbols
+		expect(result).toBe('This costs $199 and that costs $299');
+	});
+
+	test('should not complete currency with dollar after number', () => {
+		const input = 'Price is 199$ or 299$';
+		const result = parseIncompleteMarkdown(input);
+
+		// Should remain unchanged as these are currency symbols
+		expect(result).toBe('Price is 199$ or 299$');
+	});
+
+	test('should not complete currency with space after dollar', () => {
+		const input = 'Cost is $ 199 or $ 299';
+		const result = parseIncompleteMarkdown(input);
+
+		// Should remain unchanged as these are currency symbols with space
+		expect(result).toBe('Cost is $ 199 or $ 299');
+	});
+
+	test('should not complete mixed currency formats', () => {
+		const input = 'Prices: $50, 75$, $ 100, and $125.99';
+		const result = parseIncompleteMarkdown(input);
+
+		// Should remain unchanged as these are all currency formats
+		expect(result).toBe('Prices: $50, 75$, $ 100, and $125.99');
+	});
+
+	test('should complete actual math but not currency in same text', () => {
+		const input = 'Math $x + y$ costs $199 and formula $a = b';
+		const result = parseIncompleteMarkdown(input);
+
+		// Should complete the incomplete math but leave currency unchanged
+		expect(result).toBe('Math $x + y$ costs $199 and formula $a = b$');
+	});
 });

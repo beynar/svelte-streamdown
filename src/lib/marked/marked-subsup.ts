@@ -3,7 +3,7 @@ import type { TokenizerExtensionFunction, TokenizerStartFunction, TokenizerThis 
 const subRule = /^~([^~\s](?:[^~]*[^~\s])?)~/; // ~text~
 const supRule = /^\^([^\^\s](?:[^\^]*[^\^\s])?)\^/; // ^text^
 
-export default function markedSubSup(): {
+export function markedSubSup(): {
 	extensions: {
 		name: string;
 		level: 'inline';

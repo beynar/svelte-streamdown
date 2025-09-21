@@ -33,7 +33,7 @@ export const romanUpper = '(?:C|XC|L?X{0,3}(?:IX|IV|V?I{0,3}))';
 export const romanLower = '(?:c|xc|l?x{0,3}(?:ix|iv|v?i{0,3}))';
 // Fixed regex pattern - carefully balanced parentheses
 export const bulletPattern = `(?:[*+-]|(?:\\d{1,9}|[a-zA-Z]|${romanUpper}|${romanLower})[.)])`;
-export const rule = `^( {0,3}${bulletPattern})([ \\t][^\\n]+?)?(?:\\n|$)`;
+export const rule = `^( {0,3}${bulletPattern})([ \\t][^\\n]*|[ \\t])?(?:\\n|$)`;
 
 function finalizeList(list: ListToken, lexer: Lexer) {
 	if (list.tokens.length === 0) return;
@@ -112,11 +112,13 @@ export function markedList(): {
 						ordered: isOrdered,
 						listType: isOrdered ? type : null,
 						loose: false,
+						start: undefined, // Will be set when first item is processed
 						tokens: [] as ListItemToken[]
 					} as ListToken;
 
 					// Get next list item
-					const itemRegex = new RegExp(`^( {0,3}${bull})((?:[\t ][^\\n]*)?(?:\\n|$))`);
+					// Updated regex to properly handle empty list items (space after bullet, then newline)
+					const itemRegex = new RegExp(`^( {0,3}${bull})([\t ][^\\n]*|[\t ])?(?:\\n|$)`);
 					let endsWithBlankLine = false;
 
 					// Check if current bullet point can start a new List Item
@@ -131,7 +133,9 @@ export function markedList(): {
 						const bullet = cap[1].trim();
 						src = src.substring(raw.length);
 
-						const line = cap[2].split('\n', 1)[0].replace(/^\t+/, (t) => ' '.repeat(3 * t.length));
+						const line = cap[2]
+							? cap[2].split('\n', 1)[0].replace(/^\t+/, (t) => ' '.repeat(3 * t.length))
+							: '';
 						const nextLine = src.split('\n', 1)[0];
 						const blankLine = !line.trim();
 
@@ -228,6 +232,8 @@ export function markedList(): {
 							if (expectedValue === null) {
 								// First item: set expectedValue to this item's value (or 1 if parsing failed)
 								expectedValue = value ?? 1;
+								// Set the start property for ordered lists
+								list.start = expectedValue;
 							} else {
 								// Subsequent items: check if value matches expected
 								skipped = value !== null && value !== expectedValue;
@@ -267,6 +273,7 @@ export interface ListToken {
 	ordered: boolean;
 	listType: 'decimal' | 'lower-alpha' | 'upper-alpha' | 'lower-roman' | 'upper-roman' | null;
 	loose: boolean;
+	start?: number;
 	tokens: ListItemToken[];
 }
 

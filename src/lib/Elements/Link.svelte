@@ -20,7 +20,7 @@
 	);
 </script>
 
-{#if transformedUrl}
+{#if transformedUrl || token.href === 'streamdown:incomplete-link'}
 	<Slot
 		props={{
 			href: transformedUrl,

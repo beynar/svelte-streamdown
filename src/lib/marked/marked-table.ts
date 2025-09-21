@@ -87,6 +87,8 @@ export interface TableToken {
 	tokens: TableSection[];
 	// Original markdown source of the table
 	raw: string;
+	// Column alignment information
+	align: (string | null)[];
 }
 
 // Internal working cell type for processing
@@ -241,8 +243,12 @@ const processSpans = (
 		const cell = processedCells[i];
 		let cellText = cell.text;
 
-		// Handle Rowspan - cells ending with ^
-		if (cellText.slice(-1) === '^' && prevRow.length > 0) {
+		// Handle Rowspan - cells ending with ^ (but not superscript ^text^)
+		// Check if it's a rowspan indicator (single ^ at end) vs superscript (^text^)
+		const isRowspanIndicator = cellText.slice(-1) === '^' && 
+			!cellText.match(/\^[^^\n\r]+\^$/); // Not a superscript pattern ^text^
+		
+		if (isRowspanIndicator && prevRow.length > 0) {
 			// Clean the ^ indicator from the cell text
 			cell.text = cellText.slice(0, -1).trim();
 			cellText = cell.text;
@@ -313,7 +319,10 @@ const processSpans = (
 
 			// If no target was found but it's a rowspan cell, clean the ^ indicator
 			if (!targetFound && cell.rowspan > 0) {
-				cell.text = cell.text.slice(0, -1);
+				// Only clean if it was actually a rowspan indicator, not superscript
+				if (isRowspanIndicator) {
+					cell.text = cell.text.slice(0, -1);
+				}
 			}
 		}
 	}
@@ -677,7 +686,8 @@ export function markedTable(options: SpanTableOptions = {}): {
 					const item: TableToken = {
 						type: 'table',
 						tokens,
-						raw: cap[0]
+						raw: cap[0],
+						align: alignment
 					};
 
 					return item;

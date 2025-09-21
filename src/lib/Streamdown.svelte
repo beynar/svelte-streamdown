@@ -24,6 +24,7 @@
 		controls,
 		animation,
 		element = $bindable(),
+		icons,
 		...snippets
 	}: StreamdownProps = $props();
 
@@ -97,6 +98,9 @@
 				code: codeControls,
 				mermaid: mermaidControls
 			};
+		},
+		get icons() {
+			return icons;
 		}
 	});
 

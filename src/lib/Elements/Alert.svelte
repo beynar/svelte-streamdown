@@ -27,9 +27,6 @@
 		children: Snippet;
 		token: AlertToken;
 	} = $props();
-
-	const alertType = $derived(token.variant);
-	const title = $derived(streamdown.translations?.alert?.[alertType] || alertType);
 </script>
 
 <Slot
@@ -39,23 +36,27 @@
 	}}
 	render={streamdown.snippets.alert}
 >
-	<div class={`${streamdown.theme.alert.base} ${streamdown.theme.alert[alertType]}`}>
+	<div class={`${streamdown.theme.alert.base} ${streamdown.theme.alert[token.variant]}`}>
 		<div data-alert-title class={streamdown.theme.alert.title}>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				width="24"
-				height="24"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				class={streamdown.theme.alert.icon}
-			>
-				{@html icons[alertType]}
-			</svg>
-			{title}
+			{@render (streamdown.icons?.[token.variant] || icon)()}
+			{streamdown.translations?.alert?.[token.variant] || token.variant}
 		</div>
 		{@render children()}
 	</div>
 </Slot>
+
+{#snippet icon()}
+	<svg
+		xmlns="http://www.w3.org/2000/svg"
+		width="24"
+		height="24"
+		viewBox="0 0 24 24"
+		fill="none"
+		stroke-width="2"
+		stroke-linecap="round"
+		stroke-linejoin="round"
+		class={streamdown.theme.alert.icon}
+	>
+		{@html icons[token.variant]}
+	</svg>
+{/snippet}

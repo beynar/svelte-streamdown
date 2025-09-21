@@ -1,9 +1,9 @@
-import type { BundledTheme } from 'shiki';
 import type { Snippet } from 'svelte';
-import type { Theme } from './theme.js';
+import type { DeepPartialTheme, Theme } from './theme.js';
 import type { MermaidConfig } from 'mermaid';
 import type { KatexOptions } from 'katex';
 import { getContext, onMount, setContext } from 'svelte';
+import type { BundledTheme } from 'shiki';
 
 export interface StreamdownContext
 	extends Omit<StreamdownProps, keyof Snippets | 'class' | 'theme' | 'shikiTheme'> {
@@ -32,9 +32,7 @@ export class StreamdownContext {
 animation-duration: ${this.animation.duration}ms;
 animation-timing-function: ${this.animation.timingFunction};
 animation-iteration-count: 1;
-animation-fill-mode: forwards;
-white-space: pre-wrap;
-display: inline-block;`
+animation-fill-mode: forwards;`
 			: undefined
 	);
 
@@ -145,7 +143,7 @@ export type StreamdownProps = {
 	allowedImagePrefixes?: string[];
 
 	// Theme
-	theme?: Partial<Theme>;
+	theme?: DeepPartialTheme;
 	baseTheme?: 'tailwind' | 'shadcn';
 	mergeTheme?: boolean;
 	shikiTheme?: BundledTheme;
@@ -174,5 +172,18 @@ export type StreamdownProps = {
 		duration?: number;
 		timingFunction?: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear';
 		tokenize?: 'word' | 'char';
+	};
+	icons?: {
+		copy?: Snippet;
+		download?: Snippet;
+		fullscreen?: Snippet;
+		zoomIn?: Snippet;
+		zoomOut?: Snippet;
+		fitView?: Snippet;
+		note?: Snippet;
+		tip?: Snippet;
+		warning?: Snippet;
+		caution?: Snippet;
+		important?: Snippet;
 	};
 } & Partial<Snippets>;

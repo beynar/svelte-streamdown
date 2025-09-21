@@ -8,7 +8,7 @@
 	let isStreaming = $state(false);
 	let streamingProgress = $state(0);
 	let cancelRequested = $state(false);
-	let progress = $state(100);
+	let progress = $state(9);
 
 	// Update content based on progress percentage
 	$effect(() => {
@@ -149,7 +149,7 @@
 			type="range"
 			min="0"
 			max="100"
-			step="0.5"
+			step="0.01"
 			bind:value={progress}
 			disabled={isStreaming}
 			class="h-2 w-full cursor-pointer appearance-none rounded-lg bg-muted outline-none disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:bg-foreground [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:transition-colors hover:[&::-webkit-slider-thumb]:bg-foreground/80"
@@ -184,21 +184,21 @@
 	<div
 		class="mx-auto mb-48 max-w-4xl border border-t-0 border-dashed border-border px-4 pt-10 [&>h1]:mt-0"
 	>
-		{#if content.length > 0}
-			<Streamdown
-				animation={{
-					animateOnMount: false,
-					enabled: animationEnabled
-				}}
-				baseTheme="shadcn"
-				mermaidConfig={{
-					theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
-				}}
-				shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
-				shikiPreloadThemes={['github-dark', 'github-light']}
-				allowedLinkPrefixes={['*']}
-				{content}
-			/>
-		{/if}
+		<Streamdown
+			animation={{
+				animateOnMount: false,
+				enabled: animationEnabled
+			}}
+			baseTheme="shadcn"
+			mermaidConfig={{
+				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
+			}}
+			shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
+			shikiPreloadThemes={['github-dark', 'github-light']}
+			allowedLinkPrefixes={['*']}
+			{content}
+		/>
+		<hr />
+		{content}
 	</div>
 </div>

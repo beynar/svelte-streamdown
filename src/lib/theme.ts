@@ -44,6 +44,7 @@ export const theme = {
 		base: 'my-4 w-full overflow-hidden rounded-xl border border-gray-200 flex flex-col',
 		container: ' relative overflow-visible bg-gray-100 p-2 font-mono text-sm ',
 		header: 'flex items-center justify-between bg-gray-100/80 p-2	 text-gray-600 text-xs',
+		buttons: 'flex items-center gap-2',
 		button:
 			'cursor-pointer size-6 p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100',
 		language: 'ml-1 font-mono lowercase',
@@ -177,6 +178,7 @@ export const shadcnTheme = {
 		base: 'my-4 w-full overflow-hidden rounded-lg border border-border flex flex-col',
 		container: 'relative overflow-visible bg-muted p-2 font-mono text-sm',
 		header: 'flex items-center justify-between bg-muted/80 px-2 py-1 text-muted-foreground text-xs',
+		buttons: 'flex items-center gap-2',
 		button:
 			'cursor-pointer size-6 p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-muted',
 		language: 'ml-1 font-mono lowercase',
@@ -272,7 +274,14 @@ export const shadcnTheme = {
 } satisfies Theme;
 
 export type Theme = typeof theme;
-export const mergeTheme = (customTheme?: Partial<Theme>, baseTheme?: 'tailwind' | 'shadcn') => {
+
+type DeepPartial<T> = {
+	[K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
+};
+
+export type DeepPartialTheme = DeepPartial<Theme>;
+
+export const mergeTheme = (customTheme?: DeepPartialTheme, baseTheme?: 'tailwind' | 'shadcn') => {
 	const base = baseTheme === 'shadcn' ? shadcnTheme : theme;
 	if (!customTheme) return base;
 	const mergedTheme = { ...base };

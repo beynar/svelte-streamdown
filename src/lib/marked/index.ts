@@ -6,11 +6,13 @@ import {
 	type TokenizerStartFunction,
 	type Tokens
 } from 'marked';
-import markedAlert, { type AlertToken } from './marked-alert.js';
-import markedFootnote, { type FootnoteToken } from './marked-footnotes.js';
+import { markedAlert, type AlertToken } from './marked-alert.js';
+import { markedFootnote, type FootnoteToken } from './marked-footnotes.js';
 import { markedMath, type MathToken } from './marked-math.js';
-import markedSubSup, { type SubSupToken } from './marked-subsup.js';
+import { markedSubSup, type SubSupToken } from './marked-subsup.js';
 import { markedList, type ListItemToken, type ListToken } from './marked-list.js';
+import { markedBr, type BrToken } from './marked-br.js';
+import { markedHr, type HrToken } from './marked-hr.js';
 import {
 	markedTable,
 	type TableToken,
@@ -31,6 +33,8 @@ export type StreamdownToken =
 	| AlertToken
 	| FootnoteToken
 	| SubSupToken
+	| BrToken
+	| HrToken
 	| TableToken
 	| THead
 	| TBody
@@ -49,7 +53,9 @@ const extensions = [
 	markedAlert(),
 	markedMath(),
 	markedSubSup(),
-	markedList()
+	markedList(),
+	markedBr(),
+	markedHr()
 ] as const;
 
 const parseExtensions = (...ext: (typeof extensions)[number][]) => {
@@ -97,16 +103,18 @@ const parseExtensions = (...ext: (typeof extensions)[number][]) => {
 	return options;
 };
 
-const blockLexer = new Lexer(parseExtensions(markedFootnote(), markedTable()));
+const blockLexer = new Lexer(parseExtensions(markedHr(), markedFootnote(), markedTable()));
 export const lex = (markdown: string): StreamdownToken[] => {
 	return new Lexer(
 		parseExtensions(
+			markedHr(),
 			markedTable(),
 			markedFootnote(),
 			markedAlert(),
 			markedMath(),
 			markedSubSup(),
-			markedList()
+			markedList(),
+			markedBr()
 		)
 	)
 		.lex(markdown)
@@ -124,4 +132,4 @@ export const parseBlocks = (markdown: string): string[] => {
 	}, [] as string[]);
 };
 
-export type { MathToken, AlertToken, FootnoteToken, SubSupToken };
+export type { MathToken, AlertToken, FootnoteToken, SubSupToken, BrToken, HrToken };

@@ -5,6 +5,7 @@
 	import { HighlighterManager, languageExtensionMap } from '$lib/utils/hightlighter.svelte.js';
 	import type { Tokens } from 'marked';
 	import { type ThemedToken } from 'shiki';
+	import { untrack } from 'svelte';
 
 	const {
 		token
@@ -14,12 +15,9 @@
 
 	const streamdown = useStreamdown();
 	const highlighter = HighlighterManager.create(streamdown.shikiPreloadThemes || []);
-	const theme = $derived(streamdown.shikiTheme);
-	let codeContent = $derived(token.text);
-	const language = $derived(token.lang || '');
 	const copy = useCopy({
 		get content() {
-			return codeContent;
+			return token.text;
 		}
 	});
 
@@ -28,48 +26,51 @@
 	const downloadCode = () => {
 		try {
 			const extension =
-				language && language in languageExtensionMap
-					? languageExtensionMap[language as keyof typeof languageExtensionMap]
+				token.lang && token.lang in languageExtensionMap
+					? languageExtensionMap[token.lang as keyof typeof languageExtensionMap]
 					: 'txt';
 			const filename = `file.${extension}`;
 			const mimeType = 'text/plain';
-			save(filename, codeContent, mimeType);
+			save(filename, token.text, mimeType);
 		} catch (error) {
 			console.error('Failed to download file:', error);
 		}
 	};
 
 	$effect(() => {
-		void highlighter.load(theme, language as any);
+		const theme = streamdown.shikiTheme;
+		const lang = token.lang;
+		untrack(() => {
+			void highlighter.load(theme, lang);
+		});
 	});
 
 	const isMounted = streamdown.isMounted;
 </script>
 
-<div class={streamdown.theme.code.base} data-language={language}>
-	<div class={streamdown.theme.code.header} data-code-block-header data-language={language}>
-		<span class={streamdown.theme.code.language}>{language}</span>
+<div class={streamdown.theme.code.base}>
+	<div class={streamdown.theme.code.header}>
+		<span class={streamdown.theme.code.language}>{token.lang}</span>
 		{#if streamdown.controls.code}
-			<div class="flex items-center gap-2">
-				<!-- Download button snippet -->
+			<div class={streamdown.theme.code.buttons}>
 				<button
 					class={streamdown.theme.code.button}
 					onclick={downloadCode}
 					title="Download file"
 					type="button"
 				>
-					{@render downloadIcon()}
+					{@render (streamdown.icons?.download || downloadIcon)()}
 				</button>
 
 				<button class={streamdown.theme.code.button} onclick={copy.copy} type="button">
-					{@render copyIcon()}
+					{@render (streamdown.icons?.copy || copyIcon)()}
 				</button>
 			</div>
 		{/if}
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
-		{#if highlighter.isReady(theme, language as any)}
-			{@const tokens = highlighter.highlightCode(codeContent, language as any, theme)}
+		{#if highlighter.isReady(streamdown.shikiTheme, token.lang)}
+			{@const tokens = highlighter.highlightCode(token.text, token.lang, streamdown.shikiTheme)}
 			<pre class={streamdown.theme.code.pre}><code>{@render Tokens(tokens)}</code></pre>
 		{:else}
 			<pre class={streamdown.theme.code.pre}><code>{@render Skeleton(token.text.split('\n'))}</code
@@ -93,6 +94,7 @@
 		</span>
 	{/each}
 {/snippet}
+
 {#snippet Skeleton(lines: string[])}
 	{#each lines as line}
 		<span class={streamdown.theme.code.skeleton}>
@@ -100,6 +102,7 @@
 		</span>
 	{/each}
 {/snippet}
+
 {#snippet copyIcon()}
 	<svg
 		xmlns="http://www.w3.org/2000/svg"

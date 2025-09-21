@@ -5,16 +5,13 @@
 	import type { KatexOptions } from 'katex';
 	import 'katex/dist/katex.min.css';
 
-	const streamdown = useStreamdown();
-
 	const {
 		token
 	}: {
 		token: MathToken;
 	} = $props();
 
-	const isInline = $derived(token.isInline);
-
+	const streamdown = useStreamdown();
 	let katexInstance = $state<typeof import('katex') | null>(null);
 
 	onMount(() => {
@@ -30,9 +27,9 @@
 		}
 		const config: KatexOptions = {
 			output: 'html',
-			displayMode: !isInline,
+			displayMode: !token.isInline,
 			...(typeof streamdown.katexConfig === 'function'
-				? streamdown.katexConfig(isInline)
+				? streamdown.katexConfig(token.isInline)
 				: streamdown.katexConfig || {})
 		};
 		const code = token.text;
@@ -47,7 +44,7 @@
 	});
 </script>
 
-{#if isInline}
+{#if token.isInline}
 	<span
 		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 		bind:this={inner}

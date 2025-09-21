@@ -1,10 +1,11 @@
-import { type BundledLanguage, type BundledTheme, type ThemedToken, bundledLanguages } from 'shiki';
-import { untrack } from 'svelte';
+import {
+	type BundledLanguage,
+	type BundledTheme,
+	type HighlighterGeneric,
+	type ThemedToken,
+	bundledLanguages
+} from 'shiki';
 import { SvelteMap, SvelteSet } from 'svelte/reactivity';
-
-const isLanguageSupported = (language: string) => {
-	return Object.hasOwn(bundledLanguages, language);
-};
 
 export const loadShiki = async () => {
 	return Promise.all([
@@ -15,22 +16,17 @@ export const loadShiki = async () => {
 	]);
 };
 
-type Engine = Awaited<ReturnType<typeof loadShiki>>[0];
-type CreateHighlighter = Awaited<ReturnType<typeof loadShiki>>[1];
-
-type Highlighter = Awaited<ReturnType<CreateHighlighter>>;
+export type Highlighter = HighlighterGeneric<BundledLanguage, BundledTheme>;
 
 class HighlighterManager {
-	initialized = $state(false);
-	private highlighters = new SvelteMap<string, Highlighter>();
-	private createHighlighter: CreateHighlighter | null = null;
-	private engine: Engine | null = null;
-	preloadedThemes: BundledTheme[];
-	loadedLanguages = new SvelteSet<BundledLanguage>();
-	loadedThemes = new SvelteSet<BundledTheme>();
+	loadedLanguages = new SvelteMap<BundledLanguage, Promise<void> | boolean>();
+	loadedThemes = new SvelteMap<BundledTheme, Promise<void> | boolean>();
+	preloadedThemes = new SvelteSet<BundledTheme>();
+	highlighter = $state<Highlighter | Promise<Highlighter> | null>(null);
 
 	constructor(preloadedThemes: BundledTheme[]) {
-		this.preloadedThemes = preloadedThemes;
+		preloadedThemes.forEach((theme) => this.preloadedThemes.add(theme));
+
 		if (typeof window !== 'undefined') {
 			Object.assign(window, {
 				STREAMDOWN_HIGHLIGHTER: this
@@ -38,86 +34,139 @@ class HighlighterManager {
 		}
 	}
 
-	isReady(theme: BundledTheme, language: BundledLanguage): boolean {
-		return this.highlighters.has(`${theme}:${language}`);
+	private async loadHighlighter(): Promise<Highlighter> {
+		if (this.highlighter instanceof Promise) {
+			return this.highlighter;
+		} else {
+			this.highlighter = new Promise<Highlighter>((resolve, reject) => {
+				loadShiki().then(([engine, createHighlighter]) => {
+					return createHighlighter({
+						themes: [],
+						langs: [],
+						engine
+					}).then((highlighter) => {
+						this.highlighter = highlighter;
+						resolve(highlighter);
+					});
+				});
+			});
+
+			return this.highlighter;
+		}
+	}
+	private async loadTheme(theme: BundledTheme, highlighter: Highlighter): Promise<void> {
+		const themeLoader = this.loadedThemes.get(theme);
+		if (themeLoader instanceof Promise) {
+			await themeLoader;
+		} else {
+			const themeLoaderPromise = highlighter!.loadTheme(theme).then(() => {
+				this.loadedThemes.set(theme, true);
+			});
+
+			this.loadedThemes.set(theme, themeLoaderPromise);
+			await themeLoaderPromise;
+		}
+	}
+
+	private async loadLanguage(language: BundledLanguage, highlighter: Highlighter): Promise<void> {
+		const languageLoader = this.loadedLanguages.get(language);
+		if (languageLoader instanceof Promise) {
+			await languageLoader;
+		} else {
+			const languageLoaderPromise = highlighter!.loadLanguage(language).then(() => {
+				this.loadedLanguages.set(language, true);
+			});
+			this.loadedLanguages.set(language, languageLoaderPromise);
+			await languageLoaderPromise;
+		}
+	}
+
+	private isLanguageSupported = (language: string): language is BundledLanguage => {
+		return Object.hasOwn(bundledLanguages, language);
+	};
+
+	isReady(theme: BundledTheme, language: string | undefined = 'bash'): boolean {
+		return (
+			!(this.highlighter instanceof Promise) &&
+			this.loadedLanguages.get(this.isLanguageSupported(language) ? language : 'bash') === true &&
+			this.loadedThemes.get(theme) === true
+		);
 	}
 
 	/**
 	 * Preloads themes by creating minimal highlighter instances.
 	 * This reduces flickering when switching themes.
 	 */
-	async preloadThemes(themes: BundledTheme[], language: BundledLanguage): Promise<void> {
-		if (!themes.length) {
-			return;
+	async preloadThemes(highlighter: Highlighter): Promise<void> {
+		for (const theme of this.preloadedThemes) {
+			const themeLoader = this.loadedThemes.get(theme);
+			if (themeLoader === true) {
+				return;
+			} else if (themeLoader instanceof Promise) {
+				await themeLoader;
+			} else {
+				await this.loadTheme(theme, highlighter);
+			}
 		}
-
-		await Promise.all(
-			themes
-				.filter((theme) => !this.highlighters.has(`${theme}:${language}`))
-				.map(async (theme) => {
-					if (!this.createHighlighter || !this.engine) {
-						return;
-					}
-					const highlighter = await this.createHighlighter?.({
-						themes: [theme],
-						langs: isLanguageSupported(language) ? [language] : ['text'],
-						engine: this.engine
-					});
-					this.highlighters.set(`${theme}:${language}`, highlighter);
-				})
-		);
 	}
 
 	/**
 	 * Ensures the highlighter is ready for the given theme and language.
 	 */
-	async load(theme: BundledTheme, language: BundledLanguage): Promise<void> {
-		return untrack(async () => {
-			if (!this.createHighlighter || !this.engine) {
-				const [engine, createHighlighter] = await loadShiki();
-				this.createHighlighter = createHighlighter;
-				this.engine = engine;
-			}
-
-			if (!this.highlighters.has(`${theme}:${language}`)) {
-				const highlighter = await this.createHighlighter({
-					themes: [theme],
-					langs: isLanguageSupported(language) ? [language] : ['text'],
-					engine: this.engine
-				});
-				this.highlighters.set(`${theme}:${language}`, highlighter);
-			}
-
-			void this.preloadThemes(this.preloadedThemes || [], language);
-		});
+	async load(theme: BundledTheme, language: string | undefined = 'bash'): Promise<void> {
+		const themeLoader = this.loadedThemes.get(theme);
+		const languageLoader = this.loadedLanguages.get(
+			this.isLanguageSupported(language) ? language : 'bash'
+		);
+		if (
+			this.highlighter !== null &&
+			!(this.highlighter instanceof Promise) &&
+			themeLoader === true &&
+			languageLoader === true
+		) {
+			// already loaded
+			return;
+		}
+		const highlighter = await this.loadHighlighter();
+		await Promise.all([
+			this.loadTheme(theme, highlighter),
+			this.loadLanguage(this.isLanguageSupported(language) ? language : 'bash', highlighter)
+		]);
+		await this.preloadThemes(highlighter);
 	}
 
 	/**
 	 * Highlights code synchronously. Must call isReady() first.
 	 */
-	highlightCode(code: string, language: BundledLanguage, theme: BundledTheme): ThemedToken[][] {
-		const highlighter = this.highlighters.get(`${theme}:${language}`);
-		if (!highlighter) {
+	highlightCode(
+		code: string,
+		language: string | undefined = 'bash',
+		theme: BundledTheme
+	): ThemedToken[][] {
+		try {
+			// const highlighter = this.highlighters.get(`${theme}:${language}`);
+			const highlighter = this.highlighter;
+			if (!highlighter || highlighter instanceof Promise) {
+				return [];
+			}
+
+			const tokens = highlighter.codeToTokensBase(code, {
+				lang: this.isLanguageSupported(language) ? language : 'bash',
+				theme
+			});
+			return tokens;
+		} catch (error) {
 			return [];
 		}
-
-		const tokens = highlighter.codeToTokensBase(code, {
-			lang: isLanguageSupported(language) ? language : 'text',
-			theme: theme
-		});
-
-		return tokens;
 	}
 
 	static create(preloadedThemes: BundledTheme[]): HighlighterManager {
 		if (typeof window !== 'undefined' && 'STREAMDOWN_HIGHLIGHTER' in window) {
 			const previousHighlighter = window.STREAMDOWN_HIGHLIGHTER as HighlighterManager;
-			previousHighlighter.preloadedThemes = Array.from(
-				new Set([...previousHighlighter.preloadedThemes, ...preloadedThemes])
-			);
-			// @ts-ignore
-			return window.STREAMDOWN_HIGHLIGHTER!;
+			preloadedThemes.forEach((theme) => previousHighlighter.preloadedThemes.add(theme));
+			return previousHighlighter;
 		}
+
 		return new HighlighterManager(preloadedThemes);
 	}
 }

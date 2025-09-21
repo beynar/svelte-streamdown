@@ -20,7 +20,6 @@ Perfect for AI-powered applications that need to stream and render markdown cont
 
 ## ✨ Main Features
 
-
 ### 🔄 Streaming-Optimized
 
 - **Incomplete Markdown Parsing**: Handles unterminated blocks gracefully
@@ -28,12 +27,10 @@ Perfect for AI-powered applications that need to stream and render markdown cont
 - **Real-time Updates**: Optimized for dynamic content
 - **Smooth Animations**: Animate tokens and blocks as they are streamed.
 
-
 ### 🔒 Security Hardening
 
 - **Image Origin Control**: Whitelist allowed image sources
 - **Link Safety**: Control link destinations
-- **HTML Sanitization**: Prevent XSS attacks
 
 ### 🎯 Fully Customizable Components & Theming
 
@@ -49,8 +46,9 @@ Beautiful, responsive typography with **built-in Tailwind CSS classes** for head
 
 ### 📝 Extensive Markdown Features
 
-Full support for 
-- Basic text marks: **bold**, *italic*, `code`, ~~Strikethrough~~
+Full support for
+
+- Basic text marks: **bold**, _italic_, `code`, ~~Strikethrough~~
 - ~Subscript~ and ^Superscript^
 - [Links](https://svelte-streamdown.beynar.workers.dev/)
 - Headings (H1–H6)
@@ -58,9 +56,10 @@ Full support for
 - Github alert
 - Ordered & unordered lists (including roman, alpha, nested)
 - Task lists ([ ] and [x])
-- Code blocks 
+- Code blocks
 - Mermaid diagrams
 - Math $expressions$
+- Escaping currency symbols ($140)
 - Complex tables
 - Footnotes [^1]
 
@@ -134,24 +133,27 @@ pie title Project Time Allocation
 
 | H1                        | H2  | H3  |
 | ------------------------- | --- | --- |
-| This cell spans 3 columns |||
+| This cell spans 3 columns |     |     |
 
 | Header 1                  | Header 2 | Header 3 |
 | ------------------------- | -------- | -------- |
-| This cell spans 2 columns || Normal
+| This cell spans 2 columns |          | Normal   |
 | Normal                    | Normal   | Normal   |
 
 #### Rowspan
+
 | Header 1        | Header 2 |
 | --------------- | -------- |
 | This cell spans | Cell A   |
 | two rows ^      | Cell B   |
+
 #### Footer
+
 | Header 1        | Header 2 |
 | --------------- | -------- |
-| Cell B 		  | Cell A   |
+| Cell B          | Cell A   |
 | --------------- | -------- |
-| Footer ||
+| Footer          |          |
 
 #### Column alignment
 
@@ -160,7 +162,6 @@ pie title Project Time Allocation
 | A    |   B    |     C |
 
 #### Multiple headers and very complex layout
-
 
 | Product Category ||| Sales Data Q1-Q4 2024 ||||
 | Product | Region || Q1 | Q2 | Q3 | Q4 |
@@ -179,8 +180,8 @@ pie title Project Time Allocation
 
 #### decimal
 
-1. First item  
-2. Second item  
+1. First item
+2. Second item
 3. Third item
 
 #### lower-alpha
@@ -211,10 +212,9 @@ III. Third item
 
 1. First level (numeric)
    a. Second level (lowercase alpha)
-      i. Third level (lowercase roman)
-         - Fourth level (bullet)
-            I. Fifth level (uppercase roman)
-               A. Sixth level (uppercase alpha)
+   i. Third level (lowercase roman) - Fourth level (bullet)
+   I. Fifth level (uppercase roman)
+   A. Sixth level (uppercase alpha)
 
 2. Back to the first level
 
@@ -226,12 +226,10 @@ III. Third item
   - [ ] Nested uncompleted subtask
   - [x] Nested completed subtask
 
-
 ### Alert Support
 
 > [!IMPORTANT]
 > Native support for Github style Alert
-
 
 ## 🔄 Differences from Original React Version
 
@@ -252,7 +250,7 @@ This Svelte port maintains feature parity with the original [Streamdown](https:/
 > [!NOTE]
 > Streamdown comes with **built-in Tailwind CSS classes** for beautiful default styling. To ensure all styles are included in your build, add the following to your `app.css` or main CSS file:
 > This setup is primarily necessary if you're using Tailwind CSS v4's new `@source` directive or if you have aggressive purging enabled in older versions. If you're using standard Tailwind CSS v3+ with default purging, Streamdown's styles should be automatically included when the component is imported and used in your application.
-> 
+>
 > This ensures that all Streamdown's default styling is included in your Tailwind build process.
 
 ```css
@@ -260,8 +258,6 @@ This Svelte port maintains feature parity with the original [Streamdown](https:/
 /* Add Streamdown styles to your Tailwind build */
 @source "../node_modules/svelte-streamdown/**/*";
 ```
-
-
 
 ## 🎭 Animation System
 
@@ -280,18 +276,23 @@ The animation system works by:
 Choose from five distinct animation styles:
 
 #### `fade`
+
 A clean fade-in effect where text smoothly appears from transparent to opaque.
 
 #### `blur`
+
 Text starts slightly blurred and comes into focus while fading in, creating a smooth reveal effect.
 
 #### `typewriter`
+
 A typewriter effect where text appears character by character, mimicking the look of someone typing.
 
 #### `slideUp`
+
 Text slides up from below while fading in, creating a dynamic upward motion.
 
 #### `slideDown`
+
 Text slides down from above while fading in, creating a dynamic downward motion.
 
 > [!TIP]
@@ -299,7 +300,6 @@ Text slides down from above while fading in, creating a dynamic downward motion.
 
 > [!WARNING]
 > Character-level tokenization (`tokenize: 'char'`) creates significantly more DOM elements than word-level tokenization. Use character tokenization sparingly and only when the typewriter effect is essential for your user experience.
-
 
 ## 🚀 Quick Start
 
@@ -363,30 +363,30 @@ This heading will use a custom component!`;
 
 ## 📋 Props API
 
-| Prop                      | Type                                                  | Default          | Description                                    |
-| ------------------------- | ----------------------------------------------------- | ---------------- | ---------------------------------------------- |
-| `content`                 | `string`                                              | -                | **Required.** The markdown content to render   |
-| `class`                   | `string`                                              | -                | CSS class names for the wrapper element        |
-| `parseIncompleteMarkdown` | `boolean`                                             | `true`           | Parse and fix incomplete markdown syntax       |
-| `defaultOrigin`           | `string`                                              | -                | Default origin for relative URLs               |
-| `allowedLinkPrefixes`     | `string[]`                                            | `['*']`          | Allowed URL prefixes for links                 |
-| `allowedImagePrefixes`    | `string[]`                                            | `['*']`          | Allowed URL prefixes for images                |
-| `skipHtml`                | `boolean`                                             | -                | Skip HTML parsing entirely                     |
-| `unwrapDisallowed`        | `boolean`                                             | -                | Unwrap instead of removing disallowed elements |
-| `urlTransform`            | `UrlTransform \| null`                                | -                | Custom URL transformation function             |
-| `theme`                   | `Partial<Theme>`                                      | -                | Custom theme overrides                         |
-| `baseTheme`               | `'tailwind' \| 'shadcn'`                              | `'tailwind'`     | Base theme to use before applying overrides    |
-| `mergeTheme`              | `boolean`                                             | `true`           | Whether to merge theme with base theme         |
-| `shikiTheme`              | `BundledTheme`                                        | `'github-light'` | Code highlighting theme                        |
-| `mermaidConfig`           | `MermaidConfig`                                       | -                | Mermaid diagram configuration                  |
-| `katexConfig`             | `KatexOptions \| ((inline: boolean) => KatexOptions)` | -                | KaTeX math rendering options                   |
-| `animation`               | `AnimationConfig`                                     | -                | Animation configuration for streaming content  |
-| `animation.enabled`       | `boolean`                                             | `false`          | Enable/disable animations                      |
-| `animation.type`          | `'fade' \| 'blur' \| 'typewriter' \| 'slideUp' \| 'slideDown'` | `'blur'`         | Animation style for text appearance           |
-| `animation.duration`      | `number`                                              | `500`            | Animation duration in milliseconds             |
-| `animation.timingFunction`| `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'` | `'ease-in'`      | CSS timing function for animations             |
-| `animation.tokenize`      | `'word' \| 'char'`                                    | `'word'`         | Tokenization method for text animations        |
-| `animation.animateOnMount`      | `boolean`                                    | `false`         | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM        |
+| Prop                       | Type                                                             | Default          | Description                                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`                  | `string`                                                         | -                | **Required.** The markdown content to render                                                                                                       |
+| `class`                    | `string`                                                         | -                | CSS class names for the wrapper element                                                                                                            |
+| `parseIncompleteMarkdown`  | `boolean`                                                        | `true`           | Parse and fix incomplete markdown syntax                                                                                                           |
+| `defaultOrigin`            | `string`                                                         | -                | Default origin for relative URLs                                                                                                                   |
+| `allowedLinkPrefixes`      | `string[]`                                                       | `['*']`          | Allowed URL prefixes for links                                                                                                                     |
+| `allowedImagePrefixes`     | `string[]`                                                       | `['*']`          | Allowed URL prefixes for images                                                                                                                    |
+| `skipHtml`                 | `boolean`                                                        | -                | Skip HTML parsing entirely                                                                                                                         |
+| `unwrapDisallowed`         | `boolean`                                                        | -                | Unwrap instead of removing disallowed elements                                                                                                     |
+| `urlTransform`             | `UrlTransform \| null`                                           | -                | Custom URL transformation function                                                                                                                 |
+| `theme`                    | `DeepPartial<Theme>`                                                 | -                | Custom theme overrides                                                                                                                             |
+| `baseTheme`                | `'tailwind' \| 'shadcn'`                                         | `'tailwind'`     | Base theme to use before applying overrides                                                                                                        |
+| `mergeTheme`               | `boolean`                                                        | `true`           | Whether to merge theme with base theme                                                                                                             |
+| `shikiTheme`               | `BundledTheme`                                                   | `'github-light'` | Code highlighting theme                                                                                                                            |
+| `mermaidConfig`            | `MermaidConfig`                                                  | -                | Mermaid diagram configuration                                                                                                                      |
+| `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`            | -                | KaTeX math rendering options                                                                                                                       |
+| `animation`                | `AnimationConfig`                                                | -                | Animation configuration for streaming content                                                                                                      |
+| `animation.enabled`        | `boolean`                                                        | `false`          | Enable/disable animations                                                                                                                          |
+| `animation.type`           | `'fade' \| 'blur' \| 'typewriter' \| 'slideUp' \| 'slideDown'`   | `'blur'`         | Animation style for text appearance                                                                                                                |
+| `animation.duration`       | `number`                                                         | `500`            | Animation duration in milliseconds                                                                                                                 |
+| `animation.timingFunction` | `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'` | `'ease-in'`      | CSS timing function for animations                                                                                                                 |
+| `animation.tokenize`       | `'word' \| 'char'`                                               | `'word'`         | Tokenization method for text animations                                                                                                            |
+| `animation.animateOnMount` | `boolean`                                                        | `false`          | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM |
 
 ### Custom Component Props
 

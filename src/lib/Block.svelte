@@ -13,13 +13,13 @@
 		block: string;
 		insideFootnote?: boolean;
 	} = $props();
-	const id = $props.id();
+
 	const tokens = $derived(lex(parseIncompleteMarkdown(block.trim())));
 	const streamdown = useStreamdown();
 </script>
 
 {#snippet renderChildren(tokens: StreamdownToken[])}
-	{#each tokens as token, i (`${id}-block-${i}`)}
+	{#each tokens as token}
 		{#if token}
 			{@const children = (token as any)?.tokens || []}
 			{@const isTextOnlyNode = children.length === 0}

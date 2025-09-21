@@ -20,25 +20,27 @@
 	);
 </script>
 
-{#if transformedUrl}
-	<Slot
-		props={{
-			src: transformedUrl,
-			alt: token.text,
-			children,
-			token
-		}}
-		render={streamdown.snippets.image}
-	>
-		<span class={streamdown.theme.image.base}>
-			<img class={streamdown.theme.image.image} src={transformedUrl} alt={token.text} />
+{#if token.href !== 'streamdown:incomplete-image'}
+	{#if transformedUrl}
+		<Slot
+			props={{
+				src: transformedUrl,
+				alt: token.text,
+				children,
+				token
+			}}
+			render={streamdown.snippets.image}
+		>
+			<span class={streamdown.theme.image.base}>
+				<img class={streamdown.theme.image.image} src={transformedUrl} alt={token.text} />
+			</span>
+		</Slot>
+	{:else}
+		<span
+			class="inline-block rounded bg-gray-200 px-3 py-1 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-400"
+			title={`Blocked URL: ${token.href}`}
+		>
+			[Image blocked: {token.text || 'No description'}]
 		</span>
-	</Slot>
-{:else}
-	<span
-		class="inline-block rounded bg-gray-200 px-3 py-1 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-		title={`Blocked URL: ${token.href}`}
-	>
-		[Image blocked: {token.text || 'No description'}]
-	</span>
+	{/if}
 {/if}

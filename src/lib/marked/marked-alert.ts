@@ -10,7 +10,7 @@ export function createSyntaxPattern(type: variantType): string {
 	return `^\\s*[\\*_]*\\[!${type.toUpperCase()}\\][\\*_]*\\s*`;
 }
 
-export default function markedAlert(): {
+export function markedAlert(): {
 	extensions: Array<{
 		name: string;
 		level: 'block' | 'inline';
@@ -29,7 +29,6 @@ export default function markedAlert(): {
 					const cap = defaultTokenizer.rules.block.blockquote.exec(src);
 					if (cap) {
 						const blockquoteToken = defaultTokenizer.blockquote(src);
-
 						blockquoteToken && processAlertToken(blockquoteToken, this.lexer.options.tokenizer!);
 						return blockquoteToken;
 					}
@@ -41,16 +40,25 @@ export default function markedAlert(): {
 
 export function processAlertToken(token: Tokens.Blockquote, tokenizer: Tokenizer): void {
 	const matchedVariant = variants.find((type) =>
-		new RegExp(createSyntaxPattern(type)).test(('text' in token && token.text) || '')
+		new RegExp(createSyntaxPattern(type), 'i').test(('text' in token && token.text) || '')
 	);
 
-	if (!matchedVariant) return;
-
+	if (!matchedVariant) {
+		Object.assign(token, {
+			tokens: token.tokens
+				.map((token) => {
+					return tokenizer.lexer.blockTokens(token.raw, [])[0];
+				})
+				.filter(Boolean)
+		});
+		return;
+	}
+	const alertPattern = new RegExp(`[\\*_]*\\[!${matchedVariant.toUpperCase()}\\][\\*_]*`, 'g');
 	const tokens = token.tokens
 		.map((token) => {
 			let cleanedRaw = token.raw;
 			// Remove alert markers with any markdown formatting (asterisks/underscores)
-			const alertPattern = new RegExp(`[\\*_]*\\[!${matchedVariant.toUpperCase()}\\][\\*_]*`, 'g');
+
 			cleanedRaw = cleanedRaw.replaceAll(alertPattern, '').trim();
 			return tokenizer.lexer.blockTokens(cleanedRaw, [])[0];
 		})
@@ -59,7 +67,8 @@ export function processAlertToken(token: Tokens.Blockquote, tokenizer: Tokenizer
 	Object.assign(token, {
 		type: 'alert',
 		variant: matchedVariant,
-		tokens
+		tokens,
+		text: token.text.replace(alertPattern, '').trim()
 	});
 }
 

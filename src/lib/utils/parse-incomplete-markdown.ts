@@ -1,5 +1,5 @@
 const linkImagePattern = /(!?\[)([^\]]*?)$/;
-const boldPattern = /(\*\*)([^\n]*?)$/;
+const boldPattern = /(\*\*)([^]*?)$/;
 const italicPattern = /(__)([^_]*?)$/;
 const boldItalicPattern = /(\*\*\*)([^*]*?)$/;
 const singleAsteriskPattern = /(\*)([^*]*?)$/;
@@ -8,6 +8,19 @@ const inlineCodePattern = /(`)([^`]*?)$/;
 const strikethroughPattern = /(~~)([^~]*?)$/;
 const subPattern = /(~)([^~]*?)$/;
 const supPattern = /(\^)([^\^]*?)$/;
+const incompleteLinkUrlPattern = /(!?\[[^\]]*\]\()([^)]*?)$/;
+
+// Helper function to find the end of the line containing a specific position
+const findEndOfLineContaining = (text: string, position: number): number => {
+	let endPos = position;
+
+	// Move forward to find the end of the line
+	while (endPos < text.length && text[endPos] !== '\n') {
+		endPos++;
+	}
+
+	return endPos;
+};
 
 // Helper function to check if we have a complete code block
 const hasCompleteCodeBlock = (text: string): boolean => {
@@ -17,23 +30,85 @@ const hasCompleteCodeBlock = (text: string): boolean => {
 
 // Handles incomplete links and images by preserving them with a special marker
 const handleIncompleteLinksAndImages = (text: string): string => {
-	const linkMatch = text.match(linkImagePattern);
+	// Check for incomplete link URLs like "[text](incomplete-url"
+	const urlMatch = text.match(incompleteLinkUrlPattern);
+	if (urlMatch) {
+		const isImage = urlMatch[1].startsWith('!');
+		const url = urlMatch[2];
 
-	if (linkMatch) {
+		// Only handle if there's actually some URL content
+		if (url.length > 0) {
+			// Check if the URL is actually incomplete
+			const isIncomplete = isUrlIncomplete(url);
+			if (isIncomplete) {
+				// For incomplete URLs, replace with incomplete marker
+				const marker = isImage ? 'streamdown:incomplete-image' : 'streamdown:incomplete-link';
+				return text.replace(urlMatch[2], marker) + ')';
+			} else {
+				// URL is complete, just add closing parenthesis
+				return `${text})`;
+			}
+		} else {
+			// If URL is empty (just "[text]("), complete it with incomplete marker
+			const marker = isImage ? 'streamdown:incomplete-image' : 'streamdown:incomplete-link';
+			return `${text}${marker})`;
+		}
+	}
+
+	// Check for incomplete link text like "[incomplete-text" (but not "[text](")
+	const linkMatch = text.match(linkImagePattern);
+	if (linkMatch && !text.includes('](')) {
 		const isImage = linkMatch[1].startsWith('!');
 
-		// For images, we still remove them as they can't show skeleton
-		if (isImage) {
-			const startIndex = text.lastIndexOf(linkMatch[1]);
-			return text.substring(0, startIndex);
-		}
-
-		// For links, preserve the text and close the link with a
-		// special placeholder URL that indicates it's incomplete
-		return `${text}](streamdown:incomplete-link)`;
+		// For incomplete link/image text, complete with incomplete marker
+		const marker = isImage ? 'streamdown:incomplete-image' : 'streamdown:incomplete-link';
+		return `${text}](${marker})`;
 	}
 
 	return text;
+};
+
+// Helper function to determine if a URL is incomplete or lacks proper domain extension
+const isUrlIncomplete = (url: string): boolean => {
+	// If URL is clearly incomplete (too short, no protocol, etc.)
+	if (!url || url.length < 4) {
+		return true;
+	}
+
+	// If URL starts with protocol but is very short
+	if (
+		(url.startsWith('http://') && url.length < 12) ||
+		(url.startsWith('https://') && url.length < 13)
+	) {
+		return true;
+	}
+
+	// If URL has protocol, extract the domain part
+	let domain = url;
+	if (url.startsWith('http://')) {
+		domain = url.substring(7);
+	} else if (url.startsWith('https://')) {
+		domain = url.substring(8);
+	}
+
+	// Remove path, query, and fragment parts to get just the domain
+	domain = domain.split('/')[0].split('?')[0].split('#')[0];
+
+	// Check if domain has a proper extension
+	const domainParts = domain.split('.');
+	if (domainParts.length < 2) {
+		return true; // No extension at all
+	}
+
+	const extension = domainParts[domainParts.length - 1];
+
+	// Check if extension looks valid (at least 2 characters, only letters)
+	if (extension.length < 2 || !/^[a-zA-Z]+$/.test(extension)) {
+		return true;
+	}
+
+	// If we get here, the URL looks reasonably complete
+	return false;
 };
 
 // Completes incomplete bold formatting (**)
@@ -42,6 +117,11 @@ const handleIncompleteBold = (text: string): string => {
 	if (hasCompleteCodeBlock(text)) {
 		return text;
 	}
+
+	// IMPORTANT SAFEGUARD: Don't modify text that contains complete italic patterns
+	// This prevents accidentally converting *italic* to something else
+	const completeItalicPattern = /\*[^*\n]+\*/g;
+	const completeItalicMatches = text.match(completeItalicPattern);
 
 	const boldMatch = text.match(boldPattern);
 
@@ -56,25 +136,30 @@ const handleIncompleteBold = (text: string): string => {
 			return text;
 		}
 
-		// Check if the bold marker is in a list item context
-		const beforeMarker = text.substring(0, lastDoubleAsteriskIndex);
-		const lastNewlineBeforeMarker = beforeMarker.lastIndexOf('\n');
-		const lineStart = lastNewlineBeforeMarker === -1 ? 0 : lastNewlineBeforeMarker + 1;
-		const lineBeforeMarker = text.substring(lineStart, lastDoubleAsteriskIndex);
+		// Check if this is a standalone horizontal rule (asterisks on a line by themselves)
+		const matchIndex = lastDoubleAsteriskIndex;
+		const lineStart = text.lastIndexOf('\n', matchIndex) + 1;
+		const lineEnd = text.indexOf('\n', matchIndex);
+		const lineContent = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
+		const trimmedLine = lineContent.trim();
 
-		// Check if this line is a list item with just the bold marker
-		if (/^[\s]*[-*+][\s]+$/.test(lineBeforeMarker)) {
-			// This is a list item with just emphasis markers
-			// Check if content after marker spans multiple lines
-			const hasNewlineInContent = contentAfterMarker.includes('\n');
-			if (hasNewlineInContent) {
-				// Don't complete if the content spans to another line
-				return text;
-			}
+		// If the line contains only asterisks (2 or more), it's a horizontal rule
+		if (/^\*+$/.test(trimmedLine) && trimmedLine.length >= 2) {
+			return text;
 		}
 
-		// Check if the content after ** ends with a single * (incomplete closing marker)
+		// For streaming context, we allow multi-line completion
+		// Remove the conservative multi-line restriction for better UX
+
+		// ADDITIONAL SAFEGUARD: Check if the content after ** would interfere with existing italic
 		if (contentAfterMarker.endsWith('*') && !contentAfterMarker.endsWith('**')) {
+			// Before treating as incomplete closing marker, check if this would break italic formatting
+			const potentiallyAffectedText = contentAfterMarker.slice(0, -1);
+			if (completeItalicMatches && potentiallyAffectedText.includes('*')) {
+				// Don't modify if it would interfere with existing italic patterns
+				return text;
+			}
+
 			// The content ends with a single *, treat it as an incomplete closing marker
 			// Remove the trailing * and add complete closing **
 			const contentWithoutTrailingAsterisk = contentAfterMarker.slice(0, -1);
@@ -85,7 +170,9 @@ const handleIncompleteBold = (text: string): string => {
 		const doubleAsteriskMatches = text.match(/\*\*/g) || [];
 		const doubleAsteriskCount = doubleAsteriskMatches.length;
 		if (doubleAsteriskCount % 2 === 1) {
-			return `${text}**`;
+			// Find the end of the line containing the incomplete bold marker
+			const endOfLine = findEndOfLineContaining(text, lastDoubleAsteriskIndex);
+			return text.substring(0, endOfLine) + '**' + text.substring(endOfLine);
 		}
 	}
 
@@ -105,13 +192,25 @@ const handleIncompleteDoubleUnderscoreItalic = (text: string): string => {
 			return text;
 		}
 
+		// Check if this is a standalone horizontal rule (underscores on a line by themselves)
+		const matchIndex = text.lastIndexOf('__');
+		const lineStart = text.lastIndexOf('\n', matchIndex) + 1;
+		const lineEnd = text.indexOf('\n', matchIndex);
+		const lineContent = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
+		const trimmedLine = lineContent.trim();
+
+		// If the line contains only underscores (3 or more), it's a horizontal rule
+		if (/^_+$/.test(trimmedLine) && trimmedLine.length >= 3) {
+			return text;
+		}
+
 		// Check if the underscore marker is in a list item context
 		// Find the position of the matched underscore marker
 		const markerIndex = text.lastIndexOf(italicMatch[1]);
 		const beforeMarker = text.substring(0, markerIndex);
 		const lastNewlineBeforeMarker = beforeMarker.lastIndexOf('\n');
-		const lineStart = lastNewlineBeforeMarker === -1 ? 0 : lastNewlineBeforeMarker + 1;
-		const lineBeforeMarker = text.substring(lineStart, markerIndex);
+		const lineStart2 = lastNewlineBeforeMarker === -1 ? 0 : lastNewlineBeforeMarker + 1;
+		const lineBeforeMarker = text.substring(lineStart2, markerIndex);
 
 		// Check if this line is a list item with just the underscore marker
 		if (/^[\s]*[-*+][\s]+$/.test(lineBeforeMarker)) {
@@ -126,7 +225,11 @@ const handleIncompleteDoubleUnderscoreItalic = (text: string): string => {
 
 		const underscorePairs = (text.match(/__/g) || []).length;
 		if (underscorePairs % 2 === 1) {
-			return `${text}__`;
+			// Find the position of the last __ marker
+			const lastDoubleUnderscoreIndex = text.lastIndexOf('__');
+			// Find the end of the line containing the incomplete italic marker
+			const endOfLine = findEndOfLineContaining(text, lastDoubleUnderscoreIndex);
+			return text.substring(0, endOfLine) + '__' + text.substring(endOfLine);
 		}
 	}
 
@@ -135,39 +238,40 @@ const handleIncompleteDoubleUnderscoreItalic = (text: string): string => {
 
 // Counts single asterisks that are not part of double asterisks, not escaped, and not list markers
 const countSingleAsterisks = (text: string): number => {
-	return text.split('').reduce((acc, char, index) => {
-		if (char === '*') {
-			const prevChar = text[index - 1];
-			const nextChar = text[index + 1];
+	let count = 0;
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '*') {
+			const prevChar = i > 0 ? text[i - 1] : '';
+			const nextChar = i < text.length - 1 ? text[i + 1] : '';
 			// Skip if escaped with backslash
 			if (prevChar === '\\') {
-				return acc;
+				continue;
 			}
 			// Check if this is a list marker (asterisk at start of line followed by space)
 			// Look backwards to find the start of the current line
-			let lineStartIndex = index;
-			for (let i = index - 1; i >= 0; i--) {
-				if (text[i] === '\n') {
-					lineStartIndex = i + 1;
+			let lineStartIndex = i;
+			for (let j = i - 1; j >= 0; j--) {
+				if (text[j] === '\n') {
+					lineStartIndex = j + 1;
 					break;
 				}
-				if (i === 0) {
+				if (j === 0) {
 					lineStartIndex = 0;
 					break;
 				}
 			}
 			// Check if this asterisk is at the beginning of a line (with optional whitespace)
-			const beforeAsterisk = text.substring(lineStartIndex, index);
+			const beforeAsterisk = text.substring(lineStartIndex, i);
 			if (beforeAsterisk.trim() === '' && (nextChar === ' ' || nextChar === '\t')) {
 				// This is likely a list marker, don't count it
-				return acc;
+				continue;
 			}
 			if (prevChar !== '*' && nextChar !== '*') {
-				return acc + 1;
+				count++;
 			}
 		}
-		return acc;
-	}, 0);
+	}
+	return count;
 };
 
 // Completes incomplete italic formatting with single asterisks (*)
@@ -175,6 +279,21 @@ const handleIncompleteSingleAsteriskItalic = (text: string): string => {
 	// Don't process if inside a complete code block
 	if (hasCompleteCodeBlock(text)) {
 		return text;
+	}
+
+	// IMPORTANT SAFEGUARD: Check if we already have complete italic formatting patterns
+	// If text contains complete *word* patterns, don't modify them
+	const completeItalicPattern = /\*[^*\n]+\*/g;
+	const completeMatches = text.match(completeItalicPattern);
+	if (completeMatches) {
+		// Count asterisks in complete matches
+		const asterisksInCompleteMatches = completeMatches.join('').split('*').length - 1;
+		const totalAsterisks = (text.match(/\*/g) || []).length;
+
+		// If most asterisks are already in complete italic patterns, don't process
+		if (asterisksInCompleteMatches >= totalAsterisks) {
+			return text;
+		}
 	}
 
 	const singleAsteriskMatch = text.match(singleAsteriskPattern);
@@ -221,7 +340,9 @@ const handleIncompleteSingleAsteriskItalic = (text: string): string => {
 
 		const singleAsterisks = countSingleAsterisks(text);
 		if (singleAsterisks % 2 === 1) {
-			return `${text}*`;
+			// Find the end of the line containing the incomplete italic marker
+			const endOfLine = findEndOfLineContaining(text, firstSingleAsteriskIndex);
+			return text.substring(0, endOfLine) + '*' + text.substring(endOfLine);
 		}
 	}
 
@@ -295,17 +416,18 @@ const isWithinFootnoteRef = (text: string, position: number): boolean => {
 
 // Counts single underscores that are not part of double underscores, not escaped, and not in math blocks
 const countSingleUnderscores = (text: string): number => {
-	return text.split('').reduce((acc, char, index) => {
-		if (char === '_') {
-			const prevChar = text[index - 1];
-			const nextChar = text[index + 1];
+	let count = 0;
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '_') {
+			const prevChar = i > 0 ? text[i - 1] : '';
+			const nextChar = i < text.length - 1 ? text[i + 1] : '';
 			// Skip if escaped with backslash
 			if (prevChar === '\\') {
-				return acc;
+				continue;
 			}
 			// Skip if within math block
-			if (isWithinMathBlock(text, index)) {
-				return acc;
+			if (isWithinMathBlock(text, i)) {
+				continue;
 			}
 			// Skip if underscore is word-internal (between word characters)
 			if (
@@ -314,14 +436,14 @@ const countSingleUnderscores = (text: string): number => {
 				/[\p{L}\p{N}_]/u.test(prevChar) &&
 				/[\p{L}\p{N}_]/u.test(nextChar)
 			) {
-				return acc;
+				continue;
 			}
 			if (prevChar !== '_' && nextChar !== '_') {
-				return acc + 1;
+				count++;
 			}
 		}
-		return acc;
-	}, 0);
+	}
+	return count;
 };
 
 // Completes incomplete italic formatting with single underscores (_)
@@ -376,13 +498,9 @@ const handleIncompleteSingleUnderscoreItalic = (text: string): string => {
 
 		const singleUnderscores = countSingleUnderscores(text);
 		if (singleUnderscores % 2 === 1) {
-			// If text ends with newline(s), insert underscore before them
-			const trailingNewlineMatch = text.match(/\n+$/);
-			if (trailingNewlineMatch) {
-				const textBeforeNewlines = text.slice(0, -trailingNewlineMatch[0].length);
-				return `${textBeforeNewlines}_${trailingNewlineMatch[0]}`;
-			}
-			return `${text}_`;
+			// Find the end of the line containing the incomplete underscore italic marker
+			const endOfLine = findEndOfLineContaining(text, firstSingleUnderscoreIndex);
+			return text.substring(0, endOfLine) + '_' + text.substring(endOfLine);
 		}
 	}
 
@@ -457,7 +575,11 @@ const handleIncompleteInlineCode = (text: string): string => {
 
 		const singleBacktickCount = countSingleBackticks(text);
 		if (singleBacktickCount % 2 === 1) {
-			return `${text}\``;
+			// Find the position of the last backtick
+			const lastBacktickIndex = text.lastIndexOf('`');
+			// Find the end of the line containing the incomplete code marker
+			const endOfLine = findEndOfLineContaining(text, lastBacktickIndex);
+			return text.substring(0, endOfLine) + '`' + text.substring(endOfLine);
 		}
 	}
 
@@ -479,7 +601,11 @@ const handleIncompleteStrikethrough = (text: string): string => {
 
 		const tildePairs = (text.match(/~~/g) || []).length;
 		if (tildePairs % 2 === 1) {
-			return `${text}~~`;
+			// Find the position of the last ~~ marker
+			const lastDoubleTildeIndex = text.lastIndexOf('~~');
+			// Find the end of the line containing the incomplete strikethrough marker
+			const endOfLine = findEndOfLineContaining(text, lastDoubleTildeIndex);
+			return text.substring(0, endOfLine) + '~~' + text.substring(endOfLine);
 		}
 	}
 
@@ -488,20 +614,22 @@ const handleIncompleteStrikethrough = (text: string): string => {
 
 // Counts single tildes that are not part of double tildes and not escaped
 const countSingleTildes = (text: string): number => {
-	return text.split('').reduce((acc, char, index) => {
-		if (char === '~') {
-			const prevChar = text[index - 1];
-			const nextChar = text[index + 1];
+	let count = 0;
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '~') {
+			const prevChar = i > 0 ? text[i - 1] : '';
+			const nextChar = i < text.length - 1 ? text[i + 1] : '';
 			// Skip if escaped with backslash
 			if (prevChar === '\\') {
-				return acc;
+				continue;
 			}
+			// Skip if part of double tilde
 			if (prevChar !== '~' && nextChar !== '~') {
-				return acc + 1;
+				count++;
 			}
 		}
-		return acc;
-	}, 0);
+	}
+	return count;
 };
 
 // Completes incomplete subscript formatting (~)
@@ -513,7 +641,7 @@ const handleIncompleteSub = (text: string): string => {
 
 	const singleTildes = countSingleTildes(text);
 	if (singleTildes % 2 === 1) {
-		// Find the last unmatched tilde and add content until we find a good place to close
+		// Find the last unmatched tilde
 		const lastTildeIndex = text.lastIndexOf('~');
 		if (lastTildeIndex !== -1) {
 			// Check if the tilde is within a math block - if so, don't process
@@ -528,22 +656,9 @@ const handleIncompleteSub = (text: string): string => {
 				return text;
 			}
 
-			// Find the end of the subscript content
-			// For typical sub/sup patterns, look for single numbers, letters, or simple expressions
-			const endMatch = afterTilde.match(/^([0-9]+|[a-zA-Z]|[a-zA-Z0-9]{1,3})(?=\s|[^a-zA-Z0-9]|$)/);
-			if (endMatch) {
-				const contentLength = endMatch[1].length;
-				const insertPosition = lastTildeIndex + 1 + contentLength;
-				return text.substring(0, insertPosition) + '~' + text.substring(insertPosition);
-			} else {
-				// Fallback: if no clear boundary, treat everything until space as content
-				const spaceMatch = afterTilde.match(/^([^\s]+)/);
-				if (spaceMatch) {
-					const contentLength = spaceMatch[1].length;
-					const insertPosition = lastTildeIndex + 1 + contentLength;
-					return text.substring(0, insertPosition) + '~' + text.substring(insertPosition);
-				}
-			}
+			// Find the end of the line containing the incomplete subscript marker
+			const endOfLine = findEndOfLineContaining(text, lastTildeIndex);
+			return text.substring(0, endOfLine) + '~' + text.substring(endOfLine);
 		}
 	}
 
@@ -552,21 +667,22 @@ const handleIncompleteSub = (text: string): string => {
 
 // Counts single carets that are not escaped and not in footnote references
 const countSingleCarets = (text: string): number => {
-	return text.split('').reduce((acc, char, index) => {
-		if (char === '^') {
-			const prevChar = text[index - 1];
+	let count = 0;
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '^') {
+			const prevChar = i > 0 ? text[i - 1] : '';
 			// Skip if escaped with backslash
 			if (prevChar === '\\') {
-				return acc;
+				continue;
 			}
 			// Skip if within footnote reference
-			if (isWithinFootnoteRef(text, index)) {
-				return acc;
+			if (isWithinFootnoteRef(text, i)) {
+				continue;
 			}
-			return acc + 1;
+			count++;
 		}
-		return acc;
-	}, 0);
+	}
+	return count;
 };
 
 // Completes incomplete superscript formatting (^)
@@ -578,7 +694,7 @@ const handleIncompleteSup = (text: string): string => {
 
 	const singleCarets = countSingleCarets(text);
 	if (singleCarets % 2 === 1) {
-		// Find the last unmatched caret and add content until we find a good place to close
+		// Find the last unmatched caret
 		const lastCaretIndex = text.lastIndexOf('^');
 		if (lastCaretIndex !== -1) {
 			// Check if the caret is within a math block - if so, don't process
@@ -598,44 +714,96 @@ const handleIncompleteSup = (text: string): string => {
 				return text;
 			}
 
-			// Find the end of the superscript content
-			// For typical sub/sup patterns, look for single numbers, letters, or simple expressions
-			const endMatch = afterCaret.match(/^([0-9]+|[a-zA-Z]|[a-zA-Z0-9]{1,3})(?=\s|[^a-zA-Z0-9]|$)/);
-			if (endMatch) {
-				const contentLength = endMatch[1].length;
-				const insertPosition = lastCaretIndex + 1 + contentLength;
-				return text.substring(0, insertPosition) + '^' + text.substring(insertPosition);
-			} else {
-				// Fallback: if no clear boundary, treat everything until space as content
-				const spaceMatch = afterCaret.match(/^([^\s]+)/);
-				if (spaceMatch) {
-					const contentLength = spaceMatch[1].length;
-					const insertPosition = lastCaretIndex + 1 + contentLength;
-					return text.substring(0, insertPosition) + '^' + text.substring(insertPosition);
-				}
-			}
+			// Find the end of the line containing the incomplete superscript marker
+			const endOfLine = findEndOfLineContaining(text, lastCaretIndex);
+			return text.substring(0, endOfLine) + '^' + text.substring(endOfLine);
 		}
 	}
 
 	return text;
 };
 
-// Counts single dollar signs that are not part of double dollar signs and not escaped
-const _countSingleDollarSigns = (text: string): number => {
-	return text.split('').reduce((acc, char, index) => {
-		if (char === '$') {
-			const prevChar = text[index - 1];
-			const nextChar = text[index + 1];
+// Counts single dollar signs that are not part of double dollar signs, not escaped, and not currency
+const countSingleDollarSigns = (text: string): number => {
+	let count = 0;
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '$') {
+			const prevChar = i > 0 ? text[i - 1] : '';
+			const nextChar = i < text.length - 1 ? text[i + 1] : '';
 			// Skip if escaped with backslash
 			if (prevChar === '\\') {
-				return acc;
+				continue;
 			}
-			if (prevChar !== '$' && nextChar !== '$') {
-				return acc + 1;
+			// Skip if part of double dollar
+			if (prevChar === '$' || nextChar === '$') {
+				continue;
+			}
+			// Skip if this looks like currency (digit immediately after $)
+			if (nextChar && /\d/.test(nextChar)) {
+				continue;
+			}
+			count++;
+		}
+	}
+	return count;
+};
+
+// Completes incomplete inline math formatting ($)
+const handleIncompleteInlineMath = (text: string): string => {
+	// Don't process if inside a complete code block
+	if (hasCompleteCodeBlock(text)) {
+		return text;
+	}
+
+	// Count single dollar signs (excluding currency patterns)
+	const singleDollars = countSingleDollarSigns(text);
+
+	// If we have an odd number of single dollars, we need to complete
+	if (singleDollars % 2 === 1) {
+		// Find the last unmatched dollar sign
+		let lastDollarIndex = -1;
+		for (let i = text.length - 1; i >= 0; i--) {
+			if (text[i] === '$') {
+				const prevChar = i > 0 ? text[i - 1] : '';
+				const nextChar = i < text.length - 1 ? text[i + 1] : '';
+
+				// Skip if escaped or part of double dollar
+				if (prevChar === '\\' || prevChar === '$' || nextChar === '$') {
+					continue;
+				}
+
+				// Skip if this looks like currency
+				if (nextChar && /\d/.test(nextChar)) {
+					continue;
+				}
+
+				lastDollarIndex = i;
+				break;
 			}
 		}
-		return acc;
-	}, 0);
+
+		if (lastDollarIndex !== -1) {
+			const afterDollar = text.substring(lastDollarIndex + 1);
+
+			// Don't complete if there's no meaningful content after the dollar
+			if (!afterDollar || /^[\s$]*$/.test(afterDollar)) {
+				return text;
+			}
+
+			// Check if content after dollar looks like math (contains letters, spaces, symbols)
+			// but not pure numbers (which would be currency)
+			if (/^\d+(\.\d{2})?\s*$/.test(afterDollar.trim())) {
+				// This looks like currency, don't complete
+				return text;
+			}
+
+			// Find the end of the line containing the incomplete inline math marker
+			const endOfLine = findEndOfLineContaining(text, lastDollarIndex);
+			return text.substring(0, endOfLine) + '$' + text.substring(endOfLine);
+		}
+	}
+
+	return text;
 };
 
 // Completes incomplete block KaTeX formatting ($$)
@@ -666,17 +834,22 @@ const handleIncompleteBlockKatex = (text: string): string => {
 // Counts triple asterisks that are not part of quadruple or more asterisks
 const countTripleAsterisks = (text: string): number => {
 	let count = 0;
-	const matches = text.match(/\*+/g) || [];
+	for (let i = 0; i < text.length; i++) {
+		if (text[i] === '*') {
+			// Count consecutive asterisks
+			let asteriskCount = 0;
+			while (i < text.length && text[i] === '*') {
+				asteriskCount++;
+				i++;
+			}
+			i--; // Adjust back one position since the outer loop will increment
 
-	for (const match of matches) {
-		// Count how many complete triple asterisks are in this sequence
-		const asteriskCount = match.length;
-		if (asteriskCount >= 3) {
 			// Each group of exactly 3 asterisks counts as one triple asterisk marker
-			count += Math.floor(asteriskCount / 3);
+			if (asteriskCount >= 3) {
+				count += Math.floor(asteriskCount / 3);
+			}
 		}
 	}
-
 	return count;
 };
 
@@ -704,13 +877,78 @@ const handleIncompleteBoldItalic = (text: string): string => {
 			return text;
 		}
 
+		// Check if this is a standalone horizontal rule (*** on a line by itself)
+		const matchIndex = text.lastIndexOf('***');
+		const lineStart = text.lastIndexOf('\n', matchIndex) + 1;
+		const lineEnd = text.indexOf('\n', matchIndex);
+		const lineContent = text.substring(lineStart, lineEnd === -1 ? text.length : lineEnd);
+		const trimmedLine = lineContent.trim();
+
+		// If the line contains only *** (possibly with whitespace), it's a horizontal rule
+		if (trimmedLine === '***') {
+			return text;
+		}
+
 		const tripleAsteriskCount = countTripleAsterisks(text);
 		if (tripleAsteriskCount % 2 === 1) {
-			return `${text}***`;
+			// Find the position of the last *** marker
+			const lastTripleAsteriskIndex = text.lastIndexOf('***');
+			// Find the end of the line containing the incomplete bold-italic marker
+			const endOfLine = findEndOfLineContaining(text, lastTripleAsteriskIndex);
+			return text.substring(0, endOfLine) + '***' + text.substring(endOfLine);
 		}
 	}
 
 	return text;
+};
+
+// Handles incomplete code blocks by leaving them unchanged
+const handleIncompleteCodeBlock = (text: string): string => {
+	// Check if we have an incomplete code block (odd number of triple backticks with newlines)
+	const tripleBackticks = (text.match(/```/g) || []).length;
+
+	// If we have an odd number of triple backticks and the text contains newlines,
+	// this is likely an incomplete code block - leave it unchanged
+	if (tripleBackticks % 2 === 1 && text.includes('\n')) {
+		return text;
+	}
+
+	return text;
+};
+
+// Handles incomplete footnote references
+const handleIncompleteFootnotes = (text: string): string => {
+	// Check for incomplete footnote references like [^ or [^label
+	// Match [^ followed by optional simple label, but ensure no ] follows immediately
+	// and no complex characters that would indicate this isn't a footnote
+	const footnotePattern = /\[\^([a-zA-Z0-9_-]*)(?![^\]\s,])/g;
+
+	let result = text;
+	let match;
+
+	while ((match = footnotePattern.exec(text)) !== null) {
+		const fullMatch = match[0];
+		const label = match[1];
+
+		// Check if this is at the end of a line or followed by simple separators
+		const matchIndex = match.index;
+		const afterMatch = text.substring(matchIndex + fullMatch.length);
+
+		// If followed by end of string, newline, space, or comma, it's likely a footnote
+		if (
+			afterMatch === '' ||
+			/^\s/.test(afterMatch) ||
+			afterMatch.startsWith('\n') ||
+			afterMatch.startsWith(',')
+		) {
+			const marker = 'streamdown-footnote';
+			const replacement = `[^${marker}]`;
+			result = result.replace(fullMatch, replacement);
+			break; // Only process the first match to avoid conflicts
+		}
+	}
+
+	return result;
 };
 
 // Parses markdown text and removes incomplete tokens to prevent partial rendering
@@ -721,32 +959,31 @@ export const parseIncompleteMarkdown = (text: string): string => {
 
 	let result = text;
 
-	// Handle incomplete links and images first
-	const processedResult = handleIncompleteLinksAndImages(result);
+	// Handle incomplete code blocks FIRST - this prevents other formatters
+	// from processing content that should be treated as literal code
+	result = handleIncompleteCodeBlock(result);
 
-	// If we added an incomplete link marker, don't process other formatting
-	// as the content inside the link should be preserved as-is
-	if (processedResult.endsWith('](streamdown:incomplete-link)')) {
-		return processedResult;
-	}
+	// Handle incomplete footnotes FIRST (before any other processing to avoid conflicts)
+	result = handleIncompleteFootnotes(result);
 
-	result = processedResult;
+	// Handle various formatting completions ONLY if not inside a code block
+	// Handle double patterns before single patterns for proper priority
+	result = handleIncompleteBoldItalic(result); // ***
+	result = handleIncompleteBold(result); // **
+	result = handleIncompleteDoubleUnderscoreItalic(result); // __
+	result = handleIncompleteStrikethrough(result); // ~~
+	result = handleIncompleteInlineCode(result); // `
+	result = handleIncompleteSingleAsteriskItalic(result); // *
+	result = handleIncompleteSingleUnderscoreItalic(result); // _
+	result = handleIncompleteSub(result); // ~
+	result = handleIncompleteSup(result); // ^
 
-	// Handle various formatting completions
-	// Handle triple asterisks first (most specific)
-	result = handleIncompleteBoldItalic(result);
-	result = handleIncompleteBold(result);
-	result = handleIncompleteDoubleUnderscoreItalic(result);
-	result = handleIncompleteSingleAsteriskItalic(result);
-	result = handleIncompleteSingleUnderscoreItalic(result);
-	result = handleIncompleteInlineCode(result);
-	result = handleIncompleteStrikethrough(result);
-	result = handleIncompleteSub(result);
-	result = handleIncompleteSup(result);
-
-	// Handle KaTeX formatting (only block math with $$)
+	// Handle KaTeX formatting
 	result = handleIncompleteBlockKatex(result);
-	// Note: We don't handle inline KaTeX with single $ as they're likely currency symbols
+	result = handleIncompleteInlineMath(result);
+
+	// Handle incomplete links and images LAST
+	result = handleIncompleteLinksAndImages(result);
 
 	return result;
 };

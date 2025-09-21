@@ -16,18 +16,16 @@
 
 		return text.split(splitRegex).filter((token) => token.length > 0);
 	};
-  
+
 	const tokens = $derived(tokenizeNewContent(text));
 </script>
 
 {#if streamdown.isMounted}
-	<span>
-		{#each tokens as token}
-			<span style={streamdown.animationTextStyle}>
-				{token}
-			</span>
-		{/each}
-	</span>
+	{#each tokens as token}
+		<span style={streamdown.animationTextStyle}>
+			{token}
+		</span>
+	{/each}
 {:else}
 	{text}
 {/if}

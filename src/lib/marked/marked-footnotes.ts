@@ -11,7 +11,7 @@ const safeGetContext = () => {
 	}
 };
 
-export default function markedFootnote(): {
+export function markedFootnote(): {
 	extensions: {
 		name: string;
 		level: 'block' | 'inline';

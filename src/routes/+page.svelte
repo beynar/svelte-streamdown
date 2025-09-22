@@ -187,7 +187,8 @@
 		<Streamdown
 			animation={{
 				animateOnMount: false,
-				enabled: animationEnabled
+				enabled: animationEnabled,
+				type: 'slideDown'
 			}}
 			baseTheme="shadcn"
 			mermaidConfig={{

@@ -273,7 +273,7 @@ The animation system works by:
 
 ### Animation Types
 
-Choose from five distinct animation styles:
+Choose from 4 distinct animation styles:
 
 #### `fade`
 
@@ -282,10 +282,6 @@ A clean fade-in effect where text smoothly appears from transparent to opaque.
 #### `blur`
 
 Text starts slightly blurred and comes into focus while fading in, creating a smooth reveal effect.
-
-#### `typewriter`
-
-A typewriter effect where text appears character by character, mimicking the look of someone typing.
 
 #### `slideUp`
 

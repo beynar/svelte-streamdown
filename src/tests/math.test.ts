@@ -232,6 +232,134 @@ describe('tokenization', () => {
 		expect(mathTokens.length).toBe(0);
 	});
 
+	test('should not parse multiple prices as math (specific bug case)', () => {
+		const tokens = lex('This is a text with multiple formatted dollars: $199, 199$');
+		const paragraphToken = getFirstTokenByType(tokens, 'paragraph');
+
+		expect(paragraphToken).toBeDefined();
+		const paragraphTokens = paragraphToken.tokens || [];
+		const mathTokens = paragraphTokens.filter((t: { type: string }) => t.type === 'math');
+
+		// Should not create math tokens for multiple prices/numbers
+		expect(mathTokens.length).toBe(0);
+	});
+
+	test('should not parse various currency patterns as math', () => {
+		const testCases = [
+			'$199, 199$',
+			'$1,234$',
+			'$123.45$',
+			'$5 or $10$',
+			'$100 to $200$',
+			'$50, $75, $100$'
+		];
+
+		testCases.forEach((testCase) => {
+			const tokens = lex(testCase);
+			const paragraphToken = getFirstTokenByType(tokens, 'paragraph');
+
+			expect(paragraphToken).toBeDefined();
+			const paragraphTokens = paragraphToken.tokens || [];
+			const mathTokens = paragraphTokens.filter((t: { type: string }) => t.type === 'math');
+
+			// Should not create math tokens for any currency patterns
+			expect(mathTokens.length).toBe(0, `Failed for: ${testCase}`);
+		});
+	});
+
+	test('should parse explicit double dollar math even with numbers', () => {
+		const testCases = [
+			{ input: '$$199199$$', expected: '199199' },
+			{ input: '$$123.45$$', expected: '123.45' },
+			{ input: '$$1,234$$', expected: '1,234' },
+			{ input: '$$199, 199$$', expected: '199, 199' },
+			{ input: '$$100 + 200$$', expected: '100 + 200' }
+		];
+
+		testCases.forEach(({ input, expected }) => {
+			const tokens = lex(input);
+
+			// Double dollar expressions create direct math tokens (block-level)
+			const mathToken = getFirstTokenByType(tokens, 'math');
+			expect(mathToken).toBeDefined(`Math token not found for: ${input}`);
+			expect(mathToken.text).toBe(expected);
+			expect(mathToken.displayMode).toBe(true);
+			expect(mathToken.isInline).toBe(false);
+			expect(mathToken.raw).toBe(input);
+		});
+	});
+
+	test('should parse inline double dollar math with numbers in paragraphs', () => {
+		const testCases = [
+			{ input: 'Formula: $$199199$$ is important', expected: '199199' },
+			{ input: 'The value $$123.45$$ represents cost', expected: '123.45' },
+			{ input: 'Numbers $$199, 199$$ in sequence', expected: '199, 199' }
+		];
+
+		testCases.forEach(({ input, expected }) => {
+			const tokens = lex(input);
+			const paragraphToken = getFirstTokenByType(tokens, 'paragraph');
+
+			expect(paragraphToken).toBeDefined(`Paragraph not found for: ${input}`);
+			const paragraphTokens = paragraphToken.tokens || [];
+			const mathTokens = paragraphTokens.filter((t: { type: string }) => t.type === 'math');
+
+			expect(mathTokens.length).toBe(1, `Math token not found for: ${input}`);
+			expect(mathTokens[0].text).toBe(expected);
+			expect(mathTokens[0].displayMode).toBe(true); // $$ = display mode styling
+			expect(mathTokens[0].isInline).toBe(true); // But still inline context
+		});
+	});
+
+	test('should distinguish between single and double dollar currency vs math', () => {
+		// Single dollars with numbers should be treated as currency
+		const currencyText = 'Price is $199, 199$';
+		const currencyTokens = lex(currencyText);
+		const currencyParagraph = getFirstTokenByType(currencyTokens, 'paragraph');
+		const currencyMathTokens = (currencyParagraph.tokens || []).filter(
+			(t: { type: string }) => t.type === 'math'
+		);
+		expect(currencyMathTokens.length).toBe(0, 'Single dollars should be treated as currency');
+
+		// Double dollars with same numbers should be treated as math
+		const mathText = 'Formula is $$199, 199$$';
+		const mathTokens = lex(mathText);
+		const mathParagraph = getFirstTokenByType(mathTokens, 'paragraph');
+		const mathMathTokens = (mathParagraph.tokens || []).filter(
+			(t: { type: string }) => t.type === 'math'
+		);
+		expect(mathMathTokens.length).toBe(1, 'Double dollars should be treated as math');
+		expect(mathMathTokens[0].text).toBe('199, 199');
+		expect(mathMathTokens[0].displayMode).toBe(true);
+		expect(mathMathTokens[0].isInline).toBe(true);
+	});
+
+	test('should properly distinguish inline vs display mode for inline math', () => {
+		// Single dollar = inline mode
+		const inlineText = 'Equation $E = mc^2$ is famous';
+		const inlineTokens = lex(inlineText);
+		const inlineParagraph = getFirstTokenByType(inlineTokens, 'paragraph');
+		const inlineMathTokens = (inlineParagraph.tokens || []).filter(
+			(t: { type: string }) => t.type === 'math'
+		);
+		expect(inlineMathTokens.length).toBe(1);
+		expect(inlineMathTokens[0].text).toBe('E = mc^2');
+		expect(inlineMathTokens[0].displayMode).toBe(false); // Single $ = inline styling
+		expect(inlineMathTokens[0].isInline).toBe(true); // In paragraph = inline context
+
+		// Double dollar = display mode (but still inline context)
+		const displayText = 'Equation $$E = mc^2$$ is famous';
+		const displayTokens = lex(displayText);
+		const displayParagraph = getFirstTokenByType(displayTokens, 'paragraph');
+		const displayMathTokens = (displayParagraph.tokens || []).filter(
+			(t: { type: string }) => t.type === 'math'
+		);
+		expect(displayMathTokens.length).toBe(1);
+		expect(displayMathTokens[0].text).toBe('E = mc^2');
+		expect(displayMathTokens[0].displayMode).toBe(true); // Double $$ = display styling
+		expect(displayMathTokens[0].isInline).toBe(true); // In paragraph = inline context
+	});
+
 	test('should parse math with line breaks in display mode', () => {
 		const tokens = lex('$$\na = b + c \\\\\nd = e + f\n$$');
 		const mathToken = getFirstTokenByType(tokens, 'math');

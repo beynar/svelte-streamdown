@@ -128,7 +128,7 @@ export const theme = {
 		base: 'italic'
 	},
 	del: {
-		base: 'line-through'
+		base: 'text-gray-600'
 	},
 	footnoteRef: {
 		base: 'text-gray-600 px-1 py-0.5 rounded-md bg-gray-100/80'
@@ -263,7 +263,7 @@ export const shadcnTheme = {
 		base: 'italic text-foreground'
 	},
 	del: {
-		base: 'line-through text-muted-foreground'
+		base: 'text-muted-foreground'
 	},
 	footnoteRef: {
 		base: 'text-muted-foreground px-1 text-sm inline-block rounded-full bg-muted/80 aspect-square border border-border'

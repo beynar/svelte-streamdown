@@ -137,16 +137,6 @@
 			}
 		}
 
-		@keyframes sd-typewriter {
-			from {
-				width: 0;
-				overflow: hidden;
-			}
-			to {
-				width: fit-content;
-			}
-		}
-
 		@keyframes sd-slideUp {
 			from {
 				transform: translateY(10%);

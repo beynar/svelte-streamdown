@@ -32,7 +32,10 @@ export class StreamdownContext {
 animation-duration: ${this.animation.duration}ms;
 animation-timing-function: ${this.animation.timingFunction};
 animation-iteration-count: 1;
-animation-fill-mode: forwards;`
+animation-fill-mode: forwards;
+white-space: pre-wrap;
+display: inline-block;
+text-decoration: inherit;`
 			: undefined
 	);
 
@@ -168,7 +171,7 @@ export type StreamdownProps = {
 	animation?: {
 		animateOnMount?: boolean;
 		enabled?: boolean;
-		type?: 'fade' | 'blur' | 'typewriter' | 'slideUp' | 'slideDown';
+		type?: 'fade' | 'blur' | 'slideUp' | 'slideDown';
 		duration?: number;
 		timingFunction?: 'ease' | 'ease-in' | 'ease-out' | 'ease-in-out' | 'linear';
 		tokenize?: 'word' | 'char';

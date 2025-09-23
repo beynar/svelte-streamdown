@@ -1,6 +1,5 @@
-import type { TokenizerExtensionFunction, TokenizerThis } from 'marked';
 import { type StreamdownToken } from './index.js';
-import { StreamdownContext } from '$lib/context.svelte.js';
+import { StreamdownContext, type Extension } from '$lib/context.svelte.js';
 import { getContext } from 'svelte';
 
 const safeGetContext = () => {
@@ -11,13 +10,7 @@ const safeGetContext = () => {
 	}
 };
 
-export function markedFootnote(): {
-	extensions: {
-		name: string;
-		level: 'block' | 'inline';
-		tokenizer: TokenizerExtensionFunction;
-	}[];
-} {
+export function markedFootnote(): Extension[] {
 	const ensureMaps = (tokenizer: any) => {
 		const streamdown = safeGetContext();
 		if (!streamdown) {
@@ -38,84 +31,79 @@ export function markedFootnote(): {
 		}
 	};
 
-	return {
-		extensions: [
-			{
-				name: 'footnote',
-				level: 'block',
-				tokenizer(this: TokenizerThis, src: string) {
-					const maps = ensureMaps(this);
-					const match =
-						/^\[\^([^\]\n]+)\]:(?:[ \t]+|[\n]*?|$)([^\n]*?(?:\n|$)(?:\n*?[ ]{4,}[^\n]*)*)/.exec(
-							src
-						);
+	return [
+		{
+			name: 'footnote',
+			level: 'block',
+			tokenizer(this, src) {
+				const maps = ensureMaps(this);
+				const match =
+					/^\[\^([^\]\n]+)\]:(?:[ \t]+|[\n]*?|$)([^\n]*?(?:\n|$)(?:\n*?[ ]{4,}[^\n]*)*)/.exec(src);
 
-					if (match) {
-						const [raw, label, text = ''] = match;
-						let content = text.split('\n').reduce((acc, curr) => {
-							return acc + '\n' + curr.replace(/^(?:[ ]{4}|[\t])/, '');
-						}, '');
+				if (match) {
+					const [raw, label, text = ''] = match;
+					let content = text.split('\n').reduce((acc, curr) => {
+						return acc + '\n' + curr.replace(/^(?:[ ]{4}|[\t])/, '');
+					}, '');
 
-						const contentLastLine = content.trimEnd().split('\n').pop();
+					const contentLastLine = content.trimEnd().split('\n').pop();
 
-						content +=
-							// add lines after list, blockquote, codefence, and table
-							contentLastLine &&
-							/^[ \t]*?[>\-*][ ]|[`]{3,}$|^[ \t]*?[|].+[|]$/.test(contentLastLine)
-								? '\n\n'
-								: '';
+					content +=
+						// add lines after list, blockquote, codefence, and table
+						contentLastLine && /^[ \t]*?[>\-*][ ]|[`]{3,}$|^[ \t]*?[|].+[|]$/.test(contentLastLine)
+							? '\n\n'
+							: '';
 
-						const lines = content.split('\n');
+					const lines = content.split('\n');
 
-						const token: Footnote = {
+					const token: Footnote = {
+						type: 'footnote',
+						raw,
+						label,
+						lines,
+						tokens: []
+					};
+					maps.footnotes.set(label, token);
+
+					const ref = maps.refs.get(label);
+
+					if (ref) {
+						ref.content = token;
+					}
+					return token as any;
+				}
+			}
+		},
+		{
+			name: 'footnoteRef',
+			level: 'inline',
+			tokenizer(this, src) {
+				const maps = ensureMaps(this);
+				const match = /^\[\^([^\]\n]+)\]/.exec(src);
+
+				if (match) {
+					const [raw, label] = match;
+
+					const footnote = maps.footnotes.get(label);
+
+					const token: FootnoteRef = {
+						type: 'footnoteRef',
+						raw,
+						label,
+						content: footnote || {
 							type: 'footnote',
 							raw,
 							label,
-							lines,
+							lines: [],
 							tokens: []
-						};
-						maps.footnotes.set(label, token);
-
-						const ref = maps.refs.get(label);
-
-						if (ref) {
-							ref.content = token;
 						}
-						return token as any;
-					}
-				}
-			},
-			{
-				name: 'footnoteRef',
-				level: 'inline',
-				tokenizer(this: TokenizerThis, src: string) {
-					const maps = ensureMaps(this);
-					const match = /^\[\^([^\]\n]+)\]/.exec(src);
-
-					if (match) {
-						const [raw, label] = match;
-
-						const footnote = maps.footnotes.get(label);
-
-						const token: FootnoteRef = {
-							type: 'footnoteRef',
-							raw,
-							label,
-							content: footnote || {
-								type: 'footnote',
-								raw,
-								label,
-								lines: [],
-								tokens: []
-							}
-						};
-						maps.refs.set(label, token);
-						return token;
-					}
+					};
+					maps.refs.set(label, token);
+					return token;
 				}
 			}
-		]
-	};
+		}
+	];
 }
 
 /**

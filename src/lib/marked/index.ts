@@ -24,6 +24,7 @@ import {
 	type TH,
 	type TD
 } from './marked-table.js';
+import type { Extension } from '$lib/context.svelte.js';
 
 export type StreamdownToken =
 	| Exclude<MarkedToken, Tokens.List | Tokens.ListItem>
@@ -47,18 +48,7 @@ export type StreamdownToken =
 // Re-export table types from marked-table
 export type { TableToken, THead, TBody, TFoot, THeadRow, TRow, TH, TD } from './marked-table.js';
 
-const extensions = [
-	markedTable(),
-	markedFootnote(),
-	markedAlert(),
-	markedMath(),
-	markedSubSup(),
-	markedList(),
-	markedBr(),
-	markedHr()
-] as const;
-
-const parseExtensions = (...ext: (typeof extensions)[number][]) => {
+const parseExtensions = (...extensions: Extension[]) => {
 	const options: {
 		gfm: boolean;
 		extensions: {
@@ -82,46 +72,56 @@ const parseExtensions = (...ext: (typeof extensions)[number][]) => {
 		}
 	};
 
-	ext.forEach(({ extensions }) => {
-		extensions.forEach(({ level, name, tokenizer, ...rest }) => {
-			if ('start' in rest && rest.start) {
-				if (level === 'block') {
-					options.extensions.startBlock!.push(rest.start as TokenizerStartFunction);
-				} else {
-					options.extensions.startInline!.push(rest.start as TokenizerStartFunction);
-				}
+	extensions.forEach(({ level, name, tokenizer, ...rest }) => {
+		if ('start' in rest && rest.start) {
+			if (level === 'block') {
+				options.extensions.startBlock!.push(rest.start as TokenizerStartFunction);
+			} else {
+				options.extensions.startInline!.push(rest.start as TokenizerStartFunction);
 			}
-			if (tokenizer) {
-				if (level === 'block') {
-					options.extensions.block.push(tokenizer);
-				} else {
-					options.extensions.inline.push(tokenizer);
-				}
+		}
+		if (tokenizer) {
+			if (level === 'block') {
+				options.extensions.block.push(tokenizer);
+			} else {
+				options.extensions.inline.push(tokenizer);
 			}
-		});
+		}
 	});
+
 	return options;
 };
 
-const blockLexer = new Lexer(parseExtensions(markedHr(), markedFootnote(), markedTable()));
-export const lex = (markdown: string): StreamdownToken[] => {
+export const lex = (markdown: string, extensions: Extension[] = []): StreamdownToken[] => {
 	return new Lexer(
 		parseExtensions(
-			markedHr(),
-			markedTable(),
-			markedFootnote(),
-			markedAlert(),
-			markedMath(),
-			markedSubSup(),
-			markedList(),
-			markedBr()
+			...markedHr(),
+			...markedTable(),
+			...markedFootnote(),
+			...markedAlert(),
+			...markedMath(),
+			...markedSubSup(),
+			...markedList(),
+			...markedBr(),
+			...extensions
 		)
 	)
 		.lex(markdown)
 		.filter((token) => token.type !== 'space' && token.type !== 'footnote') as StreamdownToken[];
 };
 
-export const parseBlocks = (markdown: string): string[] => {
+export const parseBlocks = (markdown: string, extensions: Extension[] = []): string[] => {
+	const blockLexer = new Lexer(
+		parseExtensions(
+			...markedHr(),
+			...markedFootnote(),
+			...markedTable(),
+			...extensions.filter(
+				({ level, applyInBlockParsing }) => level === 'block' && applyInBlockParsing
+			)
+		)
+	);
+
 	return blockLexer.blockTokens(markdown, []).reduce((acc, block) => {
 		if (block.type === 'space' || block.type === 'footnote') {
 			return acc;

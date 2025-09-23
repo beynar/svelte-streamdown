@@ -25,6 +25,8 @@
 		animation,
 		element = $bindable(),
 		icons,
+		children,
+		extensions,
 		...snippets
 	}: StreamdownProps = $props();
 
@@ -99,6 +101,12 @@
 				mermaid: mermaidControls
 			};
 		},
+		get children() {
+			return children;
+		},
+		get extensions() {
+			return extensions;
+		},
 		get icons() {
 			return icons;
 		}
@@ -106,7 +114,7 @@
 
 	const id = $props.id();
 
-	const blocks = $derived(parseBlocks(content));
+	const blocks = $derived(parseBlocks(content, streamdown.extensions));
 </script>
 
 <div bind:this={element} class={className}>

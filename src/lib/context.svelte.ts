@@ -84,7 +84,7 @@ import type {
 	TD,
 	TH
 } from './marked/index.js';
-import type { Tokens } from 'marked';
+import type { Token, TokenizerStartFunction, TokenizerThis, Tokens, TokensList } from 'marked';
 import type { ListItemToken, ListToken } from './marked/marked-list.js';
 import type { Footnote, FootnoteRef, FootnoteToken } from './marked/marked-footnotes.js';
 import { bind } from './utils/bind.js';
@@ -132,6 +132,24 @@ export type Snippets = {
 			}
 		]
 	>;
+};
+
+type GenericToken = {
+	type: string;
+	raw: string;
+	tokens?: Token[];
+} & Record<string, any>;
+
+export type Extension = {
+	name: string;
+	level: 'block' | 'inline';
+	tokenizer: (
+		this: TokenizerThis,
+		src: string,
+		tokens: Token[] | TokensList
+	) => GenericToken | undefined;
+	start?: TokenizerStartFunction;
+	applyInBlockParsing?: boolean;
 };
 
 export type StreamdownProps = {
@@ -189,4 +207,6 @@ export type StreamdownProps = {
 		caution?: Snippet;
 		important?: Snippet;
 	};
+	extensions?: Extension[];
+	children?: Snippet<[{ streamdown: StreamdownContext; token: GenericToken; children: Snippet }]>;
 } & Partial<Snippets>;

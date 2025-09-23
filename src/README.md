@@ -261,14 +261,14 @@ This Svelte port maintains feature parity with the original [Streamdown](https:/
 
 ## 🎭 Animation System
 
-Streamdown includes a sophisticated animation system designed specifically for streaming AI content, providing smooth and engaging visual feedback as text appears on screen.
+Streamdown includes an animation system designed specifically for streaming AI content, providing smooth and engaging visual feedback as text appears on screen.
 
 ### How It Works
 
 The animation system works by:
 
 1. **Tokenization**: Text is broken down into tokens (words or characters) based on your configuration
-2. **Sequential Animation**: Each token animates in sequence with configurable timing
+2. **Sequential Animation**: Each token animates as it is received
 3. **Block-level Animation**: Entire blocks (paragraphs, headings, code blocks) animate as units
 
 ### Animation Types
@@ -293,6 +293,8 @@ Text slides down from above while fading in, creating a dynamic downward motion.
 
 > [!TIP]
 > For production applications where the LLM is not streaming (static content), disable animations entirely by setting `animation.enabled = false` to minimize DOM elements and improve performance.
+>
+> If using AI SDK mind to smooth stream the content to using word-level tokenization to avoid partial words not being animated.
 
 > [!WARNING]
 > Character-level tokenization (`tokenize: 'char'`) creates significantly more DOM elements than word-level tokenization. Use character tokenization sparingly and only when the typewriter effect is essential for your user experience.
@@ -327,17 +329,15 @@ console.log('Hello from Streamdown!');
 	let content = `# Custom Components Example
 
 This heading will use a custom component!`;
-
-	// Custom heading component
 </script>
 
-{#snippet customHeading({ children, token })}
-	<h1 class="mb-4 text-4xl font-bold text-blue-600" {...token.props}>
-		{@render children()}
-	</h1>
-{/snippet}
-
-<Streamdown {content} heading={customHeading} />
+<Streamdown {content}>
+	{#snippet heading({ children })}
+		<h1 class="mb-4 text-4xl font-bold text-blue-600">
+			{@render children()}
+		</h1>
+	{/snippet}
+</Streamdown>
 ```
 
 ### Security Configuration
@@ -359,73 +359,32 @@ This heading will use a custom component!`;
 
 ## 📋 Props API
 
-| Prop                       | Type                                                             | Default          | Description                                                                                                                                        |
-| -------------------------- | ---------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`                  | `string`                                                         | -                | **Required.** The markdown content to render                                                                                                       |
-| `class`                    | `string`                                                         | -                | CSS class names for the wrapper element                                                                                                            |
-| `parseIncompleteMarkdown`  | `boolean`                                                        | `true`           | Parse and fix incomplete markdown syntax                                                                                                           |
-| `defaultOrigin`            | `string`                                                         | -                | Default origin for relative URLs                                                                                                                   |
-| `allowedLinkPrefixes`      | `string[]`                                                       | `['*']`          | Allowed URL prefixes for links                                                                                                                     |
-| `allowedImagePrefixes`     | `string[]`                                                       | `['*']`          | Allowed URL prefixes for images                                                                                                                    |
-| `skipHtml`                 | `boolean`                                                        | -                | Skip HTML parsing entirely                                                                                                                         |
-| `unwrapDisallowed`         | `boolean`                                                        | -                | Unwrap instead of removing disallowed elements                                                                                                     |
-| `urlTransform`             | `UrlTransform \| null`                                           | -                | Custom URL transformation function                                                                                                                 |
-| `theme`                    | `DeepPartial<Theme>`                                                 | -                | Custom theme overrides                                                                                                                             |
-| `baseTheme`                | `'tailwind' \| 'shadcn'`                                         | `'tailwind'`     | Base theme to use before applying overrides                                                                                                        |
-| `mergeTheme`               | `boolean`                                                        | `true`           | Whether to merge theme with base theme                                                                                                             |
-| `shikiTheme`               | `BundledTheme`                                                   | `'github-light'` | Code highlighting theme                                                                                                                            |
-| `mermaidConfig`            | `MermaidConfig`                                                  | -                | Mermaid diagram configuration                                                                                                                      |
-| `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`            | -                | KaTeX math rendering options                                                                                                                       |
-| `animation`                | `AnimationConfig`                                                | -                | Animation configuration for streaming content                                                                                                      |
-| `animation.enabled`        | `boolean`                                                        | `false`          | Enable/disable animations                                                                                                                          |
-| `animation.type`           | `'fade' \| 'blur' \| 'typewriter' \| 'slideUp' \| 'slideDown'`   | `'blur'`         | Animation style for text appearance                                                                                                                |
-| `animation.duration`       | `number`                                                         | `500`            | Animation duration in milliseconds                                                                                                                 |
-| `animation.timingFunction` | `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'` | `'ease-in'`      | CSS timing function for animations                                                                                                                 |
-| `animation.tokenize`       | `'word' \| 'char'`                                               | `'word'`         | Tokenization method for text animations                                                                                                            |
-| `animation.animateOnMount` | `boolean`                                                        | `false`          | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM |
-
-### Custom Component Props
-
-**Every single markdown element** can be customized with Svelte snippets, giving you
-complete control over styling and behavior:
-
-Each snippet receives `{ children, token }` where `token` is a typed token object containing the parsed markdown token with its properties and children is a snippet to be rendered.
-
-```svelte
-<script>
-	import { Streamdown } from 'svelte-streamdown';
-
-	let content = `# Fully Customizable
-
-This heading uses a custom component with your design system!`;
-</script>
-
-{#snippet customHeading({ children, token })}
-	<h1
-		class="text-gradient mb-6 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-4xl font-bold text-transparent"
-		{...token.props}
-	>
-		{@render children()}
-	</h1>
-{/snippet}
-
-{#snippet customCode({ children, token })}
-	<code class="rounded bg-gray-100 px-2 py-1 font-mono text-sm dark:bg-gray-800" {...token.props}>
-		{@render children()}
-	</code>
-{/snippet}
-
-{#snippet customBlockquote({ children, token })}
-	<blockquote
-		class="border-l-4 border-blue-500 pl-4 text-gray-600 italic dark:text-gray-300"
-		{...token.props}
-	>
-		{@render children()}
-	</blockquote>
-{/snippet}
-
-<Streamdown {content} heading={customHeading} code={customCode} blockquote={customBlockquote} />
-```
+| Prop                       | Type                                                                             | Default          | Description                                                                                                                                        |
+| -------------------------- | -------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`                  | `string`                                                                         | -                | **Required.** The markdown content to render                                                                                                       |
+| `class`                    | `string`                                                                         | -                | CSS class names for the wrapper element                                                                                                            |
+| `parseIncompleteMarkdown`  | `boolean`                                                                        | `true`           | Parse and fix incomplete markdown syntax                                                                                                           |
+| `defaultOrigin`            | `string`                                                                         | -                | Default origin for relative URLs                                                                                                                   |
+| `allowedLinkPrefixes`      | `string[]`                                                                       | `['*']`          | Allowed URL prefixes for links                                                                                                                     |
+| `allowedImagePrefixes`     | `string[]`                                                                       | `['*']`          | Allowed URL prefixes for images                                                                                                                    |
+| `skipHtml`                 | `boolean`                                                                        | -                | Skip HTML parsing entirely                                                                                                                         |
+| `unwrapDisallowed`         | `boolean`                                                                        | -                | Unwrap instead of removing disallowed elements                                                                                                     |
+| `urlTransform`             | `UrlTransform \| null`                                                           | -                | Custom URL transformation function                                                                                                                 |
+| `theme`                    | `DeepPartial<Theme>`                                                             | -                | Custom theme overrides                                                                                                                             |
+| `baseTheme`                | `'tailwind' \| 'shadcn'`                                                         | `'tailwind'`     | Base theme to use before applying overrides                                                                                                        |
+| `mergeTheme`               | `boolean`                                                                        | `true`           | Whether to merge theme with base theme                                                                                                             |
+| `shikiTheme`               | `BundledTheme`                                                                   | `'github-light'` | Code highlighting theme                                                                                                                            |
+| `mermaidConfig`            | `MermaidConfig`                                                                  | -                | Mermaid diagram configuration                                                                                                                      |
+| `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`                            | -                | KaTeX math rendering options                                                                                                                       |
+| `animation`                | `AnimationConfig`                                                                | -                | Animation configuration for streaming content                                                                                                      |
+| `animation.enabled`        | `boolean`                                                                        | `false`          | Enable/disable animations                                                                                                                          |
+| `animation.type`           | `'fade' \| 'blur' \| 'typewriter' \| 'slideUp' \| 'slideDown'`                   | `'blur'`         | Animation style for text appearance                                                                                                                |
+| `animation.duration`       | `number`                                                                         | `500`            | Animation duration in milliseconds                                                                                                                 |
+| `animation.timingFunction` | `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'`                 | `'ease-in'`      | CSS timing function for animations                                                                                                                 |
+| `animation.tokenize`       | `'word' \| 'char'`                                                               | `'word'`         | Tokenization method for text animations                                                                                                            |
+| `animation.animateOnMount` | `boolean`                                                                        | `false`          | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM |
+| `extensions`               | `Array<Extension>`                                                               | `[]`             | Custom marked tokenizers to render special markdown blocks or inline tokens                                                                        |
+| `children`                 | `Snippet<[{token:GenericToken, streamdown: StreamdownContext, children: Snippet` | `[]`             | Snippet used to render element that are not supported by Streamdown and tokenized by your custom extensions                                        |
 
 #### All Available Customizable Elements:
 
@@ -435,15 +394,15 @@ This heading uses a custom component with your design system!`;
 
 **Lists**: `ul`, `ol`, `li`
 
-**Code**: `code`, `inlineCode`, `pre`
+**Code**: `code`, `codeSpan`
 
-**Tables**: `table`, `thead`, `tbody`, `tr`, `th`, `td`
+**Tables**: `table`, `thead`, `tbody`, `tr`, `th`, `td`, `tfoot`
 
-**Special Content**: `blockquote`, `hr`, `alert`, `mermaid`, `math`, `inlineMath`
+**Special Content**: `blockquote`, `hr`, `alert`, `mermaid`, `math`, `footnoteRef`
 
 **Note**: The above elements are **supported by Streamdown** and should be customized using individual props or the theme system.
 
-## 🎨 Advanced Theming System
+## 🎨 Theming System
 
 ### Built-in Themes
 
@@ -547,6 +506,66 @@ Each component supports multiple themeable parts:
 ### Theme Merging
 
 Themes are intelligently merged using Tailwind's class merging utility, so you only need to override the specific parts you want to customize while keeping the default styling for everything else.
+
+## 💉 Extensibility
+
+Streamdown is extensible through the use of custom extensions.
+
+An extension is an object that has a `name`, a `level` and a `tokenizer` function.
+
+- `name`: The name of the extension
+- `level`: The level of the extension, can be `block` or `inline`
+- `tokenizer`: The tokenizer function, see [marked](https://github.com/markedjs/marked) for more information
+
+To render the extension custom tokens, you can then simply use the `children` snippet.
+
+### Example
+
+```svelte
+<script lang="ts">
+	import { Streamdown, type Extension } from 'svelte-streamdown';
+	const markedCollapsible: Extension = {
+		name: 'collapsible',
+		level: 'block',
+		tokenizer(this, src) {
+			// Match [detail]...[detail] blocks (case insensitive)
+			const detailMatch = src.match(/^\[detail\](.*?)\[detail\]/is);
+
+			if (detailMatch) {
+				const content = detailMatch[1] || '';
+				const tokens = this.lexer.blockTokens(content);
+
+				return {
+					type: 'detail',
+					raw: detailMatch[0], // The entire matched string including tags
+					tokens
+				};
+			}
+
+			return undefined;
+		}
+	};
+</script>
+
+<Streamdown
+	extensions={[markedCollapsible]}
+	content={`
+[detail]	
+This is a collapsible **section**
+[detail]`}
+>
+	{#snippet children({ token, streamdown, children })}
+		{#if token.type === 'detail'}
+			<details>
+				<summary> Detail </summary>
+				<div>
+					{@render children()}
+				</div>
+			</details>
+		{/if}
+	{/snippet}
+</Streamdown>
+```
 
 ## 🛠️ Development
 

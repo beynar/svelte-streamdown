@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Streamdown from '$lib/Streamdown.svelte';
 	import { useTheme } from 'svelte-themes';
+	import { markedCollapsible } from './custom-extension.js';
 
 	let { data } = $props();
 
@@ -185,6 +186,7 @@
 		class="mx-auto mb-48 max-w-4xl border border-t-0 border-dashed border-border px-4 pt-10 [&>h1]:mt-0"
 	>
 		<Streamdown
+			extensions={[markedCollapsible]}
 			animation={{
 				animateOnMount: false,
 				enabled: animationEnabled,
@@ -198,6 +200,17 @@
 			shikiPreloadThemes={['github-dark', 'github-light']}
 			allowedLinkPrefixes={['*']}
 			{content}
-		/>
+		>
+			<!-- {#snippet children({ token, streamdown, children })}
+				{#if token.type === 'detail'}
+					<details>
+						<summary> Detail </summary>
+						<div>
+							{@render children()}
+						</div>
+					</details>
+				{/if}
+			{/snippet} -->
+		</Streamdown>
 	</div>
 </div>

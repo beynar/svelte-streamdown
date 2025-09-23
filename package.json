@@ -73,7 +73,6 @@
 	"dependencies": {
 		"@floating-ui/dom": "^1.7.4",
 		"clsx": "^2.1.1",
-		"html-url-attributes": "^3.0.1",
 		"katex": "^0.16.22",
 		"marked": "^16.2.1",
 		"mermaid": "^11.11.0",

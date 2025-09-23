@@ -126,7 +126,7 @@ export const markedList: Extension = {
 			src = src.substring(raw.length);
 
 			const line = cap[2]
-				? cap[2].split('\n', 1)[0].replace(/^\t+/, (t) => ' '.repeat(3 * t.length))
+				? cap[2].split('\n', 1)[0].replace(/^\t+/, (t) => ' '.repeat(4 * t.length))
 				: '';
 			const nextLine = src.split('\n', 1)[0];
 			const blankLine = !line.trim();

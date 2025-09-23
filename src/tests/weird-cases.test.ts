@@ -116,7 +116,9 @@ describe('weird cases for images and links', () => {
 		const input = 'Empty: ![] and ![Alt] and ![] and ![Incomplete';
 		const result = parseIncompleteMarkdown(input);
 
-		expect(result).toBe('Empty: ![] and ![Alt] and ![] and ![Incomplete](streamdown:incomplete-image)');
+		expect(result).toBe(
+			'Empty: ![] and ![Alt] and ![] and ![Incomplete](streamdown:incomplete-image)'
+		);
 	});
 
 	test('should handle links with empty text', () => {
@@ -130,14 +132,18 @@ describe('weird cases for images and links', () => {
 		const input = 'Mixed: ![Complete](url.jpg) [Complete](url.com) ![Incomplete] [Incomplete';
 		const result = parseIncompleteMarkdown(input);
 
-		expect(result).toBe('Mixed: ![Complete](url.jpg) [Complete](url.com) ![Incomplete] [Incomplete');
+		expect(result).toBe(
+			'Mixed: ![Complete](url.jpg) [Complete](url.com) ![Incomplete] [Incomplete'
+		);
 	});
 
 	test('should handle images/links with HTML entities', () => {
 		const input = 'HTML: ![&lt;tag&gt;] [&amp; entity] ![&lt;incomplete&gt;] [&amp; incomplete';
 		const result = parseIncompleteMarkdown(input);
 
-		expect(result).toBe('HTML: ![&lt;tag&gt;] [&amp; entity] ![&lt;incomplete&gt;] [&amp; incomplete](streamdown:incomplete-link)');
+		expect(result).toBe(
+			'HTML: ![&lt;tag&gt;] [&amp; entity] ![&lt;incomplete&gt;] [&amp; incomplete](streamdown:incomplete-link)'
+		);
 	});
 
 	test('should handle images with newlines in alt text (edge case)', () => {

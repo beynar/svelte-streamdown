@@ -1,58 +1,47 @@
-import type { TokenizerExtensionFunction, TokenizerStartFunction, TokenizerThis } from 'marked';
+import type { Extension } from './index.js';
 
 const subRule = /^~([^~\s](?:[^~]*[^~\s])?)~/; // ~text~
 const supRule = /^\^([^\^\s](?:[^\^]*[^\^\s])?)\^/; // ^text^
 
-export function markedSubSup(): {
-	extensions: {
-		name: string;
-		level: 'inline';
-		tokenizer: TokenizerExtensionFunction;
-		start?: TokenizerStartFunction;
-	}[];
-} {
-	return {
-		extensions: [
-			{
-				name: 'sub',
-				level: 'inline',
-				start(src: string) {
-					const i = src.indexOf('~');
-					return i === -1 ? undefined : i;
-				},
-				tokenizer(this: TokenizerThis, src: string) {
-					const match = src.match(subRule);
-					if (match) {
-						return {
-							type: 'sub',
-							raw: match[0],
-							text: match[1],
-							tokens: this.lexer.inlineTokens(match[1])
-						} satisfies SubToken;
-					}
-				}
-			},
-			{
-				name: 'sup',
-				level: 'inline',
-				start(src: string) {
-					return src.indexOf('^');
-				},
-				tokenizer(this: TokenizerThis, src: string) {
-					const match = src.match(supRule);
-					if (match) {
-						return {
-							type: 'sup',
-							raw: match[0],
-							text: match[1],
-							tokens: this.lexer.inlineTokens(match[1])
-						} satisfies SupToken;
-					}
-				}
-			}
-		]
-	} as const;
-}
+export const markedSub: Extension = {
+	name: 'sub',
+	level: 'inline',
+	start(src: string) {
+		const i = src.indexOf('~');
+		return i === -1 ? undefined : i;
+	},
+	tokenizer(this, src) {
+		const match = src.match(subRule);
+		if (match) {
+			return {
+				type: 'sub',
+				raw: match[0],
+				text: match[1],
+				tokens: this.lexer.inlineTokens(match[1])
+			} satisfies SubToken;
+		}
+	}
+};
+
+export const markedSup: Extension = {
+	name: 'sup',
+	level: 'inline',
+	start(src: string) {
+		const i = src.indexOf('^');
+		return i === -1 ? undefined : i;
+	},
+	tokenizer(this, src) {
+		const match = src.match(supRule);
+		if (match) {
+			return {
+				type: 'sup',
+				raw: match[0],
+				text: match[1],
+				tokens: this.lexer.inlineTokens(match[1])
+			} satisfies SupToken;
+		}
+	}
+};
 
 /**
  * Represents a subscript token.

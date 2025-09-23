@@ -1,7 +1,6 @@
-import type { Token, Tokenizer, Tokens } from 'marked';
+import type { Extension } from './index.js';
+import type { Tokenizer, Tokens } from 'marked';
 import { Lexer } from 'marked';
-import type { TokenizerExtensionFunction } from 'marked';
-import type { TokenizerThis } from 'marked';
 
 type variantType = 'note' | 'tip' | 'important' | 'warning' | 'caution';
 const variants: variantType[] = ['note', 'tip', 'important', 'warning', 'caution'];
@@ -10,33 +9,21 @@ export function createSyntaxPattern(type: variantType): string {
 	return `^\\s*[\\*_]*\\[!${type.toUpperCase()}\\][\\*_]*\\s*`;
 }
 
-export function markedAlert(): {
-	extensions: Array<{
-		name: string;
-		level: 'block' | 'inline';
-		tokenizer: TokenizerExtensionFunction;
-	}>;
-} {
-	const defaultLexer = new Lexer({ gfm: true });
-	const defaultTokenizer = defaultLexer.options.tokenizer!;
+const defaultLexer = new Lexer({ gfm: true });
+const defaultTokenizer = defaultLexer.options.tokenizer!;
 
-	return {
-		extensions: [
-			{
-				name: 'alert',
-				level: 'block',
-				tokenizer(this: TokenizerThis, src: string): Tokens.Generic | undefined {
-					const cap = defaultTokenizer.rules.block.blockquote.exec(src);
-					if (cap) {
-						const blockquoteToken = defaultTokenizer.blockquote(src);
-						blockquoteToken && processAlertToken(blockquoteToken, this.lexer.options.tokenizer!);
-						return blockquoteToken;
-					}
-				}
-			}
-		]
-	};
-}
+export const markedAlert: Extension = {
+	name: 'alert',
+	level: 'block',
+	tokenizer(this, src) {
+		const cap = defaultTokenizer.rules.block.blockquote.exec(src);
+		if (cap) {
+			const blockquoteToken = defaultTokenizer.blockquote(src);
+			blockquoteToken && processAlertToken(blockquoteToken, this.lexer.options.tokenizer!);
+			return blockquoteToken;
+		}
+	}
+};
 
 export function processAlertToken(token: Tokens.Blockquote, tokenizer: Tokenizer): void {
 	const matchedVariant = variants.find((type) =>

@@ -82,7 +82,9 @@ import type {
 	THeadRow,
 	TRow,
 	TD,
-	TH
+	TH,
+	Extension,
+	GenericToken
 } from './marked/index.js';
 import type { Tokens } from 'marked';
 import type { ListItemToken, ListToken } from './marked/marked-list.js';
@@ -189,4 +191,6 @@ export type StreamdownProps = {
 		caution?: Snippet;
 		important?: Snippet;
 	};
+	extensions?: Extension[];
+	children?: Snippet<[{ streamdown: StreamdownContext; token: GenericToken; children: Snippet }]>;
 } & Partial<Snippets>;

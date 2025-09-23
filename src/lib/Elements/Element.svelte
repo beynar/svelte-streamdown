@@ -223,6 +223,16 @@
 	<Alert {token} {children} />
 {:else if token.type === 'footnoteRef'}
 	<FootnoteRef {token} />
+{:else if token.type === 'footnote'}
+	<!-- TODO Footnotes are rendered inside the FootnoteRef popover -->
+{:else if token.type === 'def'}
+	<!-- TODO This does not seems to be tokenized for now -->
+{:else if token.type === 'escape'}
+	<!-- TODO This does not seems to be tokenized for now -->
+{:else if token.type === 'space'}
+	<!-- TODO This does not seems to be tokenized for now -->
+{:else if token.type === 'text'}
+	{@render children()}
 {:else if token.type === 'html'}
 	{#if streamdown.renderHtml}
 		{@const content =
@@ -230,6 +240,6 @@
 		{@html content}
 	{/if}
 {:else}
-	<!-- For tokens we don't handle specifically, render children or fallback -->
-	{@render children?.()}
+	<!-- For tokens we don't handle specifically, it may certainely be a custom extension to to the children props to handle -->
+	{@render streamdown.children?.({ token, children, streamdown })}
 {/if}

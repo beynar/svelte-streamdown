@@ -6,4 +6,3 @@ export { default as Link } from './Link.svelte';
 export { default as Math } from './Math.svelte';
 export { default as Mermaid } from './Mermaid.svelte';
 export { default as Slot } from './Slot.svelte';
-export { default as Table } from './Table.svelte';

@@ -14,8 +14,8 @@
 		insideFootnote?: boolean;
 	} = $props();
 
-	const tokens = $derived(lex(parseIncompleteMarkdown(block.trim())));
 	const streamdown = useStreamdown();
+	const tokens = $derived(lex(parseIncompleteMarkdown(block.trim()), streamdown.extensions));
 </script>
 
 {#snippet renderChildren(tokens: StreamdownToken[])}

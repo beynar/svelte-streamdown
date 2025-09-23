@@ -1,4 +1,4 @@
-import type { Extension } from '$lib/context.svelte.js';
+import type { Extension } from './index.js';
 
 // Configuration options for the extended tables extension
 export interface SpanTableOptions {
@@ -538,150 +538,144 @@ function processRows(
 
 	return tokens;
 }
+const { detectFooter, maxColspan } = DEFAULT_OPTIONS;
 
 // Adds support for extended tables in marked with row spanning, column spanning,
 // multi-row headers, and column alignment
-export function markedTable(options: SpanTableOptions = {}): Extension[] {
-	const config = { ...DEFAULT_OPTIONS, ...options };
-	const { detectFooter, maxColspan } = config;
+export const markedTable: Extension = {
+	name: 'table',
+	level: 'block',
+	start(src) {
+		// Check for table with potential header alignment
+		let match = src.match(/^\n *([^\n ].*\|.*)\n/);
+		if (match) return match.index;
 
-	return [
-		{
-			name: 'table',
-			level: 'block',
-			start(src) {
-				// Check for table with potential header alignment
-				let match = src.match(/^\n *([^\n ].*\|.*)\n/);
-				if (match) return match.index;
+		// Check for simple table without header alignment
+		match = src.match(/^\n *(\|.*\|)\n/);
+		if (match) return match.index;
 
-				// Check for simple table without header alignment
-				match = src.match(/^\n *(\|.*\|)\n/);
-				if (match) return match.index;
+		return undefined;
+	},
+	tokenizer(this, src): any {
+		// Try to match table with header and alignment first
+		let regex = new RegExp(
+			'^' +
+				'([^\\n ].*\\|.*\\n(?: *[^\\s].*\\n)*?)' + // Header
+				' {0,3}(?:\\| *)?(:?-+:? *(?:\\| *:?-+:? *)*)(?:\\| *)?' + // Header Align
+				'(?:\\n((?:(?! *\\n| {0,3}((?:- *){3,}|(?:_ *){3,}|(?:\\* *){3,})' + // Body Cells
+				'(?:\\n+|$)| {0,3}#{1,6} | {0,3}>| {4}[^\\n]| {0,3}(?:`{3,}' +
+				'(?=[^`\\n]*\\n)|~{3,})[^\\n]*\\n| {0,3}(?:[*+-]|1[.)]) |' +
+				'<\\/?(?:address|article|aside|base|basefont|blockquote|body|' +
+				'caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?: +|\\n|\\/?>)|<(?:script|pre|style|textarea|!--)).*(?:\\n|$))*)\\n*|$)'
+		);
 
-				return undefined;
-			},
-			tokenizer(this, src): any {
-				// Try to match table with header and alignment first
-				let regex = new RegExp(
-					'^' +
-						'([^\\n ].*\\|.*\\n(?: *[^\\s].*\\n)*?)' + // Header
-						' {0,3}(?:\\| *)?(:?-+:? *(?:\\| *:?-+:? *)*)(?:\\| *)?' + // Header Align
-						'(?:\\n((?:(?! *\\n| {0,3}((?:- *){3,}|(?:_ *){3,}|(?:\\* *){3,})' + // Body Cells
-						'(?:\\n+|$)| {0,3}#{1,6} | {0,3}>| {4}[^\\n]| {0,3}(?:`{3,}' +
-						'(?=[^`\\n]*\\n)|~{3,})[^\\n]*\\n| {0,3}(?:[*+-]|1[.)]) |' +
-						'<\\/?(?:address|article|aside|base|basefont|blockquote|body|' +
-						'caption|center|col|colgroup|dd|details|dialog|dir|div|dl|dt|fieldset|figcaption|figure|footer|form|frame|frameset|h[1-6]|head|header|hr|html|iframe|legend|li|link|main|menu|menuitem|meta|nav|noframes|ol|optgroup|option|p|param|section|source|summary|table|tbody|td|tfoot|th|thead|title|tr|track|ul)(?: +|\\n|\\/?>)|<(?:script|pre|style|textarea|!--)).*(?:\\n|$))*)\\n*|$)'
-				);
+		let cap = regex.exec(src);
+		let hasHeaderAlignment = true;
 
-				let cap = regex.exec(src);
-				let hasHeaderAlignment = true;
+		// If no match with header alignment, try table without header alignment
+		if (!cap) {
+			// Simple regex for tables without header alignment
+			regex = /^(\|.*\|(?:\n\|.*\|)*)/;
+			cap = regex.exec(src);
+			hasHeaderAlignment = false;
+		}
 
-				// If no match with header alignment, try table without header alignment
-				if (!cap) {
-					// Simple regex for tables without header alignment
-					regex = /^(\|.*\|(?:\n\|.*\|)*)/;
-					cap = regex.exec(src);
-					hasHeaderAlignment = false;
+		if (!cap) return undefined;
+
+		// Combine all captured groups to get complete table rows
+		let allTableContent = cap[1]; // Headers
+		if (cap[2]) allTableContent += '\n' + cap[2]; // Alignment row
+		if (cap[3]) allTableContent += '\n' + cap[3]; // Body rows
+
+		const allRows = allTableContent.replace(/\n$/, '').split('\n');
+		let headerRows: string[] = [];
+		let bodyRows: string[] = [];
+		let alignRow: string[] = [];
+		let alignment: (string | null)[] = [];
+		let colCount = 0;
+
+		if (hasHeaderAlignment) {
+			// Traditional table with header and alignment
+			// Parse all rows and identify which are headers vs body
+			let headerEndIndex = -1;
+
+			// Find the FIRST alignment row (contains dashes/underscores/asterisks)
+			for (let i = 0; i < allRows.length; i++) {
+				const row = allRows[i].trim();
+				const isAlignment = /^ *(\| *)?:?-+:? *(\| *:?-+:? *)*(\| *)?$/.test(row);
+				// Check if this row matches alignment pattern (contains only |, spaces, and alignment chars)
+				if (isAlignment) {
+					headerEndIndex = i;
+					alignRow = row.replace(/^ *\| *| *\| *$/g, '').split(/ *\| */);
+					break; // Stop at the first alignment row
 				}
+			}
 
-				if (!cap) return null;
+			if (headerEndIndex === -1) {
+				// No alignment row found, treat as simple table
+				bodyRows = allRows;
+				colCount = bodyRows[0].split('|').filter((cell) => cell.trim() !== '').length;
+				alignment = new Array(colCount).fill(null);
+			} else {
+				// Found alignment row, split headers and body
+				// Filter out empty rows and the alignment row itself from headers
 
-				// Combine all captured groups to get complete table rows
-				let allTableContent = cap[1]; // Headers
-				if (cap[2]) allTableContent += '\n' + cap[2]; // Alignment row
-				if (cap[3]) allTableContent += '\n' + cap[3]; // Body rows
+				headerRows = allRows.slice(0, headerEndIndex).filter((row) => row.trim() !== '');
 
-				const allRows = allTableContent.replace(/\n$/, '').split('\n');
-				let headerRows: string[] = [];
-				let bodyRows: string[] = [];
-				let alignRow: string[] = [];
-				let alignment: (string | null)[] = [];
-				let colCount = 0;
+				bodyRows = headerEndIndex + 1 < allRows.length ? allRows.slice(headerEndIndex + 1) : [];
 
-				if (hasHeaderAlignment) {
-					// Traditional table with header and alignment
-					// Parse all rows and identify which are headers vs body
-					let headerEndIndex = -1;
+				// Use alignment row length as the authoritative column count
+				colCount = alignRow.length;
 
-					// Find the FIRST alignment row (contains dashes/underscores/asterisks)
-					for (let i = 0; i < allRows.length; i++) {
-						const row = allRows[i].trim();
-						const isAlignment = /^ *(\| *)?:?-+:? *(\| *:?-+:? *)*(\| *)?$/.test(row);
-						// Check if this row matches alignment pattern (contains only |, spaces, and alignment chars)
-						if (isAlignment) {
-							headerEndIndex = i;
-							alignRow = row.replace(/^ *\| *| *\| *$/g, '').split(/ *\| */);
-							break; // Stop at the first alignment row
-						}
-					}
+				// Validate that we have a reasonable table structure
+				if (colCount === 0) return undefined;
 
-					if (headerEndIndex === -1) {
-						// No alignment row found, treat as simple table
-						bodyRows = allRows;
-						colCount = bodyRows[0].split('|').filter((cell) => cell.trim() !== '').length;
-						alignment = new Array(colCount).fill(null);
-					} else {
-						// Found alignment row, split headers and body
-						// Filter out empty rows and the alignment row itself from headers
+				// Process alignment
+				alignment = processAlignment(alignRow);
+			}
+		} else {
+			// Table without header alignment - treat all rows as body rows
+			bodyRows = allRows;
+			const firstRowCells = bodyRows[0].split('|').filter((cell) => cell.trim() !== '');
+			colCount = firstRowCells.length;
+			alignment = new Array(colCount).fill(null); // No alignment for tables without headers
+		}
 
-						headerRows = allRows.slice(0, headerEndIndex).filter((row) => row.trim() !== '');
+		// Detect footer alignment row pattern in body rows (only for tables with header alignment)
+		let shouldDetectFooter = false;
+		let processedBodyRows = bodyRows;
 
-						bodyRows = headerEndIndex + 1 < allRows.length ? allRows.slice(headerEndIndex + 1) : [];
-
-						// Use alignment row length as the authoritative column count
-						colCount = alignRow.length;
-
-						// Validate that we have a reasonable table structure
-						if (colCount === 0) return null;
-
-						// Process alignment
-						alignment = processAlignment(alignRow);
-					}
-				} else {
-					// Table without header alignment - treat all rows as body rows
-					bodyRows = allRows;
-					const firstRowCells = bodyRows[0].split('|').filter((cell) => cell.trim() !== '');
-					colCount = firstRowCells.length;
-					alignment = new Array(colCount).fill(null); // No alignment for tables without headers
+		if (detectFooter && hasHeaderAlignment && bodyRows.length > 0) {
+			// Check if any row matches the alignment pattern (contains only dashes, pipes, colons, and spaces)
+			for (let i = bodyRows.length - 1; i >= 0; i--) {
+				const row = bodyRows[i];
+				if (/^ *\| *:?-+:? *(\| *:?-+:? *)*\| *$/.test(row)) {
+					// Found footer alignment row - remove it and enable footer detection
+					shouldDetectFooter = true;
+					processedBodyRows = bodyRows.slice(0, i).concat(bodyRows.slice(i + 1));
+					break;
 				}
-
-				// Detect footer alignment row pattern in body rows (only for tables with header alignment)
-				let shouldDetectFooter = false;
-				let processedBodyRows = bodyRows;
-
-				if (detectFooter && hasHeaderAlignment && bodyRows.length > 0) {
-					// Check if any row matches the alignment pattern (contains only dashes, pipes, colons, and spaces)
-					for (let i = bodyRows.length - 1; i >= 0; i--) {
-						const row = bodyRows[i];
-						if (/^ *\| *:?-+:? *(\| *:?-+:? *)*\| *$/.test(row)) {
-							// Found footer alignment row - remove it and enable footer detection
-							shouldDetectFooter = true;
-							processedBodyRows = bodyRows.slice(0, i).concat(bodyRows.slice(i + 1));
-							break;
-						}
-					}
-				}
-
-				// Process all rows and create table sections
-				const tokens = processRows(
-					headerRows,
-					processedBodyRows,
-					alignment,
-					colCount,
-					this.lexer,
-					maxColspan,
-					shouldDetectFooter
-				);
-
-				const item: TableToken = {
-					type: 'table',
-					tokens,
-					raw: cap[0],
-					align: alignment
-				};
-
-				return item;
 			}
 		}
-	];
-}
+
+		// Process all rows and create table sections
+		const tokens = processRows(
+			headerRows,
+			processedBodyRows,
+			alignment,
+			colCount,
+			this.lexer,
+			maxColspan,
+			shouldDetectFooter
+		);
+
+		const item: TableToken = {
+			type: 'table',
+			tokens,
+			raw: cap[0],
+			align: alignment
+		};
+
+		return item;
+	}
+};

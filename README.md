@@ -384,7 +384,7 @@ This heading will use a custom component!`;
 | `animation.tokenize`       | `'word' \| 'char'`                                                               | `'word'`         | Tokenization method for text animations                                                                                                            |
 | `animation.animateOnMount` | `boolean`                                                                        | `false`          | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM |
 | `extensions`               | `Array<Extension>`                                                               | `[]`             | Custom marked tokenizers to render special markdown blocks or inline tokens                                                                        |
-| `children`                 | `Snippet<[{token:GenericToken, streamdown: StreamdownContext, children: Snippet` | `[]`             | Snippet used to render element that are not supported by Streamdown and tokenized by your custom extensions                                        |
+| `children`                 | `Snippet<[{token:GenericToken, streamdown: StreamdownContext, children: Snippet` | `undefined`      | Snippet used to render element that are not supported by Streamdown and tokenized by your custom extensions                                        |
 
 #### All Available Customizable Elements:
 

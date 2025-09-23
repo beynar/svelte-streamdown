@@ -2,14 +2,17 @@ import {
 	Lexer,
 	type MarkedToken,
 	type RendererExtensionFunction,
+	type Token,
 	type TokenizerExtensionFunction,
 	type TokenizerStartFunction,
-	type Tokens
+	type TokenizerThis,
+	type Tokens,
+	type TokensList
 } from 'marked';
 import { markedAlert, type AlertToken } from './marked-alert.js';
 import { markedFootnote, type FootnoteToken } from './marked-footnotes.js';
 import { markedMath, type MathToken } from './marked-math.js';
-import { markedSubSup, type SubSupToken } from './marked-subsup.js';
+import { markedSub, markedSup, type SubSupToken } from './marked-subsup.js';
 import { markedList, type ListItemToken, type ListToken } from './marked-list.js';
 import { markedBr, type BrToken } from './marked-br.js';
 import { markedHr, type HrToken } from './marked-hr.js';
@@ -24,7 +27,24 @@ import {
 	type TH,
 	type TD
 } from './marked-table.js';
-import type { Extension } from '$lib/context.svelte.js';
+
+export type GenericToken = {
+	type: string;
+	raw: string;
+	tokens?: Token[];
+} & Record<string, any>;
+
+export type Extension = {
+	name: string;
+	level: 'block' | 'inline';
+	tokenizer: (
+		this: TokenizerThis,
+		src: string,
+		tokens: Token[] | TokensList
+	) => GenericToken | undefined;
+	start?: TokenizerStartFunction;
+	applyInBlockParsing?: boolean;
+};
 
 export type StreamdownToken =
 	| Exclude<MarkedToken, Tokens.List | Tokens.ListItem>
@@ -95,14 +115,15 @@ const parseExtensions = (...extensions: Extension[]) => {
 export const lex = (markdown: string, extensions: Extension[] = []): StreamdownToken[] => {
 	return new Lexer(
 		parseExtensions(
-			...markedHr(),
-			...markedTable(),
+			markedHr,
+			markedTable,
 			...markedFootnote(),
-			...markedAlert(),
-			...markedMath(),
-			...markedSubSup(),
-			...markedList(),
-			...markedBr(),
+			markedAlert,
+			...markedMath,
+			markedSub,
+			markedSup,
+			markedList,
+			markedBr,
 			...extensions
 		)
 	)
@@ -113,9 +134,9 @@ export const lex = (markdown: string, extensions: Extension[] = []): StreamdownT
 export const parseBlocks = (markdown: string, extensions: Extension[] = []): string[] => {
 	const blockLexer = new Lexer(
 		parseExtensions(
-			...markedHr(),
+			markedHr,
 			...markedFootnote(),
-			...markedTable(),
+			markedTable,
 			...extensions.filter(
 				({ level, applyInBlockParsing }) => level === 'block' && applyInBlockParsing
 			)

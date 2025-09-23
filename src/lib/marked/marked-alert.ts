@@ -1,4 +1,4 @@
-import type { Extension } from '$lib/context.svelte.js';
+import type { Extension } from './index.js';
 import type { Tokenizer, Tokens } from 'marked';
 import { Lexer } from 'marked';
 
@@ -9,25 +9,21 @@ export function createSyntaxPattern(type: variantType): string {
 	return `^\\s*[\\*_]*\\[!${type.toUpperCase()}\\][\\*_]*\\s*`;
 }
 
-export function markedAlert(): Extension[] {
-	const defaultLexer = new Lexer({ gfm: true });
-	const defaultTokenizer = defaultLexer.options.tokenizer!;
+const defaultLexer = new Lexer({ gfm: true });
+const defaultTokenizer = defaultLexer.options.tokenizer!;
 
-	return [
-		{
-			name: 'alert',
-			level: 'block',
-			tokenizer(this, src) {
-				const cap = defaultTokenizer.rules.block.blockquote.exec(src);
-				if (cap) {
-					const blockquoteToken = defaultTokenizer.blockquote(src);
-					blockquoteToken && processAlertToken(blockquoteToken, this.lexer.options.tokenizer!);
-					return blockquoteToken;
-				}
-			}
+export const markedAlert: Extension = {
+	name: 'alert',
+	level: 'block',
+	tokenizer(this, src) {
+		const cap = defaultTokenizer.rules.block.blockquote.exec(src);
+		if (cap) {
+			const blockquoteToken = defaultTokenizer.blockquote(src);
+			blockquoteToken && processAlertToken(blockquoteToken, this.lexer.options.tokenizer!);
+			return blockquoteToken;
 		}
-	];
-}
+	}
+};
 
 export function processAlertToken(token: Tokens.Blockquote, tokenizer: Tokenizer): void {
 	const matchedVariant = variants.find((type) =>

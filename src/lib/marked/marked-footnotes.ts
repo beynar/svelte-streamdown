@@ -1,5 +1,5 @@
-import { type StreamdownToken } from './index.js';
-import { StreamdownContext, type Extension } from '$lib/context.svelte.js';
+import { type StreamdownToken, type Extension } from './index.js';
+import { StreamdownContext } from '$lib/context.svelte.js';
 import { getContext } from 'svelte';
 
 const safeGetContext = () => {

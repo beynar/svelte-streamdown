@@ -1,4 +1,4 @@
-import type { Extension } from '$lib/context.svelte.js';
+import type { Extension } from './index.js';
 
 export const markedCollapsible: Extension = {
 	name: 'collapsible',

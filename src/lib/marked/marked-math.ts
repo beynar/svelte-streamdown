@@ -1,4 +1,4 @@
-import type { Extension } from '$lib/context.svelte.js';
+import type { Extension } from './index.js';
 
 // Math parsing rules
 // Block math: supports both newline format ($$\nmath\n$$) and single-line format ($$math$$)
@@ -19,93 +19,91 @@ const currencyPatterns = {
 	currencyContext: /(?:price|cost|dollar|euro|pound|yen|currency|pay|buy|sell|expensive|cheap)/i
 };
 
-export function markedMath(): Extension[] {
-	return [
-		{
-			name: 'math',
-			level: 'block',
-			tokenizer(this, src) {
-				const match = src.match(blockRule);
+export const markedMath: Extension[] = [
+	{
+		name: 'math',
+		level: 'block',
+		tokenizer(this, src) {
+			const match = src.match(blockRule);
 
-				if (match) {
-					// match[2] is multiline format, match[3] is single-line format
-					const content = (match[2] || match[3]).trim();
-					return {
-						type: 'math',
-						isInline: false,
-						displayMode: true,
-						raw: match[0],
-						text: content
-					} satisfies MathToken;
-				}
-			}
-		},
-		{
-			name: 'math',
-			level: 'inline',
-			start(src) {
-				let index = 0;
-				let searchSrc = src;
-
-				while (searchSrc) {
-					const dollarIndex = searchSrc.indexOf('$');
-					if (dollarIndex === -1) {
-						return;
-					}
-
-					const currentIndex = index + dollarIndex;
-					const possibleMath = src.substring(currentIndex);
-
-					// Check if this could be math (not currency)
-					if (possibleMath.match(inlineRule)) {
-						const match = possibleMath.match(inlineRule);
-						if (match) {
-							const content = match[2];
-							const dollarCount = match[1]; // '$' or '$$'
-
-							// Only apply currency detection to single dollars
-							// Double dollars ($$) indicate explicit math intent
-							if (dollarCount === '$' && isCurrencyPattern(content, src, currentIndex)) {
-								// This looks like currency with single dollars, skip it
-								index += dollarIndex + 1;
-								searchSrc = src.substring(index);
-								continue;
-							}
-
-							return currentIndex;
-						}
-					}
-
-					index += dollarIndex + 1;
-					searchSrc = src.substring(index);
-				}
-			},
-			tokenizer(this, src) {
-				const match = src.match(inlineRule);
-				if (match) {
-					const content = match[2];
-					const dollarCount = match[1]; // '$' or '$$'
-					const isDisplayMode = dollarCount === '$$';
-
-					// Only apply currency detection to single dollars
-					// Double dollars ($$) indicate explicit math intent
-					if (dollarCount === '$' && isCurrencyPattern(content, src, 0)) {
-						// This looks like currency with single dollars, skip it
-						return;
-					}
-
-					return {
-						type: 'math',
-						isInline: true, // Inline tokenizer always produces inline math
-						displayMode: isDisplayMode, // $$ = display mode styling, $ = inline styling
-						raw: match[0],
-						text: content.trim()
-					} satisfies MathToken;
-				}
+			if (match) {
+				// match[2] is multiline format, match[3] is single-line format
+				const content = (match[2] || match[3]).trim();
+				return {
+					type: 'math',
+					isInline: false,
+					displayMode: true,
+					raw: match[0],
+					text: content
+				} satisfies MathToken;
 			}
 		}
-	];
-}
+	},
+	{
+		name: 'math',
+		level: 'inline',
+		start(src) {
+			let index = 0;
+			let searchSrc = src;
+
+			while (searchSrc) {
+				const dollarIndex = searchSrc.indexOf('$');
+				if (dollarIndex === -1) {
+					return;
+				}
+
+				const currentIndex = index + dollarIndex;
+				const possibleMath = src.substring(currentIndex);
+
+				// Check if this could be math (not currency)
+				if (possibleMath.match(inlineRule)) {
+					const match = possibleMath.match(inlineRule);
+					if (match) {
+						const content = match[2];
+						const dollarCount = match[1]; // '$' or '$$'
+
+						// Only apply currency detection to single dollars
+						// Double dollars ($$) indicate explicit math intent
+						if (dollarCount === '$' && isCurrencyPattern(content, src, currentIndex)) {
+							// This looks like currency with single dollars, skip it
+							index += dollarIndex + 1;
+							searchSrc = src.substring(index);
+							continue;
+						}
+
+						return currentIndex;
+					}
+				}
+
+				index += dollarIndex + 1;
+				searchSrc = src.substring(index);
+			}
+		},
+		tokenizer(this, src) {
+			const match = src.match(inlineRule);
+			if (match) {
+				const content = match[2];
+				const dollarCount = match[1]; // '$' or '$$'
+				const isDisplayMode = dollarCount === '$$';
+
+				// Only apply currency detection to single dollars
+				// Double dollars ($$) indicate explicit math intent
+				if (dollarCount === '$' && isCurrencyPattern(content, src, 0)) {
+					// This looks like currency with single dollars, skip it
+					return;
+				}
+
+				return {
+					type: 'math',
+					isInline: true, // Inline tokenizer always produces inline math
+					displayMode: isDisplayMode, // $$ = display mode styling, $ = inline styling
+					raw: match[0],
+					text: content.trim()
+				} satisfies MathToken;
+			}
+		}
+	}
+];
 
 // Helper function to detect currency patterns
 function isCurrencyPattern(content: string, fullSrc: string, dollarIndex: number): boolean {

@@ -135,6 +135,18 @@ export const theme = {
 	},
 	footnotePopover: {
 		base: 'fixed z-50 max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-background p-4 shadow'
+	},
+	descriptionList: {
+		base: 'my-4 space-y-2'
+	},
+	description: {
+		base: 'border-l-2 border-gray-200 pl-4'
+	},
+	descriptionTerm: {
+		base: 'font-semibold text-gray-900'
+	},
+	descriptionDetail: {
+		base: 'text-gray-700 ml-4 leading-relaxed'
 	}
 } satisfies Record<keyof Omit<Snippets, 'heading'> | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6', any>;
 
@@ -260,7 +272,7 @@ export const shadcnTheme = {
 		base: ''
 	},
 	em: {
-		base: 'italic text-foreground'
+		base: 'italic'
 	},
 	del: {
 		base: 'text-muted-foreground'
@@ -270,6 +282,18 @@ export const shadcnTheme = {
 	},
 	footnotePopover: {
 		base: 'fixed z-50 max-h-[30vh] shadow max-w-3xl overflow-y-auto rounded-lg bg-background p-4'
+	},
+	descriptionList: {
+		base: 'my-4 space-y-2'
+	},
+	description: {
+		base: 'border-l-2 border-border pl-4'
+	},
+	descriptionTerm: {
+		base: 'font-semibold text-foreground'
+	},
+	descriptionDetail: {
+		base: 'text-muted-foreground ml-4 leading-relaxed'
 	}
 } satisfies Theme;
 

@@ -225,6 +225,30 @@
 	<FootnoteRef {token} />
 {:else if token.type === 'footnote'}
 	<!-- TODO Footnotes are rendered inside the FootnoteRef popover -->
+{:else if token.type === 'descriptionList'}
+	<Slot props={{ children, token }} render={streamdown.snippets.descriptionList}>
+		<dl class={streamdown.theme.descriptionList.base}>
+			{@render children()}
+		</dl>
+	</Slot>
+{:else if token.type === 'description'}
+	<Slot props={{ children, token }} render={streamdown.snippets.description}>
+		<div class={streamdown.theme.description.base}>
+			{@render children()}
+		</div>
+	</Slot>
+{:else if token.type === 'descriptionTerm'}
+	<Slot props={{ children, token }} render={streamdown.snippets.descriptionTerm}>
+		<dt class={streamdown.theme.descriptionTerm.base}>
+			{@render children()}
+		</dt>
+	</Slot>
+{:else if token.type === 'descriptionDetail'}
+	<Slot props={{ children, token }} render={streamdown.snippets.descriptionDetail}>
+		<dd class={streamdown.theme.descriptionDetail.base}>
+			{@render children()}
+		</dd>
+	</Slot>
 {:else if token.type === 'def'}
 	<!-- TODO This does not seems to be tokenized for now -->
 {:else if token.type === 'escape'}

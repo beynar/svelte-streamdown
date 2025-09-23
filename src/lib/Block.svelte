@@ -16,6 +16,8 @@
 
 	const streamdown = useStreamdown();
 	const tokens = $derived(lex(parseIncompleteMarkdown(block.trim()), streamdown.extensions));
+
+	$inspect(tokens);
 </script>
 
 {#snippet renderChildren(tokens: StreamdownToken[])}

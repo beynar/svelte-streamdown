@@ -5,14 +5,14 @@ export const markedDl: Extension = {
 	level: 'block', // Is this a block-level or inline-level tokenizer?
 
 	tokenizer(this, src) {
-		const rule = /^(?:\s*:[^:\n]+:[^:\n]*(?:\n|$))+/; // Regex for the complete token, anchor to string start
+		const rule = /^(?:[ \t]*:[^:\n]+:[ \t]?[^\n]*(?:\n|$))+/;
 		const match = rule.exec(src);
 		if (match) {
 			const token = {
 				type: 'descriptionList',
 				raw: match[0],
 				text: match[0].trim(),
-				tokens: this.lexer.inlineTokens(match[0].trim())
+				tokens: this.lexer.inlineTokens(match[0].trim()).filter((t) => t.type === 'description')
 			};
 			return token;
 		}
@@ -45,8 +45,6 @@ export const markedDt: Extension = {
 					}
 				]
 			};
-		} else {
-			return undefined;
 		}
 	}
 };

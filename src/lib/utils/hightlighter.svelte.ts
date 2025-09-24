@@ -37,7 +37,7 @@ class HighlighterManager {
 	private async loadHighlighter(): Promise<Highlighter> {
 		if (this.highlighter instanceof Promise) {
 			return this.highlighter;
-		} else {
+		} else if (!this.highlighter) {
 			this.highlighter = new Promise<Highlighter>((resolve, reject) => {
 				loadShiki().then(([engine, createHighlighter]) => {
 					return createHighlighter({
@@ -51,6 +51,8 @@ class HighlighterManager {
 				});
 			});
 
+			return this.highlighter;
+		} else {
 			return this.highlighter;
 		}
 	}
@@ -88,8 +90,8 @@ class HighlighterManager {
 	isReady(theme: BundledTheme, language: string | undefined = 'bash'): boolean {
 		return (
 			!(this.highlighter instanceof Promise) &&
-			this.loadedLanguages.get(this.isLanguageSupported(language) ? language : 'bash') === true &&
-			this.loadedThemes.get(theme) === true
+			this.loadedThemes.get(theme) === true &&
+			this.loadedLanguages.get(this.isLanguageSupported(language) ? language : 'bash') === true
 		);
 	}
 
@@ -97,17 +99,10 @@ class HighlighterManager {
 	 * Preloads themes by creating minimal highlighter instances.
 	 * This reduces flickering when switching themes.
 	 */
-	async preloadThemes(highlighter: Highlighter): Promise<void> {
-		for (const theme of this.preloadedThemes) {
-			const themeLoader = this.loadedThemes.get(theme);
-			if (themeLoader === true) {
-				return;
-			} else if (themeLoader instanceof Promise) {
-				await themeLoader;
-			} else {
-				await this.loadTheme(theme, highlighter);
-			}
-		}
+	async preloadThemes(highlighter: Highlighter): Promise<void[]> {
+		return Promise.all(
+			Array.from(this.preloadedThemes).map((theme) => this.loadTheme(theme, highlighter))
+		);
 	}
 
 	/**
@@ -124,7 +119,6 @@ class HighlighterManager {
 			themeLoader === true &&
 			languageLoader === true
 		) {
-			// already loaded
 			return;
 		}
 		const highlighter = await this.loadHighlighter();
@@ -160,7 +154,7 @@ class HighlighterManager {
 		}
 	}
 
-	static create(preloadedThemes: BundledTheme[]): HighlighterManager {
+	static create(preloadedThemes: BundledTheme[] = []): HighlighterManager {
 		if (typeof window !== 'undefined' && 'STREAMDOWN_HIGHLIGHTER' in window) {
 			const previousHighlighter = window.STREAMDOWN_HIGHLIGHTER as HighlighterManager;
 			preloadedThemes.forEach((theme) => previousHighlighter.preloadedThemes.add(theme));

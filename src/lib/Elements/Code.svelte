@@ -14,7 +14,8 @@
 	} = $props();
 
 	const streamdown = useStreamdown();
-	const highlighter = HighlighterManager.create(streamdown.shikiPreloadThemes || []);
+	const highlighter = HighlighterManager.create(streamdown.shikiPreloadThemes);
+
 	const copy = useCopy({
 		get content() {
 			return token.text;
@@ -44,8 +45,6 @@
 			void highlighter.load(theme, lang);
 		});
 	});
-
-	const isMounted = streamdown.isMounted;
 </script>
 
 <div class={streamdown.theme.code.base}>
@@ -84,7 +83,7 @@
 		<span class={streamdown.theme.code.line}>
 			{#each line as token}
 				<span
-					style={isMounted ? streamdown.animationTextStyle : undefined}
+					style={streamdown.isMounted ? streamdown.animationTextStyle : undefined}
 					style:color={token.color}
 					style:background-color={token.bgColor}
 				>
@@ -97,7 +96,10 @@
 
 {#snippet Skeleton(lines: string[])}
 	{#each lines as line}
-		<span class={streamdown.theme.code.skeleton}>
+		<span
+			style={streamdown.isMounted ? streamdown.animationTextStyle : undefined}
+			class={streamdown.theme.code.skeleton}
+		>
 			{line.trim().length > 0 ? line : '\u200B'}
 		</span>
 	{/each}

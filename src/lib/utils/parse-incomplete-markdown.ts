@@ -951,6 +951,48 @@ const handleIncompleteFootnotes = (text: string): string => {
 	return result;
 };
 
+// Completes incomplete description list items (:term -> :term:)
+// Also processes incomplete inline formatting within the description content
+const handleIncompleteDescriptionList = (text: string): string => {
+	// Match lines that start with optional whitespace, then :, then content without colons, no closing :
+	// This prevents : Topic 3 from being rendered as text and completes it as : Topic 3 :
+	const incompleteDescriptionPattern = /^\s*:[^:\n]+$/gm;
+
+	return text.replace(incompleteDescriptionPattern, (match) => {
+		// Extract the content after the colon
+		const colonIndex = match.indexOf(':');
+		const beforeColon = match.substring(0, colonIndex + 1);
+		const content = match.substring(colonIndex + 1);
+
+		// Apply inline formatting completion to the content
+		let processedContent = content;
+
+		// Handle code blocks first to avoid conflicts
+		processedContent = handleIncompleteCodeBlock(processedContent);
+
+		// Handle inline patterns - single patterns before double patterns for proper nesting
+		processedContent = handleIncompleteInlineCode(processedContent); // ` (must be first)
+		processedContent = handleIncompleteSingleAsteriskItalic(processedContent); // *
+		processedContent = handleIncompleteSingleUnderscoreItalic(processedContent); // _
+		processedContent = handleIncompleteBoldItalic(processedContent); // ***
+		processedContent = handleIncompleteBold(processedContent); // **
+		processedContent = handleIncompleteDoubleUnderscoreItalic(processedContent); // __
+		processedContent = handleIncompleteStrikethrough(processedContent); // ~~
+		processedContent = handleIncompleteSub(processedContent); // ~
+		processedContent = handleIncompleteSup(processedContent); // ^
+
+		// Handle KaTeX formatting
+		processedContent = handleIncompleteBlockKatex(processedContent);
+		processedContent = handleIncompleteInlineMath(processedContent);
+
+		// Handle incomplete links and images LAST
+		processedContent = handleIncompleteLinksAndImages(processedContent);
+
+		// Add the closing colon to complete the description list item
+		return beforeColon + processedContent + ':';
+	});
+};
+
 // Parses markdown text and removes incomplete tokens to prevent partial rendering
 export const parseIncompleteMarkdown = (text: string): string => {
 	if (!text || typeof text !== 'string') {
@@ -965,6 +1007,9 @@ export const parseIncompleteMarkdown = (text: string): string => {
 
 	// Handle incomplete footnotes FIRST (before any other processing to avoid conflicts)
 	result = handleIncompleteFootnotes(result);
+
+	// Handle incomplete description lists (block-level elements)
+	result = handleIncompleteDescriptionList(result);
 
 	// Handle various formatting completions ONLY if not inside a code block
 	// Handle double patterns before single patterns for proper priority

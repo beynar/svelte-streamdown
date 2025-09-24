@@ -227,7 +227,10 @@
 	<!-- TODO Footnotes are rendered inside the FootnoteRef popover -->
 {:else if token.type === 'descriptionList'}
 	<Slot props={{ children, token }} render={streamdown.snippets.descriptionList}>
-		<dl class={streamdown.theme.descriptionList.base}>
+		<dl
+			style={streamdown.isMounted ? streamdown.animationBlockStyle : undefined}
+			class={streamdown.theme.descriptionList.base}
+		>
 			{@render children()}
 		</dl>
 	</Slot>

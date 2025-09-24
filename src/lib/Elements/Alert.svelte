@@ -36,7 +36,10 @@
 	}}
 	render={streamdown.snippets.alert}
 >
-	<div class={`${streamdown.theme.alert.base} ${streamdown.theme.alert[token.variant]}`}>
+	<div
+		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+		class={`${streamdown.theme.alert.base} ${streamdown.theme.alert[token.variant]}`}
+	>
 		<div data-alert-title class={streamdown.theme.alert.title}>
 			{@render (streamdown.icons?.[token.variant] || icon)()}
 			{streamdown.translations?.alert?.[token.variant] || token.variant}

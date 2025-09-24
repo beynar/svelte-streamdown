@@ -4,7 +4,6 @@
 	import { lex, type StreamdownToken } from './marked/index.js';
 	import AnimatedText from './AnimatedText.svelte';
 	import { useStreamdown } from './context.svelte.js';
-	import AnimatedBlock from './AnimatedBlock.svelte';
 
 	let {
 		block,
@@ -38,10 +37,4 @@
 	{/each}
 {/snippet}
 
-{#if streamdown.animation.enabled && !insideFootnote}
-	<AnimatedBlock>
-		{@render renderChildren(tokens)}
-	</AnimatedBlock>
-{:else}
-	{@render renderChildren(tokens)}
-{/if}
+{@render renderChildren(tokens)}

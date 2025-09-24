@@ -12,6 +12,11 @@
 	import FootnoteRef from './FootnoteRef.svelte';
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
 	const streamdown = useStreamdown();
+
+	// Only apply animation on block that contains decoration that should be animated to avoid flickering
+	// li, description, alert, code, table, td, th, thead, tbody, tfoot, tr
+	// Text only elements will be animated by their text children.
+	const style = $derived(streamdown.isMounted ? streamdown.animationBlockStyle : '');
 </script>
 
 {#if token.type === 'heading'}
@@ -56,7 +61,7 @@
 	</Slot>
 {:else if token.type === 'blockquote'}
 	<Slot props={{ children, token }} render={streamdown.snippets.blockquote}>
-		<blockquote class={streamdown.theme.blockquote.base}>
+		<blockquote {style} class={streamdown.theme.blockquote.base}>
 			{@render children()}
 		</blockquote>
 	</Slot>
@@ -91,7 +96,7 @@
 {:else if token.type === 'list_item'}
 	<Slot props={{ children, token }} render={streamdown.snippets.li}>
 		<li
-			style={streamdown.isMounted ? streamdown.animationBlockStyle : undefined}
+			{style}
 			style:list-style-type={token.task ? 'none' : undefined}
 			{...token.value && !token.task ? { value: token.value } : {}}
 			class={streamdown.theme.li.base}
@@ -109,7 +114,7 @@
 	</Slot>
 {:else if token.type === 'table'}
 	<Slot props={{ token, children }} render={streamdown.snippets.table}>
-		<div class={streamdown.theme.table.base}>
+		<div {style} class={streamdown.theme.table.base}>
 			<table class={streamdown.theme.table.table}>
 				{@render children()}
 			</table>
@@ -117,25 +122,25 @@
 	</Slot>
 {:else if token.type === 'thead'}
 	<Slot props={{ token, children }} render={streamdown.snippets.thead}>
-		<thead class={streamdown.theme.thead.base}>
+		<thead {style} class={streamdown.theme.thead.base}>
 			{@render children?.()}
 		</thead>
 	</Slot>
 {:else if token.type === 'tbody'}
 	<Slot props={{ token, children }} render={streamdown.snippets.tbody}>
-		<tbody class={streamdown.theme.tbody.base}>
+		<tbody {style} class={streamdown.theme.tbody.base}>
 			{@render children?.()}
 		</tbody>
 	</Slot>
 {:else if token.type === 'tfoot'}
 	<Slot props={{ token, children }} render={streamdown.snippets.tfoot}>
-		<tfoot class={streamdown.theme.tfoot.base}>
+		<tfoot {style} class={streamdown.theme.tfoot.base}>
 			{@render children?.()}
 		</tfoot>
 	</Slot>
 {:else if token.type === 'tr'}
 	<Slot props={{ token, children }} render={streamdown.snippets.tr}>
-		<tr class={streamdown.theme.tr.base}>
+		<tr {style} class={streamdown.theme.tr.base}>
 			{@render children?.()}
 		</tr>
 	</Slot>
@@ -143,6 +148,7 @@
 	{#if token.rowspan > 0}
 		<Slot props={{ children, token }} render={streamdown.snippets.td}>
 			<td
+				{style}
 				class={streamdown.theme.td.base}
 				{...token.colspan > 1 ? { colspan: token.colspan } : {}}
 				{...token.rowspan > 1 ? { rowspan: token.rowspan } : {}}
@@ -158,6 +164,7 @@
 	{#if token.rowspan > 0}
 		<Slot props={{ children, token }} render={streamdown.snippets.th}>
 			<th
+				{style}
 				class={streamdown.theme.th.base}
 				{...token.colspan > 1 ? { colspan: token.colspan } : {}}
 				{...token.rowspan > 1 ? { rowspan: token.rowspan } : {}}
@@ -205,7 +212,7 @@
 	</Slot>
 {:else if token.type === 'hr'}
 	<Slot props={{ children, token }} render={streamdown.snippets.hr}>
-		<hr class={streamdown.theme.hr.base} />
+		<hr {style} class={streamdown.theme.hr.base} />
 	</Slot>
 {:else if token.type === 'br'}
 	<br />
@@ -227,16 +234,13 @@
 	<!-- TODO Footnotes are rendered inside the FootnoteRef popover -->
 {:else if token.type === 'descriptionList'}
 	<Slot props={{ children, token }} render={streamdown.snippets.descriptionList}>
-		<dl
-			style={streamdown.isMounted ? streamdown.animationBlockStyle : undefined}
-			class={streamdown.theme.descriptionList.base}
-		>
+		<dl style={streamdown.animationBlockStyle} class={streamdown.theme.descriptionList.base}>
 			{@render children()}
 		</dl>
 	</Slot>
 {:else if token.type === 'description'}
 	<Slot props={{ children, token }} render={streamdown.snippets.description}>
-		<div class={streamdown.theme.description.base}>
+		<div {style} class={streamdown.theme.description.base}>
 			{@render children()}
 		</div>
 	</Slot>

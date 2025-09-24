@@ -47,7 +47,10 @@
 	});
 </script>
 
-<div class={streamdown.theme.code.base}>
+<div
+	style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+	class={streamdown.theme.code.base}
+>
 	<div class={streamdown.theme.code.header}>
 		<span class={streamdown.theme.code.language}>{token.lang}</span>
 		{#if streamdown.controls.code}
@@ -83,7 +86,7 @@
 		<span class={streamdown.theme.code.line}>
 			{#each line as token}
 				<span
-					style={streamdown.isMounted ? streamdown.animationTextStyle : undefined}
+					style={streamdown.animationTextStyle}
 					style:color={token.color}
 					style:background-color={token.bgColor}
 				>
@@ -96,10 +99,7 @@
 
 {#snippet Skeleton(lines: string[])}
 	{#each lines as line}
-		<span
-			style={streamdown.isMounted ? streamdown.animationTextStyle : undefined}
-			class={streamdown.theme.code.skeleton}
-		>
+		<span style={streamdown.animationTextStyle} class={streamdown.theme.code.skeleton}>
 			{line.trim().length > 0 ? line : '\u200B'}
 		</span>
 	{/each}

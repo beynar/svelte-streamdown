@@ -202,6 +202,7 @@
 
 {#if mermaid}
 	<div
+		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 		class={streamdown.theme.mermaid.base}
 		{@attach (node) => renderMermaid(token.text, node)}
 		{@attach insider.attach}

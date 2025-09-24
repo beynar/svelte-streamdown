@@ -90,12 +90,14 @@
 		render={streamdown.snippets.footnotePopover}
 	>
 		<dialog
+			style="z-index: 1000; position: fixed;"
 			id={'footnote-popover-' + id}
 			aria-modal="false"
 			transition:scale|global={{ start: 0.95, duration: 100 }}
 			{@attach clickOutside.attachment}
 			{@attach popoverAttachment}
 			open
+			popover="auto"
 			class={`${streamdown.theme.footnotePopover.base}`}
 		>
 			{#each token.content.lines as line}
@@ -112,7 +114,7 @@
 	render={streamdown.snippets.footnoteRef}
 >
 	<button
-		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+		style={streamdown.animationBlockStyle}
 		bind:this={reference}
 		class={streamdown.theme.footnoteRef.base}
 		onclick={() => (isOpen = !isOpen)}

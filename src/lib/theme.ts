@@ -139,16 +139,16 @@ export const theme = {
 	descriptionList: {
 		base: 'my-4 space-y-2'
 	},
-	description: {
-		base: 'border-l-2 border-gray-200 pl-4'
-	},
 	descriptionTerm: {
-		base: 'font-semibold text-gray-900'
+		base: 'font-semibold text-gray-900 border-l-2 border-gray-200 pl-4'
 	},
 	descriptionDetail: {
 		base: 'text-gray-700 ml-4 leading-relaxed'
 	}
-} satisfies Record<keyof Omit<Snippets, 'heading'> | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6', any>;
+} satisfies Record<
+	keyof Omit<Snippets, 'description' | 'heading'> | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6',
+	any
+>;
 
 export const shadcnTheme = {
 	link: {
@@ -286,11 +286,8 @@ export const shadcnTheme = {
 	descriptionList: {
 		base: 'my-4 space-y-2'
 	},
-	description: {
-		base: 'border-l-2 border-border pl-4'
-	},
 	descriptionTerm: {
-		base: 'font-semibold text-foreground'
+		base: 'font-semibold text-foreground border-l-2 border-border pl-4'
 	},
 	descriptionDetail: {
 		base: 'text-muted-foreground ml-4 leading-relaxed'

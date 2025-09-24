@@ -954,43 +954,70 @@ const handleIncompleteFootnotes = (text: string): string => {
 // Completes incomplete description list items (:term -> :term:)
 // Also processes incomplete inline formatting within the description content
 const handleIncompleteDescriptionList = (text: string): string => {
-	// Match lines that start with optional whitespace, then :, then content without colons, no closing :
-	// This prevents : Topic 3 from being rendered as text and completes it as : Topic 3 :
-	const incompleteDescriptionPattern = /^\s*:[^:\n]+$/gm;
+	const lines = text.split('\n');
+	let inFence = false;
+	let fenceChar = '';
+	let fenceIndent = '';
 
-	return text.replace(incompleteDescriptionPattern, (match) => {
-		// Extract the content after the colon
-		const colonIndex = match.indexOf(':');
-		const beforeColon = match.substring(0, colonIndex + 1);
-		const content = match.substring(colonIndex + 1);
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
 
-		// Apply inline formatting completion to the content
-		let processedContent = content;
+		// Check for fence open/close
+		const fenceMatch = line.match(/^(\s*)(`{3,}|~{3,})(.*)$/);
+		if (fenceMatch) {
+			const indent = fenceMatch[1];
+			const fence = fenceMatch[2];
+			const lang = fenceMatch[3];
 
-		// Handle code blocks first to avoid conflicts
-		processedContent = handleIncompleteCodeBlock(processedContent);
+			if (!inFence) {
+				// Opening fence
+				inFence = true;
+				fenceChar = fence.substring(0, 1); // Store just the first character
+				fenceIndent = indent;
+				continue;
+			} else if (fence.startsWith(fenceChar) && indent === fenceIndent) {
+				// Closing fence - match the fence character type and indentation
+				inFence = false;
+				fenceChar = '';
+				fenceIndent = '';
+				continue;
+			}
+		}
 
-		// Handle inline patterns - single patterns before double patterns for proper nesting
-		processedContent = handleIncompleteInlineCode(processedContent); // ` (must be first)
-		processedContent = handleIncompleteSingleAsteriskItalic(processedContent); // *
-		processedContent = handleIncompleteSingleUnderscoreItalic(processedContent); // _
-		processedContent = handleIncompleteBoldItalic(processedContent); // ***
-		processedContent = handleIncompleteBold(processedContent); // **
-		processedContent = handleIncompleteDoubleUnderscoreItalic(processedContent); // __
-		processedContent = handleIncompleteStrikethrough(processedContent); // ~~
-		processedContent = handleIncompleteSub(processedContent); // ~
-		processedContent = handleIncompleteSup(processedContent); // ^
+		// Skip processing if inside a fence
+		if (inFence) {
+			continue;
+		}
 
-		// Handle KaTeX formatting
-		processedContent = handleIncompleteBlockKatex(processedContent);
-		processedContent = handleIncompleteInlineMath(processedContent);
+		// Detect description-list lines with /^\s*:[^:]+$/
+		const descriptionMatch = line.match(/^(\s*:[^:]+)$/);
+		if (descriptionMatch) {
+			const fullMatch = descriptionMatch[1];
+			const colonIndex = fullMatch.indexOf(':');
+			const beforeColon = fullMatch.substring(0, colonIndex + 1);
+			const content = fullMatch.substring(colonIndex + 1);
 
-		// Handle incomplete links and images LAST
-		processedContent = handleIncompleteLinksAndImages(processedContent);
+			// Apply formatters in this order
+			let processedContent = content;
+			processedContent = handleIncompleteBoldItalic(processedContent); // ***
+			processedContent = handleIncompleteBold(processedContent); // **
+			processedContent = handleIncompleteDoubleUnderscoreItalic(processedContent); // __
+			processedContent = handleIncompleteStrikethrough(processedContent); // ~~
+			processedContent = handleIncompleteInlineCode(processedContent); // `
+			processedContent = handleIncompleteSingleAsteriskItalic(processedContent); // *
+			processedContent = handleIncompleteSingleUnderscoreItalic(processedContent); // _
+			processedContent = handleIncompleteSub(processedContent); // ~
+			processedContent = handleIncompleteSup(processedContent); // ^
+			processedContent = handleIncompleteBlockKatex(processedContent);
+			processedContent = handleIncompleteInlineMath(processedContent);
+			processedContent = handleIncompleteLinksAndImages(processedContent);
 
-		// Add the closing colon to complete the description list item
-		return beforeColon + processedContent + ':';
-	});
+			// Set the line to beforeColon + processedContent + ':'
+			lines[i] = beforeColon + processedContent + ':';
+		}
+	}
+
+	return lines.join('\n');
 };
 
 // Parses markdown text and removes incomplete tokens to prevent partial rendering

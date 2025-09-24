@@ -13,9 +13,7 @@
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
 	const streamdown = useStreamdown();
 
-	// Only apply animation on block that contains decoration that should be animated to avoid flickering
-	// li, description, alert, code, table, td, th, thead, tbody, tfoot, tr
-	// Text only elements will be animated by their text children.
+	// Only apply animation on block level elements. Leaves text elements to be animated by their text children.
 	const style = $derived(streamdown.isMounted ? streamdown.animationBlockStyle : '');
 </script>
 
@@ -28,34 +26,34 @@
 		render={streamdown.snippets.heading}
 	>
 		{#if token.depth === 1}
-			<h1 class={streamdown.theme[`h${token.depth}`].base}>
+			<h1 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h1>
 		{:else if token.depth === 2}
-			<h2 class={streamdown.theme[`h${token.depth}`].base}>
+			<h2 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h2>
 		{:else if token.depth === 3}
-			<h3 class={streamdown.theme[`h${token.depth}`].base}>
+			<h3 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h3>
 		{:else if token.depth === 4}
-			<h4 class={streamdown.theme[`h${token.depth}`].base}>
+			<h4 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h4>
 		{:else if token.depth === 5}
-			<h5 class={streamdown.theme[`h${token.depth}`].base}>
+			<h5 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h5>
 		{:else if token.depth === 6}
-			<h6 class={streamdown.theme[`h${token.depth}`].base}>
+			<h6 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h6>
 		{/if}
 	</Slot>
 {:else if token.type === 'paragraph'}
 	<Slot props={{ children, token }} render={streamdown.snippets.paragraph}>
-		<p class={streamdown.theme.paragraph.base}>
+		<p {style} class={streamdown.theme.paragraph.base}>
 			{@render children()}
 		</p>
 	</Slot>
@@ -240,19 +238,17 @@
 	</Slot>
 {:else if token.type === 'description'}
 	<Slot props={{ children, token }} render={streamdown.snippets.description}>
-		<div {style} class={streamdown.theme.description.base}>
-			{@render children()}
-		</div>
+		{@render children()}
 	</Slot>
 {:else if token.type === 'descriptionTerm'}
 	<Slot props={{ children, token }} render={streamdown.snippets.descriptionTerm}>
-		<dt class={streamdown.theme.descriptionTerm.base}>
+		<dt {style} class={streamdown.theme.descriptionTerm.base}>
 			{@render children()}
 		</dt>
 	</Slot>
 {:else if token.type === 'descriptionDetail'}
 	<Slot props={{ children, token }} render={streamdown.snippets.descriptionDetail}>
-		<dd class={streamdown.theme.descriptionDetail.base}>
+		<dd {style} class={streamdown.theme.descriptionDetail.base}>
 			{@render children()}
 		</dd>
 	</Slot>

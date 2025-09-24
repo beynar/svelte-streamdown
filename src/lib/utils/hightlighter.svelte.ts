@@ -89,6 +89,7 @@ class HighlighterManager {
 
 	isReady(theme: BundledTheme, language: string | undefined = 'bash'): boolean {
 		return (
+			!!this.highlighter &&
 			!(this.highlighter instanceof Promise) &&
 			this.loadedThemes.get(theme) === true &&
 			this.loadedLanguages.get(this.isLanguageSupported(language) ? language : 'bash') === true
@@ -99,8 +100,8 @@ class HighlighterManager {
 	 * Preloads themes by creating minimal highlighter instances.
 	 * This reduces flickering when switching themes.
 	 */
-	async preloadThemes(highlighter: Highlighter): Promise<void[]> {
-		return Promise.all(
+	async preloadThemes(highlighter: Highlighter): Promise<void> {
+		await Promise.all(
 			Array.from(this.preloadedThemes).map((theme) => this.loadTheme(theme, highlighter))
 		);
 	}

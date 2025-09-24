@@ -231,6 +231,13 @@ III. Third item
 > [!IMPORTANT]
 > Native support for Github style Alert
 
+### Description List
+
+    :   Topic 1   :  Description 1
+    : **Topic 2** : *Description 2*
+    :   Topic 3   :  Description 3
+    :   Topic 3   :  Description 3
+
 ## 🔄 Differences from Original React Version
 
 This Svelte port maintains feature parity with the original [Streamdown](https://streamdown.ai/) while adapting to Svelte's patterns:

@@ -90,6 +90,12 @@ import type { Tokens } from 'marked';
 import type { ListItemToken, ListToken } from './marked/marked-list.js';
 import type { Footnote, FootnoteRef, FootnoteToken } from './marked/marked-footnotes.js';
 import { bind } from './utils/bind.js';
+import type {
+	DescriptionDetailToken,
+	DescriptionListToken,
+	DescriptionTermToken,
+	DescriptionToken
+} from './marked/marked-dl.js';
 
 type TokenSnippet = {
 	heading: Tokens.Heading;
@@ -121,6 +127,10 @@ type TokenSnippet = {
 	footnotePopover: FootnoteToken;
 	sup: SubSupToken;
 	sub: SubSupToken;
+	descriptionList: DescriptionListToken;
+	description: DescriptionToken;
+	descriptionTerm: DescriptionTermToken;
+	descriptionDetail: DescriptionDetailToken;
 };
 
 type PredefinedElements = keyof TokenSnippet;

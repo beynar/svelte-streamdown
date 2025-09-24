@@ -951,6 +951,75 @@ const handleIncompleteFootnotes = (text: string): string => {
 	return result;
 };
 
+// Completes incomplete description list items (:term -> :term:)
+// Also processes incomplete inline formatting within the description content
+const handleIncompleteDescriptionList = (text: string): string => {
+	const lines = text.split('\n');
+	let inFence = false;
+	let fenceChar = '';
+	let fenceIndent = '';
+
+	for (let i = 0; i < lines.length; i++) {
+		const line = lines[i];
+
+		// Check for fence open/close
+		const fenceMatch = line.match(/^(\s*)(`{3,}|~{3,})(.*)$/);
+		if (fenceMatch) {
+			const indent = fenceMatch[1];
+			const fence = fenceMatch[2];
+			const lang = fenceMatch[3];
+
+			if (!inFence) {
+				// Opening fence
+				inFence = true;
+				fenceChar = fence.substring(0, 1); // Store just the first character
+				fenceIndent = indent;
+				continue;
+			} else if (fence.startsWith(fenceChar) && indent === fenceIndent) {
+				// Closing fence - match the fence character type and indentation
+				inFence = false;
+				fenceChar = '';
+				fenceIndent = '';
+				continue;
+			}
+		}
+
+		// Skip processing if inside a fence
+		if (inFence) {
+			continue;
+		}
+
+		// Detect description-list lines with /^\s*:[^:]+$/
+		const descriptionMatch = line.match(/^(\s*:[^:]+)$/);
+		if (descriptionMatch) {
+			const fullMatch = descriptionMatch[1];
+			const colonIndex = fullMatch.indexOf(':');
+			const beforeColon = fullMatch.substring(0, colonIndex + 1);
+			const content = fullMatch.substring(colonIndex + 1);
+
+			// Apply formatters in this order
+			let processedContent = content;
+			processedContent = handleIncompleteBoldItalic(processedContent); // ***
+			processedContent = handleIncompleteBold(processedContent); // **
+			processedContent = handleIncompleteDoubleUnderscoreItalic(processedContent); // __
+			processedContent = handleIncompleteStrikethrough(processedContent); // ~~
+			processedContent = handleIncompleteInlineCode(processedContent); // `
+			processedContent = handleIncompleteSingleAsteriskItalic(processedContent); // *
+			processedContent = handleIncompleteSingleUnderscoreItalic(processedContent); // _
+			processedContent = handleIncompleteSub(processedContent); // ~
+			processedContent = handleIncompleteSup(processedContent); // ^
+			processedContent = handleIncompleteBlockKatex(processedContent);
+			processedContent = handleIncompleteInlineMath(processedContent);
+			processedContent = handleIncompleteLinksAndImages(processedContent);
+
+			// Set the line to beforeColon + processedContent + ':'
+			lines[i] = beforeColon + processedContent + ':';
+		}
+	}
+
+	return lines.join('\n');
+};
+
 // Parses markdown text and removes incomplete tokens to prevent partial rendering
 export const parseIncompleteMarkdown = (text: string): string => {
 	if (!text || typeof text !== 'string') {
@@ -965,6 +1034,9 @@ export const parseIncompleteMarkdown = (text: string): string => {
 
 	// Handle incomplete footnotes FIRST (before any other processing to avoid conflicts)
 	result = handleIncompleteFootnotes(result);
+
+	// Handle incomplete description lists (block-level elements)
+	result = handleIncompleteDescriptionList(result);
 
 	// Handle various formatting completions ONLY if not inside a code block
 	// Handle double patterns before single patterns for proper priority

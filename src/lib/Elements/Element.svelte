@@ -12,6 +12,9 @@
 	import FootnoteRef from './FootnoteRef.svelte';
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
 	const streamdown = useStreamdown();
+
+	// Only apply animation on block level elements. Leaves text elements to be animated by their text children.
+	const style = $derived(streamdown.isMounted ? streamdown.animationBlockStyle : '');
 </script>
 
 {#if token.type === 'heading'}
@@ -23,40 +26,40 @@
 		render={streamdown.snippets.heading}
 	>
 		{#if token.depth === 1}
-			<h1 class={streamdown.theme[`h${token.depth}`].base}>
+			<h1 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h1>
 		{:else if token.depth === 2}
-			<h2 class={streamdown.theme[`h${token.depth}`].base}>
+			<h2 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h2>
 		{:else if token.depth === 3}
-			<h3 class={streamdown.theme[`h${token.depth}`].base}>
+			<h3 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h3>
 		{:else if token.depth === 4}
-			<h4 class={streamdown.theme[`h${token.depth}`].base}>
+			<h4 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h4>
 		{:else if token.depth === 5}
-			<h5 class={streamdown.theme[`h${token.depth}`].base}>
+			<h5 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h5>
 		{:else if token.depth === 6}
-			<h6 class={streamdown.theme[`h${token.depth}`].base}>
+			<h6 {style} class={streamdown.theme[`h${token.depth}`].base}>
 				{@render children()}
 			</h6>
 		{/if}
 	</Slot>
 {:else if token.type === 'paragraph'}
 	<Slot props={{ children, token }} render={streamdown.snippets.paragraph}>
-		<p class={streamdown.theme.paragraph.base}>
+		<p {style} class={streamdown.theme.paragraph.base}>
 			{@render children()}
 		</p>
 	</Slot>
 {:else if token.type === 'blockquote'}
 	<Slot props={{ children, token }} render={streamdown.snippets.blockquote}>
-		<blockquote class={streamdown.theme.blockquote.base}>
+		<blockquote {style} class={streamdown.theme.blockquote.base}>
 			{@render children()}
 		</blockquote>
 	</Slot>
@@ -91,7 +94,7 @@
 {:else if token.type === 'list_item'}
 	<Slot props={{ children, token }} render={streamdown.snippets.li}>
 		<li
-			style={streamdown.isMounted ? streamdown.animationBlockStyle : undefined}
+			{style}
 			style:list-style-type={token.task ? 'none' : undefined}
 			{...token.value && !token.task ? { value: token.value } : {}}
 			class={streamdown.theme.li.base}
@@ -109,7 +112,7 @@
 	</Slot>
 {:else if token.type === 'table'}
 	<Slot props={{ token, children }} render={streamdown.snippets.table}>
-		<div class={streamdown.theme.table.base}>
+		<div {style} class={streamdown.theme.table.base}>
 			<table class={streamdown.theme.table.table}>
 				{@render children()}
 			</table>
@@ -117,25 +120,25 @@
 	</Slot>
 {:else if token.type === 'thead'}
 	<Slot props={{ token, children }} render={streamdown.snippets.thead}>
-		<thead class={streamdown.theme.thead.base}>
+		<thead {style} class={streamdown.theme.thead.base}>
 			{@render children?.()}
 		</thead>
 	</Slot>
 {:else if token.type === 'tbody'}
 	<Slot props={{ token, children }} render={streamdown.snippets.tbody}>
-		<tbody class={streamdown.theme.tbody.base}>
+		<tbody {style} class={streamdown.theme.tbody.base}>
 			{@render children?.()}
 		</tbody>
 	</Slot>
 {:else if token.type === 'tfoot'}
 	<Slot props={{ token, children }} render={streamdown.snippets.tfoot}>
-		<tfoot class={streamdown.theme.tfoot.base}>
+		<tfoot {style} class={streamdown.theme.tfoot.base}>
 			{@render children?.()}
 		</tfoot>
 	</Slot>
 {:else if token.type === 'tr'}
 	<Slot props={{ token, children }} render={streamdown.snippets.tr}>
-		<tr class={streamdown.theme.tr.base}>
+		<tr {style} class={streamdown.theme.tr.base}>
 			{@render children?.()}
 		</tr>
 	</Slot>
@@ -143,6 +146,7 @@
 	{#if token.rowspan > 0}
 		<Slot props={{ children, token }} render={streamdown.snippets.td}>
 			<td
+				{style}
 				class={streamdown.theme.td.base}
 				{...token.colspan > 1 ? { colspan: token.colspan } : {}}
 				{...token.rowspan > 1 ? { rowspan: token.rowspan } : {}}
@@ -158,6 +162,7 @@
 	{#if token.rowspan > 0}
 		<Slot props={{ children, token }} render={streamdown.snippets.th}>
 			<th
+				{style}
 				class={streamdown.theme.th.base}
 				{...token.colspan > 1 ? { colspan: token.colspan } : {}}
 				{...token.rowspan > 1 ? { rowspan: token.rowspan } : {}}
@@ -205,7 +210,7 @@
 	</Slot>
 {:else if token.type === 'hr'}
 	<Slot props={{ children, token }} render={streamdown.snippets.hr}>
-		<hr class={streamdown.theme.hr.base} />
+		<hr {style} class={streamdown.theme.hr.base} />
 	</Slot>
 {:else if token.type === 'br'}
 	<br />
@@ -225,6 +230,28 @@
 	<FootnoteRef {token} />
 {:else if token.type === 'footnote'}
 	<!-- TODO Footnotes are rendered inside the FootnoteRef popover -->
+{:else if token.type === 'descriptionList'}
+	<Slot props={{ children, token }} render={streamdown.snippets.descriptionList}>
+		<dl style={streamdown.animationBlockStyle} class={streamdown.theme.descriptionList.base}>
+			{@render children()}
+		</dl>
+	</Slot>
+{:else if token.type === 'description'}
+	<Slot props={{ children, token }} render={streamdown.snippets.description}>
+		{@render children()}
+	</Slot>
+{:else if token.type === 'descriptionTerm'}
+	<Slot props={{ children, token }} render={streamdown.snippets.descriptionTerm}>
+		<dt {style} class={streamdown.theme.descriptionTerm.base}>
+			{@render children()}
+		</dt>
+	</Slot>
+{:else if token.type === 'descriptionDetail'}
+	<Slot props={{ children, token }} render={streamdown.snippets.descriptionDetail}>
+		<dd {style} class={streamdown.theme.descriptionDetail.base}>
+			{@render children()}
+		</dd>
+	</Slot>
 {:else if token.type === 'def'}
 	<!-- TODO This does not seems to be tokenized for now -->
 {:else if token.type === 'escape'}

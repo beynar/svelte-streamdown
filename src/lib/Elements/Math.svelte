@@ -53,7 +53,7 @@
 		{@html html}
 	</span>
 {:else}
-	<div class="h-fit w-full">
+	<div style={streamdown.isMounted ? streamdown.animationBlockStyle : ''} class="h-fit w-full">
 		<div class="overflow-x-auto">
 			<div bind:this={inner} class={streamdown.theme.math.block}>
 				{@html html}

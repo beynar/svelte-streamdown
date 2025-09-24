@@ -31,7 +31,10 @@
 			}}
 			render={streamdown.snippets.image}
 		>
-			<span class={streamdown.theme.image.base}>
+			<span
+				style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+				class={streamdown.theme.image.base}
+			>
 				<img class={streamdown.theme.image.image} src={transformedUrl} alt={token.text} />
 			</span>
 		</Slot>

@@ -27,6 +27,14 @@ import {
 	type TH,
 	type TD
 } from './marked-table.js';
+import {
+	markedDl,
+	markedDt,
+	type DescriptionDetailToken,
+	type DescriptionListToken,
+	type DescriptionTermToken,
+	type DescriptionToken
+} from './marked-dl.js';
 
 export type GenericToken = {
 	type: string;
@@ -63,7 +71,11 @@ export type StreamdownToken =
 	| THeadRow
 	| TRow
 	| TH
-	| TD;
+	| TD
+	| DescriptionListToken
+	| DescriptionToken
+	| DescriptionDetailToken
+	| DescriptionTermToken;
 
 // Re-export table types from marked-table
 export type { TableToken, THead, TBody, TFoot, THeadRow, TRow, TH, TD } from './marked-table.js';
@@ -81,7 +93,6 @@ const parseExtensions = (...extensions: Extension[]) => {
 		};
 	} = {
 		gfm: true,
-
 		extensions: {
 			block: [],
 			inline: [],
@@ -124,6 +135,8 @@ export const lex = (markdown: string, extensions: Extension[] = []): StreamdownT
 			markedSup,
 			markedList,
 			markedBr,
+			markedDl,
+			markedDt,
 			...extensions
 		)
 	)
@@ -136,6 +149,7 @@ export const parseBlocks = (markdown: string, extensions: Extension[] = []): str
 		parseExtensions(
 			markedHr,
 			...markedFootnote(),
+			markedDl,
 			markedTable,
 			...extensions.filter(
 				({ level, applyInBlockParsing }) => level === 'block' && applyInBlockParsing

@@ -86,7 +86,7 @@
 		<span class={streamdown.theme.code.line}>
 			{#each line as token}
 				<span
-					style={streamdown.animationTextStyle}
+					style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
 					style:color={token.color}
 					style:background-color={token.bgColor}
 				>
@@ -99,7 +99,10 @@
 
 {#snippet Skeleton(lines: string[])}
 	{#each lines as line}
-		<span style={streamdown.animationTextStyle} class={streamdown.theme.code.skeleton}>
+		<span
+			style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
+			class={streamdown.theme.code.skeleton}
+		>
 			{line.trim().length > 0 ? line : '\u200B'}
 		</span>
 	{/each}

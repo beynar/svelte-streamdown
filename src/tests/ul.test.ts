@@ -294,7 +294,7 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete at end of entire string
-		expect(result).toBe('* Item with **bold\n+ Item with *italic\n- Item with `code');
+		expect(result).toBe('* Item with **bold**\n+ Item with *italic*\n- Item with `code`');
 	});
 
 	test('should handle nested unordered lists with incomplete formatting', () => {

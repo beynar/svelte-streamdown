@@ -276,6 +276,7 @@ describe('incomplete markdown', () => {
 		const input = 'Text before\n\n---\n\n***\n\n___\n\nText after';
 		const result = parseIncompleteMarkdown(input);
 
+		console.log({ result });
 		// Should leave valid horizontal rules unchanged
 		expect(result).toBe('Text before\n\n---\n\n***\n\n___\n\nText after');
 	});

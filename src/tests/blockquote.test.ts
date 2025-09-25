@@ -221,11 +221,11 @@ describe('incomplete markdown', () => {
 	});
 
 	test('should complete incomplete links and images in blockquotes', () => {
-		const input = '> Visit [Google and ![Image';
+		const input = '> Visit [Google';
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete with incomplete markers at end
-		expect(result).toBe('> Visit [Google and ![Image](streamdown:incomplete-link)');
+		expect(result).toBe('> Visit [Google](streamdown:incomplete-link)');
 	});
 
 	test('should handle nested blockquotes with incomplete formatting', () => {

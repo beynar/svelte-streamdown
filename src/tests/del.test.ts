@@ -332,7 +332,7 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete formatting at end of entire string
-		expect(result).toBe('First line with ~~strikethrough\nSecond line with ~~another');
+		expect(result).toBe('First line with ~~strikethrough~~\nSecond line with ~~another~~');
 	});
 
 	test('should handle strikethrough in different contexts', () => {
@@ -340,6 +340,6 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete strikethrough at end of entire string
-		expect(result).toBe('# Heading with ~~strikethrough\n\n> Blockquote with ~~another');
+		expect(result).toBe('# Heading with ~~strikethrough~~\n\n> Blockquote with ~~another~~');
 	});
 });

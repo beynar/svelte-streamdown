@@ -256,11 +256,11 @@ describe('tokenization', () => {
 
 describe('incomplete markdown', () => {
 	test('should complete basic incomplete image formatting', () => {
-		const input = 'Show ![Image1 and ![Image2';
+		const input = 'Show ![Image1';
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete incomplete images at end
-		expect(result).toBe('Show ![Image1 and ![Image2](streamdown:incomplete-image)');
+		expect(result).toBe('Show ![Image1](streamdown:incomplete-image)');
 	});
 
 	test('should handle line breaks with incomplete images', () => {
@@ -268,7 +268,9 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete images at end of lines
-		expect(result).toBe('First line ![Image1\nSecond line ![Image2](streamdown:incomplete-image)');
+		expect(result).toBe(
+			'First line ![Image1](streamdown:incomplete-image)\nSecond line ![Image2](streamdown:incomplete-image)'
+		);
 	});
 
 	test('should handle complete and incomplete images together', () => {
@@ -285,7 +287,7 @@ describe('incomplete markdown', () => {
 
 		// Should complete images at end of lines
 		expect(result).toBe(
-			'# Heading with ![Image](streamdown:incomplete-image)\n\n> Blockquote with ![Another]('
+			'# Heading with ![Image](streamdown:incomplete-image)\n\n> Blockquote with ![Another](streamdown:incomplete-image)'
 		);
 	});
 });

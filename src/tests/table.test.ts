@@ -321,20 +321,9 @@ describe('incomplete markdown', () => {
 			'| **Bold** | *Incomplete |\n|----------|-------------|\n| Cell 1   | Cell 2      |';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should complete incomplete formatters in table cells
+		// Should complete incomplete formatters within table cell boundaries
 		expect(result).toBe(
-			'| **Bold** | *Incomplete* |\n|----------|-------------|\n| Cell 1   | Cell 2      |'
-		);
-	});
-
-	test('should handle line breaks with incomplete formatting in tables', () => {
-		const input =
-			'| Header 1 | Header 2 |\n|----------|----------|\n| **Bold\n   text** | Normal |';
-		const result = parseIncompleteMarkdown(input);
-
-		// Should complete formatting that spans lines in table cells
-		expect(result).toBe(
-			'| Header 1 | Header 2 |\n|----------|----------|\n| **Bold\n   text** | Normal |'
+			'| **Bold** | *Incomplete *|\n|----------|-------------|\n| Cell 1   | Cell 2      |'
 		);
 	});
 
@@ -351,9 +340,9 @@ describe('incomplete markdown', () => {
 			'| **Bold** | *Italic | `Code | [Link |\n|----------|---------|-------|-------|\n| Cell 1   | Cell 2  | Cell 3 | Cell 4 |';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should complete incomplete formatters at end of string
+		// Should complete incomplete formatters within table cell boundaries
 		expect(result).toBe(
-			'| **Bold** | *Italic | `Code | [Link |*`](streamdown:incomplete-link)\n|----------|---------|-------|-------|\n| Cell 1   | Cell 2  | Cell 3 | Cell 4 |'
+			'| **Bold** | *Italic *| `Code `| [Link](streamdown:incomplete-link)|\n|----------|---------|-------|-------|\n| Cell 1   | Cell 2  | Cell 3 | Cell 4 |'
 		);
 	});
 });

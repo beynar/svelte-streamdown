@@ -72,8 +72,11 @@
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
 		{#if highlighter.isReady(streamdown.shikiTheme, token.lang)}
-			{@const tokens = highlighter.highlightCode(token.text, token.lang, streamdown.shikiTheme)}
-			<pre class={streamdown.theme.code.pre}><code>{@render Tokens(tokens)}</code></pre>
+			<pre class={streamdown.theme.code.pre}><code
+					>{@render Tokens(
+						highlighter.highlightCode(token.text, token.lang, streamdown.shikiTheme)
+					)}</code
+				></pre>
 		{:else}
 			<pre class={streamdown.theme.code.pre}><code>{@render Skeleton(token.text.split('\n'))}</code
 				></pre>
@@ -85,11 +88,7 @@
 	{#each tokens as line}
 		<span class={streamdown.theme.code.line}>
 			{#each line as token}
-				<span
-					style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
-					style:color={token.color}
-					style:background-color={token.bgColor}
-				>
+				<span style:color={token.color} style:background-color={token.bgColor}>
 					{token.content}
 				</span>
 			{/each}
@@ -99,10 +98,7 @@
 
 {#snippet Skeleton(lines: string[])}
 	{#each lines as line}
-		<span
-			style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
-			class={streamdown.theme.code.skeleton}
-		>
+		<span class={streamdown.theme.code.skeleton}>
 			{line.trim().length > 0 ? line : '\u200B'}
 		</span>
 	{/each}

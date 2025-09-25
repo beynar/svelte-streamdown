@@ -237,7 +237,7 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete codespan at end of entire string
-		expect(result).toBe('First line with `code\nSecond line with `more code');
+		expect(result).toBe('First line with `code`\nSecond line with `more code`');
 	});
 
 	test('should handle codespan with special content', () => {
@@ -253,6 +253,6 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete codespan at end of entire string
-		expect(result).toBe('# Heading with `code\n\n> Blockquote with `more code');
+		expect(result).toBe('# Heading with `code`\n\n> Blockquote with `more code`');
 	});
 });

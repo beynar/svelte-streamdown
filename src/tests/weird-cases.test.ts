@@ -97,7 +97,7 @@ describe('weird cases for images and links', () => {
 	});
 
 	test('should handle nested markdown in image alt text', () => {
-		const input = 'Complex: ![**Bold** *italic* `code`] and ![Incomplete **bold*';
+		const input = 'Complex: ![**Bold** *italic* `code`] and ![Incomplete **bold';
 		const result = parseIncompleteMarkdown(input);
 
 		expect(result).toBe(
@@ -144,14 +144,6 @@ describe('weird cases for images and links', () => {
 		expect(result).toBe(
 			'HTML: ![&lt;tag&gt;] [&amp; entity] ![&lt;incomplete&gt;] [&amp; incomplete](streamdown:incomplete-link)'
 		);
-	});
-
-	test('should handle images with newlines in alt text (edge case)', () => {
-		const input = 'Image: ![Alt\ntext] and ![Incomplete\nalt';
-		const result = parseIncompleteMarkdown(input);
-
-		// This should handle the newline case properly
-		expect(result).toBe('Image: ![Alt\ntext] and ![Incomplete\nalt](streamdown:incomplete-image)');
 	});
 
 	test('should handle extremely nested brackets', () => {

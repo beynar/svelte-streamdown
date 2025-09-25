@@ -202,10 +202,14 @@ class IncompleteMarkdownParser {
 					if (line.trim() === '***') {
 						return line;
 					}
+					const isEndingWithTripleAsterisk = line.endsWith('***');
 					const tripleAsterisks = (line.match(/\*\*\*/g) || []).length;
 					if (tripleAsterisks % 2 === 1) {
 						const lastTripleAsteriskIndex = line.lastIndexOf('***');
 						const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastTripleAsteriskIndex);
+						if (isEndingWithTripleAsterisk) {
+							return line.substring(0, lastTripleAsteriskIndex);
+						}
 						return line.substring(0, endOfCellOrLine) + '***' + line.substring(endOfCellOrLine);
 					}
 					return line;
@@ -221,8 +225,12 @@ class IncompleteMarkdownParser {
 					}
 					const doubleAsteriskMatches = (line.match(/\*\*/g) || []).length;
 					if (doubleAsteriskMatches % 2 === 1) {
+						const isEndingWithDoubleAsterisk = line.endsWith('**');
 						const lastDoubleAsteriskIndex = line.lastIndexOf('**');
 						const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastDoubleAsteriskIndex);
+						if (isEndingWithDoubleAsterisk) {
+							return line.substring(0, lastDoubleAsteriskIndex);
+						}
 						return line.substring(0, endOfCellOrLine) + '**' + line.substring(endOfCellOrLine);
 					}
 					return line;
@@ -238,8 +246,12 @@ class IncompleteMarkdownParser {
 					}
 					const underscorePairs = (line.match(/__/g) || []).length;
 					if (underscorePairs % 2 === 1) {
+						const isEndingWithDoubleUnderscore = line.endsWith('__');
 						const lastDoubleUnderscoreIndex = line.lastIndexOf('__');
 						const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastDoubleUnderscoreIndex);
+						if (isEndingWithDoubleUnderscore) {
+							return line.substring(0, lastDoubleUnderscoreIndex);
+						}
 						return line.substring(0, endOfCellOrLine) + '__' + line.substring(endOfCellOrLine);
 					}
 					return line;
@@ -252,11 +264,15 @@ class IncompleteMarkdownParser {
 				handler: ({ line }) => {
 					const tildePairs = (line.match(/~~/g) || []).length;
 					if (tildePairs % 2 === 1) {
+						const isEndingWithDoubleTilde = line.endsWith('~~');
 						const lastDoubleTildeIndex = line.lastIndexOf('~~');
 						const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastDoubleTildeIndex);
 						// Only complete if there's content after the tildes
 						const contentAfterTildes = line.substring(lastDoubleTildeIndex + 2, endOfCellOrLine);
 						if (contentAfterTildes.trim().length > 0) {
+							if (isEndingWithDoubleTilde) {
+								return line.substring(0, lastDoubleTildeIndex);
+							}
 							return line.substring(0, endOfCellOrLine) + '~~' + line.substring(endOfCellOrLine);
 						}
 					}

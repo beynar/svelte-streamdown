@@ -38,9 +38,9 @@ class IncompleteMarkdownParser {
 		lineContexts: []
 	};
 
-	setState(state: Partial<ParseState>) {
+	setState = (state: Partial<ParseState>) => {
 		this.state = { ...this.state, ...state };
-	}
+	};
 
 	constructor(plugins: Plugin[] = []) {
 		this.plugins = plugins;
@@ -51,6 +51,14 @@ class IncompleteMarkdownParser {
 		if (!text || typeof text !== 'string') {
 			return text;
 		}
+
+		this.state = {
+			currentLine: 0,
+			context: 'normal',
+			blockingContexts: new Set(),
+			lineContexts: [],
+			fenceInfo: undefined
+		};
 
 		let result = text;
 
@@ -315,6 +323,7 @@ class IncompleteMarkdownParser {
 			},
 			{
 				name: 'inlineCode',
+				skipInBlockTypes: ['code', 'math'],
 				pattern: /`/,
 				handler: ({ line }) => {
 					// Inline countSingleBackticks logic
@@ -448,7 +457,7 @@ class IncompleteMarkdownParser {
 				skipInBlockTypes: ['code', 'math'],
 				handler: ({ line }) => {
 					if (!line.includes(']')) {
-						return line.replace(/\[\^[^\]\s,]*/, '[^streamdown-footnote]');
+						return line.replace(/\[\^[^\]\s,]*/, '[^streamdown:footnote]');
 					}
 					return line;
 				}
@@ -489,7 +498,7 @@ class IncompleteMarkdownParser {
 			{
 				name: 'inlineMath',
 				pattern: /\$/,
-				skipInBlockTypes: ['code'],
+				skipInBlockTypes: ['code', 'math'],
 				handler: ({ line }) => {
 					// Inline countSingleDollarSigns logic
 					let singleDollars = 0;

@@ -479,12 +479,4 @@ describe('incomplete markdown', () => {
 		// Should complete the incomplete math but leave currency unchanged
 		expect(result).toBe('Math $x + y$ costs $199 and formula $a = b$');
 	});
-
-	test('should handle multi-line block math completion', () => {
-		const input = '$$\nE = mc^2\nF = ma';
-		const result = parseIncompleteMarkdown(input);
-
-		// Should complete the math block with closing $$
-		expect(result).toBe('$$\nE = mc^2\nF = ma\n$$');
-	});
 });

@@ -38,3 +38,4 @@
 {/snippet}
 
 {@render renderChildren(tokens)}
+{parseIncompleteMarkdown(block.trim())}

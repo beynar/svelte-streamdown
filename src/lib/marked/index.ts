@@ -29,7 +29,6 @@ import {
 } from './marked-table.js';
 import {
 	markedDl,
-	markedDt,
 	type DescriptionDetailToken,
 	type DescriptionListToken,
 	type DescriptionTermToken,
@@ -136,7 +135,6 @@ export const lex = (markdown: string, extensions: Extension[] = []): StreamdownT
 			markedList,
 			markedBr,
 			markedDl,
-			markedDt,
 			...extensions
 		)
 	)

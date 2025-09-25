@@ -290,6 +290,19 @@ describe('tokenization', () => {
 		expect(linkTokens[0].text).toBe('');
 		expect(linkTokens[0].href).toBe('https://example.com');
 	});
+
+	test('should parse link with empty text', () => {
+		const tokens = lex('[](https://example.com)');
+		const paragraphToken = getFirstTokenByType(tokens, 'paragraph');
+
+		expect(paragraphToken).toBeDefined();
+		const paragraphTokens = paragraphToken.tokens || [];
+		const linkTokens = paragraphTokens.filter((t: { type: string }) => t.type === 'link');
+
+		expect(linkTokens.length).toBe(1);
+		expect(linkTokens[0].text).toBe('');
+		expect(linkTokens[0].href).toBe('https://example.com');
+	});
 });
 
 describe('incomplete markdown', () => {

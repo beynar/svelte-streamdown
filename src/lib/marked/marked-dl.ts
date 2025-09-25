@@ -8,43 +8,42 @@ export const markedDl: Extension = {
 		const rule = /^(?:[ \t]*:[^:\n]+:[ \t]?[^\n]*(?:\n|$))+/;
 		const match = rule.exec(src);
 		if (match) {
+			const text = match[0].trim();
+			const tokens: DescriptionToken[] = [];
+
+			// Parse each line as a description
+			const lines = text.split('\n');
+			for (const line of lines) {
+				const lineMatch = /^\s*:([^:\n]+):([^:\n]*)(?:\n|$)/.exec(line);
+				if (lineMatch) {
+					const term = lineMatch[1].trim();
+					const detail = lineMatch[2].trim();
+					tokens.push({
+						type: 'description',
+						raw: lineMatch[0],
+						tokens: [
+							{
+								type: 'descriptionTerm',
+								raw: term,
+								tokens: this.lexer.inlineTokens(term)
+							},
+							{
+								type: 'descriptionDetail',
+								raw: detail,
+								tokens: this.lexer.inlineTokens(detail)
+							}
+						]
+					});
+				}
+			}
+
 			const token = {
 				type: 'descriptionList',
 				raw: match[0],
-				text: match[0].trim(),
-				tokens: this.lexer.inlineTokens(match[0].trim()).filter((t) => t.type === 'description')
+				text: text,
+				tokens: tokens
 			};
 			return token;
-		}
-	}
-};
-
-export const markedDt: Extension = {
-	name: 'description',
-	level: 'inline',
-
-	tokenizer(this, src) {
-		const rule = /^\s*:([^:\n]+):([^:\n]*)(?:\n|$)/;
-		const match = rule.exec(src);
-		if (match) {
-			const term = match[1].trim();
-			const detail = match[2].trim();
-			return {
-				type: 'description',
-				raw: match[0],
-				tokens: [
-					{
-						type: 'descriptionTerm',
-						raw: term,
-						tokens: this.lexer.inlineTokens(term)
-					},
-					{
-						type: 'descriptionDetail',
-						raw: detail,
-						tokens: this.lexer.inlineTokens(detail)
-					}
-				]
-			};
 		}
 	}
 };

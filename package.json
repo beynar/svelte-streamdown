@@ -1,6 +1,6 @@
 {
 	"name": "svelte-streamdown",
-	"version": "2.4.2",
+	"version": "2.4.4",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",

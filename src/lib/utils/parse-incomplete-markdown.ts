@@ -544,6 +544,9 @@ class IncompleteMarkdownParser {
 				pattern: /\$\$/,
 				skipInBlockTypes: ['code', 'math'],
 				handler: ({ line }) => {
+					// Don't process block boundaries (lines that are just $$)
+					if (line.trim() === '$$') return line;
+
 					const dollarPairs = (line.match(/\$\$/g) || []).length;
 					if (dollarPairs % 2 === 0) return line;
 					const firstDollarIndex = line.indexOf('$$');

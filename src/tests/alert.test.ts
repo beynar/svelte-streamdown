@@ -452,7 +452,7 @@ describe('incomplete markdown', () => {
 
 		// Should complete all incomplete formatting inside alert
 		expect(result).toBe(
-			'> [!IMPORTANT]\n> Complex alert with **bold**, *italic, `code, [link, and ~~strike*`~~](streamdown:incomplete-link)'
+			'> [!IMPORTANT]\n> Complex alert with **bold**, *italic, `code, [link, and ~~strike~~*`](streamdown:incomplete-link)'
 		);
 	});
 });

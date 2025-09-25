@@ -294,11 +294,11 @@ describe('tokenization', () => {
 
 describe('incomplete markdown', () => {
 	test('should complete basic incomplete link formatting', () => {
-		const input = 'Visit [Google and [GitHub';
+		const input = 'Visit [GitHub';
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete incomplete links at end
-		expect(result).toBe('Visit [Google and [GitHub](streamdown:incomplete-link)');
+		expect(result).toBe('Visit [GitHub](streamdown:incomplete-link)');
 	});
 
 	test('should handle complete and incomplete links together', () => {

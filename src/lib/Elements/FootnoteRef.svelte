@@ -97,7 +97,6 @@
 			{@attach clickOutside.attachment}
 			{@attach popoverAttachment}
 			open
-			popover="auto"
 			class={`${streamdown.theme.footnotePopover.base}`}
 		>
 			{#each token.content.lines as line}
@@ -107,22 +106,24 @@
 	</Slot>
 {/if}
 
-<Slot
-	props={{
-		token
-	}}
-	render={streamdown.snippets.footnoteRef}
->
-	<button
-		style={streamdown.animationBlockStyle}
-		bind:this={reference}
-		class={streamdown.theme.footnoteRef.base}
-		onclick={() => (isOpen = !isOpen)}
-		aria-expanded={isOpen}
-		aria-haspopup="dialog"
-		aria-controls={'footnote-popover-' + id}
-		{@attach clickOutside.attachment}
+{#if token.label !== 'streamdown:footnote'}
+	<Slot
+		props={{
+			token
+		}}
+		render={streamdown.snippets.footnoteRef}
 	>
-		{token.label.replace('^', '')}
-	</button>
-</Slot>
+		<button
+			style={streamdown.animationBlockStyle}
+			bind:this={reference}
+			class={streamdown.theme.footnoteRef.base}
+			onclick={() => (isOpen = !isOpen)}
+			aria-expanded={isOpen}
+			aria-haspopup="dialog"
+			aria-controls={'footnote-popover-' + id}
+			{@attach clickOutside.attachment}
+		>
+			{token.label.replace('^', '')}
+		</button>
+	</Slot>
+{/if}

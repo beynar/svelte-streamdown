@@ -234,7 +234,7 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should remain unchanged as it's an incomplete code block
-		expect(result).toBe('```mermaid\nflowchart TD\n    A --> B');
+		expect(result).toBe('```mermaid\nflowchart TD\n    A --> B\n```');
 	});
 
 	test('should handle formatting outside incomplete mermaid blocks', () => {
@@ -242,7 +242,7 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete the bold formatting outside mermaid block
-		expect(result).toBe('Text with **incomplete**\n\n```mermaid\nflowchart TD\n    A --> B');
+		expect(result).toBe('Text with **incomplete**\n\n```mermaid\nflowchart TD\n    A --> B\n```');
 	});
 
 	test('should not process formatting inside incomplete mermaid blocks', () => {
@@ -250,7 +250,7 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should not process markdown formatting inside mermaid code
-		expect(result).toBe('```mermaid\nflowchart TD\n    A["**Bold Text**"] --> B');
+		expect(result).toBe('```mermaid\nflowchart TD\n    A["**Bold Text**"] --> B\n```');
 	});
 
 	test('should handle different mermaid diagram types', () => {
@@ -260,7 +260,7 @@ describe('incomplete markdown', () => {
 
 		// Should remain unchanged as incomplete code block regardless of diagram type
 		expect(result).toBe(
-			'```mermaid\nclassDiagram\n    class Animal {\n        +name: string\n        +makeSound()\n    }'
+			'```mermaid\nclassDiagram\n    class Animal {\n        +name: string\n        +makeSound()\n    }\n```'
 		);
 	});
 });

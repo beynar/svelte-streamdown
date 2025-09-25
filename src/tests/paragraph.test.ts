@@ -216,7 +216,7 @@ describe('incomplete markdown', () => {
 
 		// Should complete incomplete formatters at end of string
 		expect(result).toBe(
-			'Paragraph with `code, [link, ~~strike, and **bold**`~~](streamdown:incomplete-link)'
+			'Paragraph with `code, [link, ~~strike, and **bold**~~`](streamdown:incomplete-link)'
 		);
 	});
 

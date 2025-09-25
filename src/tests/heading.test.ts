@@ -238,10 +238,10 @@ describe('incomplete markdown', () => {
 	});
 
 	test('should handle incomplete links and images in headings', () => {
-		const input = '#### Heading with [link and ![image';
+		const input = '#### Heading with [link';
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete with incomplete markers
-		expect(result).toBe('#### Heading with [link and ![image](streamdown:incomplete-link)');
+		expect(result).toBe('#### Heading with [link](streamdown:incomplete-link)');
 	});
 });

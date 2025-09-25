@@ -326,7 +326,7 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete footnote with special marker
-		expect(result).toBe('Text with incomplete footnote[^streamdown-footnote]');
+		expect(result).toBe('Text with incomplete footnote[^streamdown:footnote]');
 	});
 
 	test('should complete incomplete formatting around complete footnotes', () => {
@@ -346,7 +346,7 @@ describe('incomplete markdown', () => {
 		// Should complete footnote and italic
 		console.log(result);
 		expect(result).toBe(
-			'# Heading with footnote[^streamdown-footnote]\n\n> Blockquote with *incomplete*'
+			'# Heading with footnote[^streamdown:footnote]\n\n> Blockquote with *incomplete*'
 		);
 	});
 
@@ -357,7 +357,7 @@ describe('incomplete markdown', () => {
 		// Should complete all incomplete formatters including footnote
 
 		expect(result).toBe(
-			'Text with **bold**, *italic, footnote[^streamdown-footnote], and ~~strike~~*'
+			'Text with **bold**, *italic, footnote[^streamdown:footnote], and ~~strike~~*'
 		);
 	});
 });

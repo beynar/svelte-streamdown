@@ -84,11 +84,15 @@
 	</div>
 </div>
 
-{#snippet Tokens(tokens: ThemedToken[][])}
-	{#each tokens as line}
+{#snippet Tokens(lines: ThemedToken[][])}
+	{#each lines as tokens}
 		<span class={streamdown.theme.code.line}>
-			{#each line as token}
-				<span style:color={token.color} style:background-color={token.bgColor}>
+			{#each tokens as token}
+				<span
+					style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
+					style:color={token.color}
+					style:background-color={token.bgColor}
+				>
 					{token.content}
 				</span>
 			{/each}

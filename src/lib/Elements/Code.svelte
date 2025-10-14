@@ -119,7 +119,6 @@
 		stroke-width="2"
 		stroke-linecap="round"
 		stroke-linejoin="round"
-		class="lucide lucide-clipboard-icon lucide-clipboard"
 		><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path
 			d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
 		/></svg
@@ -137,7 +136,6 @@
 		stroke-width="2"
 		stroke-linecap="round"
 		stroke-linejoin="round"
-		class="lucide lucide-download-icon lucide-download"
 		><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path
 			d="m7 10 5 5 5-5"
 		/></svg

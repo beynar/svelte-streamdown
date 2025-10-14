@@ -10,6 +10,7 @@
 	import Slot from './Slot.svelte';
 	import { useStreamdown } from '$lib/context.svelte.js';
 	import FootnoteRef from './FootnoteRef.svelte';
+	import Citation from './Citation.svelte';
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
 	const streamdown = useStreamdown();
 
@@ -228,6 +229,8 @@
 	<Alert {token} {children} />
 {:else if token.type === 'footnoteRef'}
 	<FootnoteRef {token} />
+{:else if token.type === 'inline-citations'}
+	<Citation {token} />
 {:else if token.type === 'footnote'}
 	<!-- TODO Footnotes are rendered inside the FootnoteRef popover -->
 {:else if token.type === 'descriptionList'}

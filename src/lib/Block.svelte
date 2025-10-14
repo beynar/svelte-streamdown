@@ -4,17 +4,17 @@
 	import { lex, type StreamdownToken } from './marked/index.js';
 	import AnimatedText from './AnimatedText.svelte';
 	import { useStreamdown } from './context.svelte.js';
+	import { getContext } from 'svelte';
 
 	let {
-		block,
-		insideFootnote = false
+		block
 	}: {
 		block: string;
-		insideFootnote?: boolean;
 	} = $props();
 
 	const streamdown = useStreamdown();
 	const tokens = $derived(lex(parseIncompleteMarkdown(block.trim()), streamdown.extensions));
+	const insidePopover = getContext('POPOVER');
 </script>
 
 {#snippet renderChildren(tokens: StreamdownToken[])}
@@ -24,7 +24,7 @@
 			{@const isTextOnlyNode = children.length === 0}
 			<Element {token}>
 				{#if isTextOnlyNode}
-					{#if streamdown.animation.enabled && !insideFootnote}
+					{#if streamdown.animation.enabled && !insidePopover}
 						<AnimatedText text={'text' in token ? token.text : ''} />
 					{:else}
 						{'text' in token ? token.text : ''}

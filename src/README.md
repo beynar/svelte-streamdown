@@ -62,6 +62,7 @@ Full support for
 - Escaping currency symbols ($140)
 - Complex tables
 - Footnotes [^1]
+- Inline citations [ref] [ref2]
 
 [^1]:
     Reference render in a popover by default.

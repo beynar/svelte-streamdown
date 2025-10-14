@@ -144,9 +144,35 @@ export const theme = {
 	},
 	descriptionDetail: {
 		base: 'text-gray-700 ml-4 leading-relaxed'
+	},
+	inlineCitation: {
+		preview: 'text-sm text-muted-foreground bg-muted/80 rounded-md px-2 py-1',
+		popover:
+			'fixed z-50 max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-background p-4 shadow',
+		header: 'flex items-start justify-between',
+		stepCounter: 'h-fit text-xs font-semibold text-muted-foreground tabular-nums',
+		buttons: 'flex w-fit items-center justify-end gap-2',
+		button:
+			'cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-muted w-6 h-6',
+		title: 'mb-2 line-clamp-2 font-semibold',
+		url: 'flex items-center gap-2 text-sm text-muted-foreground',
+		favicon: 'h-4 w-4'
 	}
 } satisfies Record<
-	keyof Omit<Snippets, 'description' | 'heading'> | 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6',
+	| keyof Omit<
+			Snippets,
+			| 'description'
+			| 'heading'
+			| 'inlineCitationContent'
+			| 'inlineCitationPreview'
+			| 'inlineCitationPopover'
+	  >
+	| 'h1'
+	| 'h2'
+	| 'h3'
+	| 'h4'
+	| 'h5'
+	| 'h6',
 	any
 >;
 
@@ -278,7 +304,7 @@ export const shadcnTheme = {
 		base: 'text-muted-foreground'
 	},
 	footnoteRef: {
-		base: 'text-muted-foreground px-1 text-sm inline-block rounded-full bg-muted/80 aspect-square border border-border'
+		base: 'text-muted-foreground text-sm  rounded-full bg-muted cursor-pointer aspect-square border border-border hover:bg-muted/50 tabular-nums aspect-square min-w-6 min-h-6 outline-none focus:ring-1 focus:ring-primary'
 	},
 	footnotePopover: {
 		base: 'fixed z-50 max-h-[30vh] shadow max-w-3xl overflow-y-auto rounded-lg bg-background p-4'
@@ -291,6 +317,20 @@ export const shadcnTheme = {
 	},
 	descriptionDetail: {
 		base: 'text-muted-foreground ml-4 leading-relaxed'
+	},
+	inlineCitation: {
+		preview:
+			'text-sm text-muted-foreground bg-muted rounded-md px-2 py-0.5 cursor-pointer inline-flex border border-border hover:bg-muted/50 outline-none focus:ring-1 focus:ring-primary',
+		popover:
+			'fixed z-50 max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-background p-4 shadow',
+		header: 'flex items-start justify-between',
+		stepCounter: 'h-fit text-xs font-semibold text-muted-foreground tabular-nums',
+		buttons: 'flex w-fit items-center justify-end gap-2',
+		button:
+			'cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-muted w-6 h-6',
+		title: 'mb-2 line-clamp-2 font-semibold',
+		url: 'flex items-center gap-2 text-sm text-muted-foreground',
+		favicon: 'h-4 w-4 rounded'
 	}
 } satisfies Theme;
 

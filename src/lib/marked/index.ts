@@ -34,6 +34,8 @@ import {
 	type DescriptionTermToken,
 	type DescriptionToken
 } from './marked-dl.js';
+import { markedAlign, type AlignToken } from './marked-align.js';
+import { markedCitations, type CitationToken } from './marked-citations.js';
 
 export type GenericToken = {
 	type: string;
@@ -74,7 +76,9 @@ export type StreamdownToken =
 	| DescriptionListToken
 	| DescriptionToken
 	| DescriptionDetailToken
-	| DescriptionTermToken;
+	| DescriptionTermToken
+	| AlignToken
+	| CitationToken;
 
 // Re-export table types from marked-table
 export type { TableToken, THead, TBody, TFoot, THeadRow, TRow, TH, TD } from './marked-table.js';
@@ -135,6 +139,8 @@ export const lex = (markdown: string, extensions: Extension[] = []): StreamdownT
 			markedList,
 			markedBr,
 			markedDl,
+			markedAlign,
+			markedCitations,
 			...extensions
 		)
 	)
@@ -149,6 +155,7 @@ export const parseBlocks = (markdown: string, extensions: Extension[] = []): str
 			...markedFootnote(),
 			markedDl,
 			markedTable,
+			markedAlign,
 			...extensions.filter(
 				({ level, applyInBlockParsing }) => level === 'block' && applyInBlockParsing
 			)
@@ -165,4 +172,13 @@ export const parseBlocks = (markdown: string, extensions: Extension[] = []): str
 	}, [] as string[]);
 };
 
-export type { MathToken, AlertToken, FootnoteToken, SubSupToken, BrToken, HrToken };
+export type {
+	MathToken,
+	AlertToken,
+	FootnoteToken,
+	SubSupToken,
+	BrToken,
+	HrToken,
+	AlignToken,
+	CitationToken
+};

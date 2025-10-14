@@ -1,4 +1,4 @@
-<script lang="ts">
+<script lang="ts" generics="Source extends Record<string, any> = Record<string, any>">
 	import Block from './Block.svelte';
 	import { StreamdownContext, type StreamdownProps } from './context.svelte.js';
 	import { mergeTheme, shadcnTheme } from './theme.js';
@@ -27,8 +27,9 @@
 		icons,
 		children,
 		extensions,
+		sources,
 		...snippets
-	}: StreamdownProps = $props();
+	}: StreamdownProps<Source> = $props();
 
 	streamdown = new StreamdownContext({
 		get element() {
@@ -78,7 +79,9 @@
 		get shikiPreloadThemes() {
 			return shikiPreloadThemes;
 		},
-
+		get sources() {
+			return sources;
+		},
 		get animation() {
 			if (!animation?.enabled)
 				return {

@@ -208,7 +208,6 @@
 			{@attach (node) => renderMermaid(token.text, node)}
 			{@attach insider.attach}
 			data-expanded={'false'}
-			style:opacity="0.2"
 		>
 			{#if streamdown.controls.mermaid}
 				<div class={streamdown.theme.mermaid.buttons}>

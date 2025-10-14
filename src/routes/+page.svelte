@@ -226,7 +226,7 @@
 				enabled: animationEnabled,
 				type: 'slideDown'
 			}}
-			baseTheme="shadcn"
+			baseTheme="tailwind"
 			mermaidConfig={{
 				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
 			}}
@@ -235,12 +235,12 @@
 			allowedLinkPrefixes={['*']}
 			sources={{
 				ref: {
-					title: 'Reference',
-					// url: 'https://www.vercel.com/favicon.ico',
-					content: 'This is a reference'
+					title: 'Streamdown',
+					url: 'https://streamdown.ai/',
+					content: 'This is a reference for Streamdown'
 				},
 				ref2: {
-					// title: 'Reference 2',
+					title: 'Reference 2',
 					url: 'https://www.google.com/favicon.ico',
 					content:
 						'This is a reference 2 with a longer content: lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.'

@@ -36,10 +36,10 @@ export class StepperState<Item> {
 	}
 
 	translate = () => {
-		if (this.destinationOffset !== this.offsets[this.activeStep]) {
+		if (this.destinationOffset !== this.offsets[this.activeStep] && this.stepContainer) {
 			this.destinationOffset = this.offsets[this.activeStep];
 			this.stepAnimation?.cancel();
-			this.stepAnimation = this.stepContainer!.animate(
+			this.stepAnimation = this.stepContainer.animate(
 				{
 					transform: `translateX(-${this.offsets[this.activeStep]}px)`
 				},
@@ -53,9 +53,10 @@ export class StepperState<Item> {
 	};
 
 	setActiveStep = (i: number) => () => {
-		if (!this.canGoToStep(i)) return;
-		const previousStep = this.stepContainer!.children[this.activeStep] as HTMLElement;
-		const nextStep = this.stepContainer!.children[i] as HTMLElement;
+		if (!this.canGoToStep(i) || !this.stepContainer) return;
+		const previousStep = this.stepContainer.children[this.activeStep] as HTMLElement;
+		const nextStep = this.stepContainer.children[i] as HTMLElement;
+		if (!previousStep || !nextStep) return;
 		this.activeStep = i;
 		this.translate();
 		previousStep.animate(

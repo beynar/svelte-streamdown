@@ -1,5 +1,6 @@
 import { expect, describe, test } from 'vitest';
 import { lex } from '../lib/marked/index.js';
+import { parseIncompleteMarkdown } from '../lib/utils/parse-incomplete-markdown.js';
 
 function getTokensByType(tokens: any[], type: string) {
 	return tokens.filter((token) => token.type === type);

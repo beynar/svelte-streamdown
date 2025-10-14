@@ -132,6 +132,7 @@
 				style:position="relative"
 				style:transition-duration="200ms"
 				style:transition-timing-function="ease-in-out"
+				aria-label="Citations-${id}"
 			>
 				<div
 					bind:this={stepper.stepContainer}
@@ -150,8 +151,7 @@
 							style:height="fit-content"
 							style:width="100%"
 							style:flex-grow="1"
-							style:focus-outline="none"
-							aria-labelledby={`stepper-${index}`}
+							aria-label="Citation-${id}"
 						>
 							<Slot
 								render={streamdown.snippets.inlineCitationContent}

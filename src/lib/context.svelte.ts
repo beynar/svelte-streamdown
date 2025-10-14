@@ -152,7 +152,7 @@ export type Snippets<Source extends Record<string, any> = Record<string, any>> =
 			{
 				children: Snippet;
 				token: TokenSnippet[K];
-			} & (K extends 'citationContent'
+			} & (K extends 'inlineCitationContent'
 				? {
 						source: Source;
 						key: string;

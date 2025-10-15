@@ -24,8 +24,8 @@ interface HandlerPayload {
 interface ParseState {
 	currentLine: number;
 	context: 'normal' | 'list' | 'blockquote' | 'descriptionList';
-	blockingContexts: Set<'code' | 'math'>;
-	lineContexts?: Array<{ code: boolean; math: boolean }>;
+	blockingContexts: Set<'code' | 'math' | 'center' | 'right'>;
+	lineContexts?: Array<{ code: boolean; math: boolean; center: boolean; right: boolean }>;
 	fenceInfo?: string;
 }
 
@@ -151,9 +151,16 @@ class IncompleteMarkdownParser {
 					const lines = text.split('\n');
 					let inCodeBlock = false;
 					let inMathBlock = false;
+					let inCenterBlock = false;
+					let inRightBlock = false;
 
 					// Track which lines are in which contexts for state management
-					const lineContexts: Array<{ code: boolean; math: boolean }> = [];
+					const lineContexts: Array<{
+						code: boolean;
+						math: boolean;
+						center: boolean;
+						right: boolean;
+					}> = [];
 
 					for (let i = 0; i < lines.length; i++) {
 						const line = lines[i];
@@ -165,20 +172,39 @@ class IncompleteMarkdownParser {
 						if (line.trim().startsWith('$$') && !line.trim().includes('$$', 2)) {
 							inMathBlock = !inMathBlock;
 						}
+						if (line.trim() === '[center]') {
+							inCenterBlock = true;
+						}
+						if (line.trim() === '[/center]') {
+							inCenterBlock = false;
+						}
+						if (line.trim() === '[right]') {
+							inRightBlock = true;
+						}
+						if (line.trim() === '[/right]') {
+							inRightBlock = false;
+						}
 
-						lineContexts[i] = { code: inCodeBlock, math: inMathBlock };
+						lineContexts[i] = {
+							code: inCodeBlock,
+							math: inMathBlock,
+							center: inCenterBlock,
+							right: inRightBlock
+						};
 					}
 
 					// Set the final blocking contexts (for postprocessing)
 					const finalContexts = new Set<string>();
 					if (inCodeBlock) finalContexts.add('code');
 					if (inMathBlock) finalContexts.add('math');
+					if (inCenterBlock) finalContexts.add('center');
+					if (inRightBlock) finalContexts.add('right');
 
 					// Return both the text and the updated state
 					return {
 						text: text, // Don't modify text in preprocess
 						state: {
-							blockingContexts: finalContexts as Set<'code' | 'math'>,
+							blockingContexts: finalContexts as Set<'code' | 'math' | 'center' | 'right'>,
 							lineContexts
 						}
 					};
@@ -190,6 +216,12 @@ class IncompleteMarkdownParser {
 					}
 					if (state.blockingContexts.has('math')) {
 						return text + '\n$$';
+					}
+					if (state.blockingContexts.has('center')) {
+						return text + '\n[/center]';
+					}
+					if (state.blockingContexts.has('right')) {
+						return text + '\n[/right]';
 					}
 					return text;
 				}
@@ -468,6 +500,33 @@ class IncompleteMarkdownParser {
 				}
 			},
 			{
+				name: 'inlineCitation',
+				pattern: /\[/,
+				skipInBlockTypes: ['code', 'math'],
+				handler: ({ line }) => {
+					// Count unescaped opening brackets without matching closing brackets
+					let unclosedBrackets = 0;
+					for (let i = 0; i < line.length; i++) {
+						if (line[i] === '[' && (i === 0 || line[i - 1] !== '\\')) {
+							// Check if this bracket has a matching closing bracket later in the line
+							const restOfLine = line.substring(i + 1);
+							const closingIndex = restOfLine.indexOf(']');
+							if (closingIndex === -1) {
+								unclosedBrackets++;
+							}
+						}
+					}
+
+					// If there's an odd number of unclosed brackets, add closing bracket
+					if (unclosedBrackets % 2 === 1) {
+						const endOfCellOrLine = findEndOfCellOrLineContaining(line, line.length - 1);
+						return line.substring(0, endOfCellOrLine) + ']' + line.substring(endOfCellOrLine);
+					}
+
+					return line;
+				}
+			},
+			{
 				name: 'footnoteRef',
 				pattern: /\[\^[^\]\s,]*/,
 				skipInBlockTypes: ['code', 'math'],
@@ -664,6 +723,21 @@ class IncompleteMarkdownParser {
 							openBracket + linkText + '](' + marker + ')' + (includeBoundary ? '|' : '');
 
 						return line.replace(incompletePart, completedPart);
+					}
+					return line;
+				}
+			},
+			{
+				name: 'alignmentBlocks',
+				pattern: /^(\s*\[(center|right)\])$/,
+				skipInBlockTypes: ['code', 'math'],
+				handler: ({ line, state }) => {
+					// Check if this is an opening alignment tag without content or closing tag
+					const alignMatch = line.match(/^(\s*\[(center|right)\])$/);
+					if (alignMatch) {
+						const indent = alignMatch[1].length - alignMatch[1].trim().length;
+						const alignType = alignMatch[2];
+						return line + '\n' + ' '.repeat(indent) + '[/' + alignType + ']';
 					}
 					return line;
 				}

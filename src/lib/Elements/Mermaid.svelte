@@ -200,60 +200,63 @@
 	};
 </script>
 
-{#if mermaid}
-	<div
-		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
-		class={streamdown.theme.mermaid.base}
-		{@attach (node) => renderMermaid(token.text, node)}
-		{@attach insider.attach}
-		data-expanded={'false'}
-	>
-		{#if streamdown.controls.mermaid}
-			<div class={streamdown.theme.mermaid.buttons}>
-				<button
-					class={streamdown.theme.mermaid.button}
-					aria-label="Zoom to fit"
-					onclick={() => panzoom.zoomToFit()}
-					data-panzoom-ignore
-				>
-					{@render (streamdown.icons?.fitView || fitViewIcon)()}
-				</button>
-				<button
-					class={streamdown.theme.mermaid.button}
-					aria-label="Zoom in"
-					onclick={() => panzoom.zoomIn()}
-					data-panzoom-ignore
-				>
-					{@render (streamdown.icons?.zoomIn || zoomInIcon)()}
-				</button>
-				<button
-					class={streamdown.theme.mermaid.button}
-					aria-label="Zoom out"
-					onclick={() => panzoom.zoomOut()}
-					data-panzoom-ignore
-				>
-					{@render (streamdown.icons?.zoomOut || zoomOutIcon)()}
-				</button>
-				<button
-					class={streamdown.theme.mermaid.button}
-					aria-label="Toggle expand"
-					onclick={() => panzoom.toggleExpand()}
-					data-panzoom-ignore
-				>
-					{@render (streamdown.icons?.fullscreen || fullscreenIcon)()}
-				</button>
-			</div>
-		{/if}
-		<svg {@attach panzoom.attach} data-mermaid-svg></svg>
-	</div>
-{:else}
-	<div class={streamdown.theme.mermaid.base}></div>
-{/if}
-
+<div>
+	{#if mermaid}
+		<div
+			style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+			class={streamdown.theme.mermaid.base}
+			{@attach (node) => renderMermaid(token.text, node)}
+			{@attach insider.attach}
+			data-expanded={'false'}
+		>
+			{#if streamdown.controls.mermaid}
+				<div class={streamdown.theme.mermaid.buttons}>
+					<button
+						class={streamdown.theme.components.button}
+						aria-label="Zoom to fit"
+						onclick={() => panzoom.zoomToFit()}
+						data-panzoom-ignore
+					>
+						{@render (streamdown.icons?.fitView || fitViewIcon)()}
+					</button>
+					<button
+						class={streamdown.theme.components.button}
+						aria-label="Zoom in"
+						onclick={() => panzoom.zoomIn()}
+						data-panzoom-ignore
+					>
+						{@render (streamdown.icons?.zoomIn || zoomInIcon)()}
+					</button>
+					<button
+						class={streamdown.theme.components.button}
+						aria-label="Zoom out"
+						onclick={() => panzoom.zoomOut()}
+						data-panzoom-ignore
+					>
+						{@render (streamdown.icons?.zoomOut || zoomOutIcon)()}
+					</button>
+					<button
+						class={streamdown.theme.components.button}
+						aria-label="Toggle expand"
+						onclick={() => panzoom.toggleExpand()}
+						data-panzoom-ignore
+					>
+						{@render (streamdown.icons?.fullscreen || fullscreenIcon)()}
+					</button>
+				</div>
+			{/if}
+			<svg {@attach panzoom.attach} data-mermaid-svg></svg>
+		</div>
+	{:else}
+		<div class={streamdown.theme.mermaid.base}></div>
+	{/if}
+</div>
 {#snippet zoomInIcon()}
 	<svg
 		class={streamdown.theme.mermaid.icon}
 		xmlns="http://www.w3.org/2000/svg"
+		width="100%"
+		height="100%"
 		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"
@@ -271,6 +274,8 @@
 	<svg
 		class={streamdown.theme.mermaid.icon}
 		xmlns="http://www.w3.org/2000/svg"
+		width="100%"
+		height="100%"
 		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"
@@ -321,47 +326,7 @@
 {/snippet}
 
 <style>
-	/* View Transition styles for zoom effect */
-	::view-transition-old(panzoom-element),
-	::view-transition-new(panzoom-element) {
-		/* Animate both scale and opacity for smooth zoom */
-		animation-duration: 0.3s;
-		animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
-	}
-
-	/* Zoom in animation (expand) */
-	::view-transition-old(panzoom-element) {
-		animation-name: zoom-out;
-	}
-
-	::view-transition-new(panzoom-element) {
-		animation-name: zoom-in;
-	}
-
-	@keyframes zoom-out {
-		from {
-			transform: scale(1);
-		}
-		to {
-			transform: scale(0.8);
-		}
-	}
-
-	@keyframes zoom-in {
-		from {
-			transform: scale(1.2);
-		}
-		to {
-			transform: scale(1);
-		}
-	}
-
 	:global([data-expanded='true']) {
-		::view-transition-old(panzoom-element),
-		::view-transition-new(panzoom-element) {
-			animation-duration: 0.3s;
-			animation-timing-function: cubic-bezier(0.2, 0, 0, 1);
-		}
 		position: fixed;
 		top: 16px;
 		left: 16px;

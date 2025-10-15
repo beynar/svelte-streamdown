@@ -64,7 +64,7 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 		if (e.key === 'Escape' || (e as any).keyCode === 27) {
 			if (isExpanded && !animating) {
 				// fire and forget
-				void collapse();
+				void expand(false);
 			}
 		}
 	}
@@ -394,57 +394,107 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 		});
 	}
 
-	const collapse = () => {
+	const expand = (expand: boolean) => {
 		if (!eventTarget) return;
 
-		// Add view transition name for CSS targeting
-		eventTarget.style.viewTransitionName = 'panzoom-element';
+		// Capture first state
+		const first = eventTarget.getBoundingClientRect();
 
-		isExpanded = false;
-
-		const run = () => {
-			if (!eventTarget) return;
-			eventTarget.dataset.expanded = 'false';
-			zoomToFit();
-		};
-		if (typeof document.startViewTransition === 'function') {
-			document.startViewTransition(run).finished.finally(() => {
-				if (eventTarget) eventTarget.style.viewTransitionName = '';
-			});
-		} else {
-			run();
-			if (eventTarget) eventTarget.style.viewTransitionName = '';
-		}
-	};
-
-	const expand = () => {
-		if (!eventTarget) return;
-
-		// Add view transition name for CSS targeting
-		eventTarget.style.viewTransitionName = 'panzoom-element';
-		isExpanded = true;
-
-		const run = () => {
-			if (!eventTarget) return;
+		if (expand) {
+			// Expanding: immediately apply expanded state
+			eventTarget.parentElement!.style.height = eventTarget.clientHeight + 'px';
 			eventTarget.dataset.expanded = 'true';
+			isExpanded = true;
 			zoomToFit();
-		};
-		if (typeof document.startViewTransition === 'function') {
-			document.startViewTransition(run).finished.finally(() => {
-				if (eventTarget) eventTarget.style.viewTransitionName = '';
+
+			// Force layout to get the final position
+			const last = eventTarget.getBoundingClientRect();
+
+			// Calculate the inverse transform
+			const deltaX = first.left - last.left;
+			const deltaY = first.top - last.top;
+			const deltaW = first.width / last.width;
+			const deltaH = first.height / last.height;
+
+			// Animate from original position to expanded
+			const animation = eventTarget.animate(
+				[
+					{
+						transformOrigin: '0 0',
+						transform: `translate(${deltaX}px, ${deltaY}px) scale(${deltaW}, ${deltaH})`
+					},
+					{
+						transformOrigin: '0 0',
+						transform: 'translate(0px, 0px) scale(1, 1)'
+					}
+				],
+				{
+					duration: 350,
+					easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+					fill: 'both'
+				}
+			);
+
+			animation.finished.then(() => {
+				animation.cancel();
 			});
 		} else {
-			run();
-			if (eventTarget) eventTarget.style.viewTransitionName = '';
+			// Collapsing: keep expanded state during animation, then remove
+			const last = {
+				left: first.left,
+				top: first.top,
+				width: first.width,
+				height: first.height
+			};
+
+			// Calculate where it will be after collapsing
+			eventTarget.dataset.expanded = 'false';
+
+			const final = eventTarget.getBoundingClientRect();
+
+			// Restore expanded state for animation
+			eventTarget.dataset.expanded = 'true';
+
+			const deltaX = final.left - last.left;
+			const deltaY = final.top - last.top;
+			const deltaW = final.width / last.width;
+			const deltaH = final.height / last.height;
+
+			// Animate from expanded to collapsed
+			const animation = eventTarget.animate(
+				[
+					{
+						transformOrigin: '0 0',
+						transform: 'translate(0px, 0px) scale(1, 1)'
+					},
+					{
+						transformOrigin: '0 0',
+						transform: `translate(${deltaX}px, ${deltaY}px) scale(${deltaW}, ${deltaH})`
+					}
+				],
+				{
+					duration: 350,
+					easing: 'cubic-bezier(0.4, 0.0, 0.2, 1)',
+					fill: 'both'
+				}
+			);
+
+			animation.finished.then(() => {
+				animation.cancel();
+				// Only remove expanded state after animation completes
+				if (!eventTarget) return;
+				eventTarget.dataset.expanded = 'false';
+				eventTarget.parentElement!.style.height = 'fit-content';
+				isExpanded = false;
+				zoomToFit();
+			});
 		}
 	};
 
 	async function toggleExpand(): Promise<void> {
-		zoomToFit();
+		if (isExpanded) return expand(false);
 
-		if (isExpanded) return collapse();
-
-		return expand();
+		return expand(true);
 	}
 
 	function zoomToFit(padding = 0.05) {
@@ -518,7 +568,6 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 		moveBy,
 		setTransform,
 		expand,
-		collapse,
 		toggleExpand,
 		get transform() {
 			return { x, y, scale } as const;

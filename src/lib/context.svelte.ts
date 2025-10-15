@@ -6,7 +6,10 @@ import { getContext, onMount, setContext } from 'svelte';
 import type { BundledTheme } from 'shiki';
 
 export interface StreamdownContext
-	extends Omit<StreamdownProps, keyof Snippets | 'class' | 'theme' | 'shikiTheme'> {
+	extends Omit<
+		StreamdownProps,
+		keyof Snippets | 'class' | 'theme' | 'shikiTheme' | 'inlineCitationsMode'
+	> {
 	snippets: Snippets;
 	shikiTheme: BundledTheme;
 	theme: Theme;
@@ -14,11 +17,12 @@ export interface StreamdownContext
 		code: boolean;
 		mermaid: boolean;
 	};
+	inlineCitationsMode: 'list' | 'carousel';
 	animation: {
 		enabled: boolean;
 	} & StreamdownProps['animation'];
 }
-export class StreamdownContext {
+export class StreamdownContext<Source extends Record<string, any> = Record<string, any>> {
 	footnotes = {
 		refs: new Map<string, FootnoteRef>(),
 		footnotes: new Map<string, Footnote>()
@@ -26,9 +30,11 @@ export class StreamdownContext {
 
 	isMounted = false;
 
-	animationTextStyle = $derived(
-		this.animation.enabled
-			? `animation-name: sd-${this.animation.type};
+	get animationTextStyle() {
+		return getContext('POPOVER')
+			? undefined
+			: this.animation.enabled
+				? `animation-name: sd-${this.animation.type};
 animation-duration: ${this.animation.duration}ms;
 animation-timing-function: ${this.animation.timingFunction};
 animation-iteration-count: 1;
@@ -36,20 +42,24 @@ animation-fill-mode: forwards;
 white-space: pre-wrap;
 display: inline-block;
 text-decoration: inherit;`
-			: undefined
-	);
+				: undefined;
+	}
 
-	animationBlockStyle = $derived(
-		this.animation.enabled
-			? `animation-name: sd-${this.animation.type};
+	get animationBlockStyle() {
+		return getContext('POPOVER')
+			? undefined
+			: this.animation.enabled
+				? `animation-name: sd-${this.animation.type};
 animation-duration: ${this.animation.duration}ms;
 animation-timing-function: ${this.animation.timingFunction};
 animation-iteration-count: 1;
 animation-fill-mode: forwards;`
-			: undefined
-	);
+				: undefined;
+	}
 
-	constructor(props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets }) {
+	constructor(
+		props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets<Source> }
+	) {
 		bind(this, props);
 		setContext('streamdown', this);
 		if (this.animation.animateOnMount) {
@@ -84,7 +94,8 @@ import type {
 	TD,
 	TH,
 	Extension,
-	GenericToken
+	GenericToken,
+	CitationToken
 } from './marked/index.js';
 import type { Tokens } from 'marked';
 import type { ListItemToken, ListToken } from './marked/marked-list.js';
@@ -131,23 +142,37 @@ type TokenSnippet = {
 	description: DescriptionToken;
 	descriptionTerm: DescriptionTermToken;
 	descriptionDetail: DescriptionDetailToken;
+	inlineCitation: CitationToken;
+	inlineCitationPopover: CitationToken;
+	inlineCitationContent: CitationToken;
+	inlineCitationPreview: CitationToken;
 };
 
 type PredefinedElements = keyof TokenSnippet;
 
-export type Snippets = {
+export type Snippets<Source extends Record<string, any> = Record<string, any>> = {
 	[K in PredefinedElements]?: Snippet<
 		[
 			{
 				children: Snippet;
 				token: TokenSnippet[K];
-			}
+			} & (K extends 'inlineCitationContent'
+				? {
+						source: Source;
+						key: string;
+					}
+				: {})
 		]
 	>;
 };
 
-export type StreamdownProps = {
+export type StreamdownProps<Source extends Record<string, any> = Record<string, any>> = {
 	streamdown?: StreamdownContext;
+	sources?: {
+		[key: string]: Source;
+	};
+	// Default mode is carousel
+	inlineCitationsMode?: 'list' | 'carousel';
 	element?: HTMLElement;
 	content: string;
 	class?: string;
@@ -200,7 +225,9 @@ export type StreamdownProps = {
 		warning?: Snippet;
 		caution?: Snippet;
 		important?: Snippet;
+		chevronLeft?: Snippet;
+		chevronRight?: Snippet;
 	};
 	extensions?: Extension[];
 	children?: Snippet<[{ streamdown: StreamdownContext; token: GenericToken; children: Snippet }]>;
-} & Partial<Snippets>;
+} & Partial<Snippets<Source>>;

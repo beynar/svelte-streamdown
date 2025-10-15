@@ -1,10 +1,11 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, flushSync } from 'svelte';
 	import { useStreamdown } from '$lib/context.svelte.js';
 	import type { Tokens } from 'marked';
 	import type { MermaidConfig } from 'mermaid';
 	import { on } from 'svelte/events';
 	import { usePanzoom } from '$lib/utils/panzoom.svelte';
+	import { fitViewIcon, fullscreenIcon, zoomInIcon, zoomOutIcon } from './icons.js';
 
 	const streamdown = useStreamdown();
 
@@ -154,6 +155,7 @@
 	const renderMermaid = async (code: string, element: HTMLElement) => {
 		try {
 			// Sanitize the code first
+			const sanitizedCode = sanitizeMermaidCode(code);
 
 			// Default configuration
 			const defaultConfig: MermaidConfig = {
@@ -172,8 +174,7 @@
 			};
 
 			// Initialize mermaid with merged config
-			const mergedConfig = { ...defaultConfig };
-			mermaid.initialize(mergedConfig);
+			mermaid.initialize(defaultConfig);
 
 			const chartHash = code.split('').reduce((acc, char) => {
 				return ((acc << 5) - acc + char.charCodeAt(0)) | 0;
@@ -182,20 +183,28 @@
 			const uniqueId = `mermaid-${Math.abs(chartHash)}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
 
 			// Render the diagram
-			const { svg: svgString } = await mermaid.render(uniqueId, sanitizeMermaidCode(code));
-			const svg = new DOMParser().parseFromString(svgString, 'image/svg+xml').documentElement;
+			const { svg: svgString } = await mermaid.render(uniqueId, sanitizedCode);
 
-			const svgTarget = element.querySelector('[data-mermaid-svg]')!;
-			svg.id = uniqueId;
-			Array.from(svg.attributes).forEach((attribute) => {
-				svgTarget.setAttribute(attribute.name, attribute.value);
-			});
-			svgTarget.innerHTML = svg.innerHTML;
+			// Insert the SVG into the target element
+			const svgTarget = element.querySelector('[data-mermaid-svg]') as SVGElement;
+			if (svgTarget) {
+				svgTarget.innerHTML = svgString;
+				svgTarget.id = uniqueId;
 
-			panzoom.zoomToFit();
-			panzoom.zoomToFit();
+				// Apply any additional attributes from the rendered SVG
+				const tempSvg = new DOMParser().parseFromString(svgString, 'image/svg+xml').documentElement;
+				Array.from(tempSvg.attributes).forEach((attribute) => {
+					if (attribute.name !== 'id') {
+						svgTarget.setAttribute(attribute.name, attribute.value);
+					}
+				});
+
+				panzoom.zoomToFit();
+				panzoom.zoomToFit();
+			}
 		} catch (err) {
-			const sanitizedCode = sanitizeMermaidCode(code);
+			console.warn('Mermaid rendering error:', err);
+			// Could show error state in UI here
 		}
 	};
 </script>
@@ -251,79 +260,6 @@
 		<div class={streamdown.theme.mermaid.base}></div>
 	{/if}
 </div>
-{#snippet zoomInIcon()}
-	<svg
-		class={streamdown.theme.mermaid.icon}
-		xmlns="http://www.w3.org/2000/svg"
-		width="100%"
-		height="100%"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-	>
-		<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" />
-		<line x1="11" x2="11" y1="8" y2="14" />
-		<line x1="8" x2="14" y1="11" y2="11" />
-	</svg>
-{/snippet}
-
-{#snippet zoomOutIcon()}
-	<svg
-		class={streamdown.theme.mermaid.icon}
-		xmlns="http://www.w3.org/2000/svg"
-		width="100%"
-		height="100%"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-	>
-		<circle cx="11" cy="11" r="8" /><line x1="21" x2="16.65" y1="21" y2="16.65" /><line
-			x1="8"
-			x2="14"
-			y1="11"
-			y2="11"
-		/>
-	</svg>
-{/snippet}
-
-{#snippet fitViewIcon()}
-	<svg
-		class={streamdown.theme.mermaid.icon}
-		xmlns="http://www.w3.org/2000/svg"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-	>
-		<path d="M3 7V5a2 2 0 0 1 2-2h2" />
-		<path d="M17 3h2a2 2 0 0 1 2 2v2" /><path d="M21 17v2a2 2 0 0 1-2 2h-2" />
-		<path d="M7 21H5a2 2 0 0 1-2-2v-2" /><rect width="10" height="8" x="7" y="8" rx="1" />
-	</svg>
-{/snippet}
-
-{#snippet fullscreenIcon()}
-	<svg
-		class={streamdown.theme.mermaid.icon}
-		xmlns="http://www.w3.org/2000/svg"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-	>
-		<path d="m15 15 6 6" /><path d="m15 9 6-6" /><path d="M21 16v5h-5" /><path d="M21 8V3h-5" />
-		<path d="M3 16v5h5" /><path d="m3 21 6-6" /><path d="M3 8V3h5" /><path d="M9 9 3 3" />
-	</svg>
-{/snippet}
 
 <style>
 	:global([data-expanded='true']) {
@@ -334,5 +270,14 @@
 		height: calc(100vh - 32px);
 		z-index: 2147483647;
 		margin: 0px;
+	}
+
+	/* Hide Mermaid's temporary rendering containers */
+	:global(div[id^='dmermaid-']) {
+		position: absolute !important;
+		left: -9999px !important;
+		top: -9999px !important;
+		visibility: hidden !important;
+		pointer-events: none !important;
 	}
 </style>

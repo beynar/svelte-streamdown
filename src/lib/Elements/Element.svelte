@@ -11,6 +11,7 @@
 	import { useStreamdown } from '$lib/context.svelte.js';
 	import FootnoteRef from './FootnoteRef.svelte';
 	import Citation from './Citation.svelte';
+	import TableDownload from './TableDownload.svelte';
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
 	const streamdown = useStreamdown();
 
@@ -113,7 +114,10 @@
 	</Slot>
 {:else if token.type === 'table'}
 	<Slot props={{ token, children }} render={streamdown.snippets.table}>
-		<div {style} class={streamdown.theme.table.base} style:overscroll-behavior-x="none">
+		{#if streamdown.controls.table}
+			<TableDownload {token} />
+		{/if}
+		<div {style} class={`${streamdown.theme.table.base} group`} style:overscroll-behavior-x="none">
 			<table class={streamdown.theme.table.table}>
 				{@render children()}
 			</table>

@@ -235,6 +235,9 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 	}
 
 	function onTouchStart(e: TouchEvent) {
+		// if(e.tar)
+		const hasButton = e.composedPath().some((el) => el.tagName?.toLowerCase?.() === 'button');
+		if (hasButton) return;
 		if (!node) return;
 		if (animating) {
 			e.preventDefault();

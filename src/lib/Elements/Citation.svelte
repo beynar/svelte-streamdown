@@ -8,24 +8,35 @@
 	import type { CitationToken } from '$lib/marked/marked-citations.js';
 	import { StepperState } from './stepperState.svelte.js';
 	import { Popover } from './popover.svelte.js';
-	let activeStep = $state(0);
-
-	const streamdown = useStreamdown();
+	import { get } from '$lib/utils/get.js';
 
 	const {
 		token
 	}: {
 		token: CitationToken;
 	} = $props();
-
+	const streamdown = useStreamdown();
 	const id = $props.id();
 	const popover = new Popover();
 
-	const firstKey = $derived(token.keys[0]);
-	const firstCitation = $derived(streamdown.sources?.[firstKey] || {});
-	const otherKeys = $derived(token.keys.slice(1));
-	const citations = $derived(token.keys.map((key) => streamdown.sources?.[key] || {}));
-
+	const citationWithSources = $derived.by(() => {
+		return token.keys.reduce((acc, key) => {
+			const source = get<Record<string, any>>(streamdown.sources, key);
+			if (source) {
+				const url = source.url ? new URL(source.url) : null;
+				acc.push({
+					key,
+					title: source.title ?? null,
+					url,
+					host: url ? url.host.replace('www.', '') : null,
+					favicon: url ? `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128` : null,
+					content: source.content ?? source.text ?? null,
+					source
+				});
+			}
+			return acc;
+		}, [] as CitationWithSource[]);
+	});
 	useKeyDown({
 		keys: ['Escape'],
 		get isActive() {
@@ -45,15 +56,8 @@
 	});
 
 	const stepper = new StepperState({
-		get activeStep() {
-			return activeStep;
-		},
-		set activeStep(value) {
-			activeStep = value;
-		},
-		items: citations,
-		onChange: (item) => {
-			//
+		get items() {
+			return citationWithSources;
 		},
 		keyFramesOptions: { duration: 200, easing: 'ease-in-out', fill: 'forwards' }
 	});
@@ -63,25 +67,9 @@
 		title: string | null;
 		url: URL | null;
 		favicon: string | null;
+		content: string | null;
 		source: Record<string, any>;
 	};
-	const citationWithSources = $derived.by(() => {
-		return token.keys.reduce((acc, key) => {
-			const source = streamdown.sources?.[key];
-			if (source) {
-				const url = source.url ? new URL(source.url) : null;
-				acc.push({
-					key,
-					title: source.title ?? null,
-					url,
-					host: url ? url.host.replace('www.', '') : null,
-					favicon: url ? `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128` : null,
-					source
-				});
-			}
-			return acc;
-		}, [] as CitationWithSource[]);
-	});
 </script>
 
 {#if popover.isOpen}
@@ -93,112 +81,137 @@
 		render={streamdown.snippets.inlineCitationPopover}
 	>
 		<dialog
-			style="z-index: 1000; position: fixed;"
 			id={'citation-popover-' + id}
 			aria-modal="false"
 			transition:scale|global={{ start: 0.95, duration: 200 }}
 			{@attach clickOutside.attachment}
 			{@attach popover.popoverAttachment}
 			open
-			class={`${streamdown.theme.inlineCitation.popover}`}
+			class={`${streamdown.theme.components.popover}`}
 			style:max-width="400px"
 		>
-			{#if citations.length > 1}
-				<div class="{streamdown.theme.inlineCitation.header} flex items-start justify-between">
-					<div
-						class="{streamdown.theme.inlineCitation
-							.stepCounter} h-fit text-xs font-semibold text-muted-foreground tabular-nums"
-					>
-						{stepper.activeStep + 1}
-						/ {citations.length}
-					</div>
-					<div class={streamdown.theme.inlineCitation.buttons}>
-						<button
-							class={streamdown.theme.inlineCitation.button}
-							onclick={() => stepper.previous()}
-						>
-							{@render chevronLeft()}
-						</button>
-						<button class={streamdown.theme.inlineCitation.button} onclick={() => stepper.next()}>
-							{@render chevronRight()}
-						</button>
-					</div>
-				</div>
+			{#if streamdown.inlineCitationsMode === 'carousel'}
+				{@render carouselView()}
+			{:else}
+				{@render listView()}
 			{/if}
-			<div
-				use:stepper.scroller
-				style:height="{stepper.stepHeights[activeStep]}px"
-				style:overflow="hidden"
-				style:position="relative"
-				style:transition-duration="200ms"
-				style:transition-timing-function="ease-in-out"
-				aria-label="Citations-${id}"
-			>
-				<div
-					bind:this={stepper.stepContainer}
-					style:display="grid"
-					style:transition-duration={`${100}ms`}
-					style:width="100%"
-					style:grid-template-columns="repeat({citations.length}, 100%)"
-				>
-					{#each citationWithSources as { favicon, key, source, title, url }, index}
-						<div
-							bind:offsetHeight={stepper.stepHeights[index]}
-							data-step={index}
-							tabindex={stepper.activeStep === index ? 0 : -1}
-							inert={stepper.activeStep !== index}
-							role="tabpanel"
-							style:height="fit-content"
-							style:width="100%"
-							style:flex-grow="1"
-							aria-label="Citation-${id}"
-						>
-							<Slot
-								render={streamdown.snippets.inlineCitationContent}
-								props={{ source, key, token }}
-							>
-								{#if url || title}
-									<div class="mb-4">
-										{#if title}
-											<div
-												class="{streamdown.theme.inlineCitation
-													.title} mb-2 line-clamp-2 font-semibold"
-											>
-												{title}
-											</div>
-										{/if}
-										{#if url}
-											<a
-												href={url.toString()}
-												target="_blank"
-												rel="noopener noreferrer"
-												class="{streamdown.theme.inlineCitation
-													.url} line-clamp-1 flex items-center gap-2 text-sm text-muted-foreground"
-											>
-												{#if favicon}
-													<img
-														src={favicon}
-														alt={title || url.host}
-														class="{streamdown.theme.inlineCitation.favicon} h-4 w-4"
-													/>
-												{/if}
-												<!-- Skip search params -->
-												{url.host}{url.pathname === '/' ? '' : url.pathname}
-											</a>
-										{/if}
-									</div>
-								{/if}
-								{#if source.content}
-									<Block block={source.content} />
-								{/if}
-							</Slot>
-						</div>
-					{/each}
-				</div>
-			</div>
 		</dialog>
 	</Slot>
 {/if}
+
+{#snippet listView()}
+	<div class={streamdown.theme.inlineCitation.list.base}>
+		{#each citationWithSources as { favicon, key, source, title, url }}
+			<Slot render={streamdown.snippets.inlineCitationContent} props={{ source, key, token }}>
+				<a
+					class={streamdown.theme.inlineCitation.list.item}
+					href={url?.toString()}
+					target="_blank"
+					rel="noopener noreferrer"
+				>
+					{#if title}
+						<span class={streamdown.theme.inlineCitation.list.title}>{title}</span>
+					{/if}
+					{#if url}
+						<span class={streamdown.theme.inlineCitation.list.url}>
+							{#if favicon}
+								<img
+									src={favicon}
+									alt={title || url.host}
+									class={streamdown.theme.inlineCitation.list.favicon}
+								/>
+								{url.host}{url.pathname === '/' ? '' : url.pathname}
+							{/if}
+						</span>
+					{/if}
+				</a>
+			</Slot>
+		{/each}
+	</div>
+{/snippet}
+
+{#snippet carouselView()}
+	{#if citationWithSources.length > 1}
+		<div class={streamdown.theme.inlineCitation.carousel.header}>
+			<div class={streamdown.theme.inlineCitation.carousel.stepCounter}>
+				{stepper.activeStep + 1}
+				/ {citationWithSources.length}
+			</div>
+			<div class={streamdown.theme.inlineCitation.carousel.buttons}>
+				<button class={streamdown.theme.components.button} onclick={() => stepper.previous()}>
+					{@render (streamdown.icons?.chevronLeft || chevronLeft)()}
+				</button>
+				<button class={streamdown.theme.components.button} onclick={() => stepper.next()}>
+					{@render (streamdown.icons?.chevronRight || chevronRight)()}
+				</button>
+			</div>
+		</div>
+	{/if}
+	<div
+		use:stepper.scroller
+		style:height="{stepper.stepHeights[stepper.activeStep]}px"
+		style:overflow="hidden"
+		style:position="relative"
+		style:transition-duration="200ms"
+		style:transition-timing-function="ease-in-out"
+		aria-label="Citations-${id}"
+	>
+		<div
+			bind:this={stepper.stepContainer}
+			style:display="grid"
+			style:transition-duration={`${200}ms`}
+			style:width="100%"
+			style:grid-template-columns="repeat({citationWithSources.length}, 100%)"
+		>
+			{#each citationWithSources as { favicon, key, source, title, url, content }, index}
+				<div
+					bind:offsetHeight={stepper.stepHeights[index]}
+					data-step={index}
+					tabindex={stepper.activeStep === index ? 0 : -1}
+					inert={stepper.activeStep !== index}
+					role="tabpanel"
+					style:height="fit-content"
+					style:width="100%"
+					style:flex-grow="1"
+					aria-label="Citation-${id}"
+				>
+					<Slot render={streamdown.snippets.inlineCitationContent} props={{ source, key, token }}>
+						{#if url || title}
+							<div class="mb-4">
+								{#if title}
+									<div class={streamdown.theme.inlineCitation.carousel.title}>
+										{title}
+									</div>
+								{/if}
+								{#if url}
+									<a
+										href={url.toString()}
+										target="_blank"
+										rel="noopener noreferrer"
+										class={streamdown.theme.inlineCitation.carousel.url}
+									>
+										{#if favicon}
+											<img
+												src={favicon}
+												alt={title || url.host}
+												class={streamdown.theme.inlineCitation.carousel.favicon}
+											/>
+										{/if}
+										<!-- Skip search params -->
+										{url.host}{url.pathname === '/' ? '' : url.pathname}
+									</a>
+								{/if}
+							</div>
+						{/if}
+						{#if content}
+							<Block block={content} />
+						{/if}
+					</Slot>
+				</div>
+			{/each}
+		</div>
+	</div>
+{/snippet}
 
 {#snippet chevronRight()}
 	<svg
@@ -229,34 +242,26 @@
 {/snippet}
 
 {#if citationWithSources.length > 0}
-	<Slot
-		props={{
-			token
-		}}
-		render={streamdown.snippets.inlineCitation}
+	<button
+		style={streamdown.animationBlockStyle}
+		bind:this={popover.reference}
+		class={streamdown.theme.inlineCitation.preview}
+		onclick={() => (popover.isOpen = !popover.isOpen)}
+		aria-expanded={popover.isOpen}
+		aria-haspopup="dialog"
+		aria-controls={'citation-popover-' + id}
+		{@attach clickOutside.attachment}
 	>
-		<button
-			style={streamdown.animationBlockStyle}
-			bind:this={popover.reference}
-			class={streamdown.theme.inlineCitation.preview}
-			onclick={() => (popover.isOpen = !popover.isOpen)}
-			aria-expanded={popover.isOpen}
-			aria-haspopup="dialog"
-			aria-controls={'citation-popover-' + id}
-			{@attach clickOutside.attachment}
+		<Slot
+			render={streamdown.snippets.inlineCitationPreview}
+			props={{
+				token
+			}}
 		>
-			<!--  -->
-			<Slot
-				render={streamdown.snippets.inlineCitationPreview}
-				props={{
-					token
-				}}
-			>
-				{citationWithSources[0]?.url?.host ??
-					citationWithSources[0]?.title ??
-					citationWithSources[0]?.key}
-				{citationWithSources.length > 1 ? ` +${citationWithSources.length - 1}` : ''}
-			</Slot>
-		</button>
-	</Slot>
+			{citationWithSources[0]?.url?.host ??
+				citationWithSources[0]?.title ??
+				citationWithSources[0]?.key}
+			{citationWithSources.length > 1 ? ` +${citationWithSources.length - 1}` : ''}
+		</Slot>
+	</button>
 {/if}

@@ -48,14 +48,13 @@
 		render={streamdown.snippets.footnotePopover}
 	>
 		<dialog
-			style="z-index: 1000; position: fixed;"
 			id={'footnote-popover-' + id}
 			aria-modal="false"
 			transition:scale|global={{ start: 0.95, duration: 100 }}
 			{@attach clickOutside.attachment}
 			{@attach popover.popoverAttachment}
 			open
-			class={`${streamdown.theme.footnotePopover.base}`}
+			class={`${streamdown.theme.components.popover}`}
 		>
 			{#each token.content.lines as line}
 				<Block block={line} />
@@ -65,23 +64,16 @@
 {/if}
 
 {#if token.label !== 'streamdown:footnote'}
-	<Slot
-		props={{
-			token
-		}}
-		render={streamdown.snippets.footnoteRef}
+	<button
+		style={streamdown.animationBlockStyle}
+		bind:this={popover.reference}
+		class={streamdown.theme.footnoteRef.base}
+		onclick={() => (popover.isOpen = !popover.isOpen)}
+		aria-expanded={popover.isOpen}
+		aria-haspopup="dialog"
+		aria-controls={'footnote-popover-' + id}
+		{@attach clickOutside.attachment}
 	>
-		<button
-			style={streamdown.animationBlockStyle}
-			bind:this={popover.reference}
-			class={streamdown.theme.footnoteRef.base}
-			onclick={() => (popover.isOpen = !popover.isOpen)}
-			aria-expanded={popover.isOpen}
-			aria-haspopup="dialog"
-			aria-controls={'footnote-popover-' + id}
-			{@attach clickOutside.attachment}
-		>
-			{token.label.replace('^', '')}
-		</button>
-	</Slot>
+		{token.label.replace('^', '')}
+	</button>
 {/if}

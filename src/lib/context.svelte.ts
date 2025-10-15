@@ -6,7 +6,10 @@ import { getContext, onMount, setContext } from 'svelte';
 import type { BundledTheme } from 'shiki';
 
 export interface StreamdownContext
-	extends Omit<StreamdownProps, keyof Snippets | 'class' | 'theme' | 'shikiTheme'> {
+	extends Omit<
+		StreamdownProps,
+		keyof Snippets | 'class' | 'theme' | 'shikiTheme' | 'inlineCitationsMode'
+	> {
 	snippets: Snippets;
 	shikiTheme: BundledTheme;
 	theme: Theme;
@@ -14,6 +17,7 @@ export interface StreamdownContext
 		code: boolean;
 		mermaid: boolean;
 	};
+	inlineCitationsMode: 'list' | 'carousel';
 	animation: {
 		enabled: boolean;
 	} & StreamdownProps['animation'];
@@ -167,6 +171,8 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	sources?: {
 		[key: string]: Source;
 	};
+	// Default mode is carousel
+	inlineCitationsMode?: 'list' | 'carousel';
 	element?: HTMLElement;
 	content: string;
 	class?: string;
@@ -219,6 +225,8 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 		warning?: Snippet;
 		caution?: Snippet;
 		important?: Snippet;
+		chevronLeft?: Snippet;
+		chevronRight?: Snippet;
 	};
 	extensions?: Extension[];
 	children?: Snippet<[{ streamdown: StreamdownContext; token: GenericToken; children: Snippet }]>;

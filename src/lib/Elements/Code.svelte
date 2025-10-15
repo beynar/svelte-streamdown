@@ -56,7 +56,7 @@
 		{#if streamdown.controls.code}
 			<div class={streamdown.theme.code.buttons}>
 				<button
-					class={streamdown.theme.code.button}
+					class={streamdown.theme.components.button}
 					onclick={downloadCode}
 					title="Download file"
 					type="button"
@@ -64,7 +64,7 @@
 					{@render (streamdown.icons?.download || downloadIcon)()}
 				</button>
 
-				<button class={streamdown.theme.code.button} onclick={copy.copy} type="button">
+				<button class={streamdown.theme.components.button} onclick={copy.copy} type="button">
 					{@render (streamdown.icons?.copy || copyIcon)()}
 				</button>
 			</div>

@@ -212,7 +212,7 @@
 			{#if streamdown.controls.mermaid}
 				<div class={streamdown.theme.mermaid.buttons}>
 					<button
-						class={streamdown.theme.mermaid.button}
+						class={streamdown.theme.components.button}
 						aria-label="Zoom to fit"
 						onclick={() => panzoom.zoomToFit()}
 						data-panzoom-ignore
@@ -220,7 +220,7 @@
 						{@render (streamdown.icons?.fitView || fitViewIcon)()}
 					</button>
 					<button
-						class={streamdown.theme.mermaid.button}
+						class={streamdown.theme.components.button}
 						aria-label="Zoom in"
 						onclick={() => panzoom.zoomIn()}
 						data-panzoom-ignore
@@ -228,7 +228,7 @@
 						{@render (streamdown.icons?.zoomIn || zoomInIcon)()}
 					</button>
 					<button
-						class={streamdown.theme.mermaid.button}
+						class={streamdown.theme.components.button}
 						aria-label="Zoom out"
 						onclick={() => panzoom.zoomOut()}
 						data-panzoom-ignore
@@ -236,7 +236,7 @@
 						{@render (streamdown.icons?.zoomOut || zoomOutIcon)()}
 					</button>
 					<button
-						class={streamdown.theme.mermaid.button}
+						class={streamdown.theme.components.button}
 						aria-label="Toggle expand"
 						onclick={() => panzoom.toggleExpand()}
 						data-panzoom-ignore
@@ -255,6 +255,8 @@
 	<svg
 		class={streamdown.theme.mermaid.icon}
 		xmlns="http://www.w3.org/2000/svg"
+		width="100%"
+		height="100%"
 		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"
@@ -272,6 +274,8 @@
 	<svg
 		class={streamdown.theme.mermaid.icon}
 		xmlns="http://www.w3.org/2000/svg"
+		width="100%"
+		height="100%"
 		viewBox="0 0 24 24"
 		fill="none"
 		stroke="currentColor"

@@ -113,7 +113,7 @@
 	</Slot>
 {:else if token.type === 'table'}
 	<Slot props={{ token, children }} render={streamdown.snippets.table}>
-		<div {style} class={streamdown.theme.table.base}>
+		<div {style} class={streamdown.theme.table.base} style:overscroll-behavior="none">
 			<table class={streamdown.theme.table.table}>
 				{@render children()}
 			</table>
@@ -228,9 +228,13 @@
 {:else if token.type === 'alert'}
 	<Alert {token} {children} />
 {:else if token.type === 'footnoteRef'}
-	<FootnoteRef {token} />
+	<Slot props={{ token }} render={streamdown.snippets.footnoteRef}>
+		<FootnoteRef {token} />
+	</Slot>
 {:else if token.type === 'inline-citations'}
-	<Citation {token} />
+	<Slot props={{ token }} render={streamdown.snippets.inlineCitation}>
+		<Citation {token} />
+	</Slot>
 {:else if token.type === 'footnote'}
 	<!-- TODO Footnotes are rendered inside the FootnoteRef popover -->
 {:else if token.type === 'descriptionList'}

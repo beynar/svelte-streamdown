@@ -45,8 +45,6 @@ export const theme = {
 		container: ' relative overflow-visible bg-gray-100 p-2 font-mono text-sm ',
 		header: 'flex items-center justify-between bg-gray-100/80 p-2	 text-gray-600 text-xs',
 		buttons: 'flex items-center gap-2',
-		button:
-			'cursor-pointer size-6 p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100',
 		language: 'ml-1 font-mono lowercase',
 		skeleton:
 			'block rounded-md font-mono text-transparent bg-gray-200 scale-y-90 animate-pulse whitespace-nowrap',
@@ -58,9 +56,7 @@ export const theme = {
 	},
 	image: {
 		base: 'group relative my-4  mx-auto w-fit block',
-		image: 'max-w-full rounded-lg',
-		downloadButton:
-			'absolute right-2 bottom-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-gray-200 bg-white/90 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-white opacity-0 group-hover:opacity-100'
+		image: 'max-w-full rounded-lg'
 	},
 	blockquote: {
 		base: 'border-gray-600/30 text-gray-600 my-4 border-l-4 pl-4 italic'
@@ -111,9 +107,6 @@ export const theme = {
 	},
 	mermaid: {
 		base: 'group relative my-4 h-auto rounded-xl border border-gray-200 bg-white overflow-hidden items-center min-h-[500px]',
-		downloadButton: 'cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900',
-		button:
-			'cursor-pointer size-6 p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100',
 		icon: 'size-5',
 		buttons: 'absolute right-1 top-1 z-10 flex h-fit w-fit items-center gap-1'
 	},
@@ -133,9 +126,6 @@ export const theme = {
 	footnoteRef: {
 		base: 'text-gray-600 px-1 py-0.5 rounded-md bg-gray-100/80'
 	},
-	footnotePopover: {
-		base: 'fixed z-50 max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-background p-4 shadow'
-	},
 	descriptionList: {
 		base: 'my-4 space-y-2'
 	},
@@ -148,21 +138,35 @@ export const theme = {
 	inlineCitation: {
 		preview:
 			'text-sm text-gray-600 bg-gray-100 rounded-md px-2 py-0.5 cursor-pointer inline-flex border border-gray-200 hover:bg-gray-100/50 outline-none focus:ring-1 focus:ring-blue-600',
-		popover: 'fixed z-50 max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow',
-		header: 'flex items-start justify-between',
-		stepCounter: 'h-fit text-xs font-semibold text-gray-600 tabular-nums',
-		buttons: 'flex w-fit items-center justify-end gap-2',
+
+		carousel: {
+			title: 'mb-2 line-clamp-2 font-semibold',
+			url: 'flex items-center gap-2 text-sm text-gray-600',
+			favicon: 'h-4 w-4 rounded',
+			header: 'flex items-start justify-between',
+			stepCounter: 'h-fit text-xs font-semibold text-gray-600 tabular-nums',
+			buttons: 'flex w-fit items-center justify-end gap-2'
+		},
+		list: {
+			base: 'grid gap-4',
+			item: 'grid gap-2 gap-2',
+			title: 'mb-2 line-clamp-1 text-sm font-semibold',
+			url: 'flex items-center gap-2 text-xs text-gray-600',
+			favicon: 'h-4 w-4 rounded'
+		}
+	},
+
+	components: {
 		button:
 			'cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100 w-6 h-6',
-		title: 'mb-2 line-clamp-2 font-semibold',
-		url: 'flex items-center gap-2 text-sm text-gray-600',
-		favicon: 'h-4 w-4 rounded'
+		popover: 'fixed z-50 max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow'
 	}
 } satisfies Record<
 	| keyof Omit<
 			Snippets,
 			| 'description'
 			| 'heading'
+			| 'footnotePopover'
 			| 'inlineCitationContent'
 			| 'inlineCitationPreview'
 			| 'inlineCitationPopover'
@@ -172,7 +176,8 @@ export const theme = {
 	| 'h3'
 	| 'h4'
 	| 'h5'
-	| 'h6',
+	| 'h6'
+	| 'components',
 	any
 >;
 
@@ -217,8 +222,7 @@ export const shadcnTheme = {
 		container: 'relative overflow-visible bg-muted p-2 font-mono text-sm',
 		header: 'flex items-center justify-between bg-muted/80 px-2 py-1 text-muted-foreground text-xs',
 		buttons: 'flex items-center gap-2',
-		button:
-			'cursor-pointer size-6 p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-muted',
+
 		language: 'ml-1 font-mono lowercase',
 		skeleton:
 			'block rounded-md font-mono text-transparent bg-border/80 scale-y-90 w-fit animate-pulse whitespace-nowrap',
@@ -230,9 +234,7 @@ export const shadcnTheme = {
 	},
 	image: {
 		base: 'group relative my-4 mx-auto w-fit block',
-		image: 'max-w-full rounded-lg',
-		downloadButton:
-			'absolute right-2 bottom-2 flex h-8 w-8 cursor-pointer items-center justify-center rounded-md border border-border bg-background/90 shadow-sm backdrop-blur-sm transition-all duration-200 hover:bg-background opacity-0 group-hover:opacity-100'
+		image: 'max-w-full rounded-lg'
 	},
 
 	blockquote: {
@@ -284,9 +286,6 @@ export const shadcnTheme = {
 	},
 	mermaid: {
 		base: 'group relative my-4 h-auto rounded-lg border border-border bg-card overflow-hidden items-center min-h-[500px]',
-		downloadButton: 'cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground',
-		button:
-			'cursor-pointer size-6 p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-muted',
 		icon: 'size-5',
 		buttons: 'absolute right-1 top-1 z-10 flex h-fit w-fit items-center gap-1'
 	},
@@ -304,10 +303,7 @@ export const shadcnTheme = {
 		base: 'text-muted-foreground'
 	},
 	footnoteRef: {
-		base: 'text-muted-foreground text-sm  rounded-full bg-muted cursor-pointer border border-border hover:bg-muted/50 tabular-nums min-w-6 min-h-6 outline-none focus:ring-1 focus:ring-primary'
-	},
-	footnotePopover: {
-		base: 'fixed z-50 max-h-[30vh] shadow max-w-3xl overflow-y-auto rounded-lg bg-background p-4'
+		base: 'text-muted-foreground text-sm  rounded-full bg-muted cursor-pointer border border-border hover:bg-muted/50 tabular-nums min-w-5 min-h-5 outline-none focus:ring-1 focus:ring-primary'
 	},
 	descriptionList: {
 		base: 'my-4 space-y-2'
@@ -321,16 +317,28 @@ export const shadcnTheme = {
 	inlineCitation: {
 		preview:
 			'text-sm text-muted-foreground bg-muted rounded-md px-2 py-0.5 cursor-pointer inline-flex border border-border hover:bg-muted/50 outline-none focus:ring-1 focus:ring-primary',
-		popover:
-			'fixed z-50 max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-background p-4 shadow',
-		header: 'flex items-start justify-between',
-		stepCounter: 'h-fit text-xs font-semibold text-muted-foreground tabular-nums',
-		buttons: 'flex w-fit items-center justify-end gap-2',
+
+		carousel: {
+			header: 'flex items-center justify-between',
+			stepCounter: 'h-fit text-xs font-semibold text-muted-foreground tabular-nums',
+			buttons: 'flex w-fit items-center justify-end gap-2',
+			title: 'mb-2 line-clamp-2 font-semibold',
+			url: 'flex items-center gap-2 text-sm text-muted-foreground',
+			favicon: 'h-4 w-4 rounded'
+		},
+		list: {
+			base: 'grid gap-2',
+			item: 'grid gap-1 hover:bg-muted rounded-md p-2',
+			title: 'line-clamp-1 font-semibold text-sm',
+			url: 'flex items-center gap-2 text-xs text-muted-foreground',
+			favicon: 'h-3 w-3 rounded'
+		}
+	},
+	components: {
 		button:
-			'cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-muted w-6 h-6',
-		title: 'mb-2 line-clamp-2 font-semibold',
-		url: 'flex items-center gap-2 text-sm text-muted-foreground',
-		favicon: 'h-4 w-4 rounded'
+			'cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-border flex items-center justify-center w-6 h-6',
+		popover:
+			'fixed z-50 max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-popover border border-border p-2 shadow'
 	}
 } satisfies Theme;
 

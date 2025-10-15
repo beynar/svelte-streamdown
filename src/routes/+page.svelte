@@ -226,7 +226,8 @@
 				enabled: animationEnabled,
 				type: 'slideDown'
 			}}
-			baseTheme="tailwind"
+			baseTheme="shadcn"
+			inlineCitationsMode="list"
 			mermaidConfig={{
 				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
 			}}
@@ -239,9 +240,23 @@
 					url: 'https://streamdown.ai/',
 					content: 'This is a reference for Streamdown'
 				},
+				nested: {
+					ref: {
+						title: 'Nested Reference',
+						url: 'https://www.google.com',
+						content: 'This is a nested reference'
+					},
+					array: [
+						{
+							title: 'array reference',
+							url: 'https://www.google.com',
+							content: 'This is a nested reference 2'
+						}
+					]
+				},
 				ref2: {
 					title: 'Reference 2',
-					url: 'https://www.google.com/favicon.ico',
+					url: 'https://www.google.com',
 					content:
 						'This is a reference 2 with a longer content: lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.'
 				}

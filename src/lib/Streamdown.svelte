@@ -28,6 +28,7 @@
 		children,
 		extensions,
 		sources,
+		inlineCitationsMode = 'carousel',
 		...snippets
 	}: StreamdownProps<Source> = $props();
 
@@ -81,6 +82,9 @@
 		},
 		get sources() {
 			return sources;
+		},
+		get inlineCitationsMode() {
+			return inlineCitationsMode;
 		},
 		get animation() {
 			if (!animation?.enabled)

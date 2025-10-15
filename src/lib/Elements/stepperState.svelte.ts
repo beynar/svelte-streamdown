@@ -14,24 +14,17 @@ export const bind = (ref: Record<string, any>, props: Record<string, any>) => {
 };
 export interface StepperState<Item> {
 	items: Item[];
-	onChange: (item: Item) => void;
-	activeStep: number;
 	keyFramesOptions: KeyFramesOptions;
 }
 export class StepperState<Item> {
+	activeStep = $state(0);
 	destinationOffset = $state(0);
 	stepAnimation = $state<Animation>();
 	offsets = $state<number[]>([]);
 	stepHeights = $state<number[]>([]);
 	stepContainer: HTMLElement | null = null;
-	declare activeStep: number;
 	isAnimating = $state(false);
-	constructor(props: {
-		items: Item[];
-		onChange: (item: Item) => void;
-		activeStep: number;
-		keyFramesOptions: KeyFramesOptions;
-	}) {
+	constructor(props: { items: Item[]; keyFramesOptions: KeyFramesOptions }) {
 		bind(this, props);
 	}
 
@@ -71,8 +64,6 @@ export class StepperState<Item> {
 			},
 			this.keyFramesOptions
 		);
-
-		this.onChange?.(this.items[i]);
 	};
 
 	scroller = (node: HTMLElement) => {

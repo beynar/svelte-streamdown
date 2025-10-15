@@ -229,12 +229,22 @@ const processSpans = (
 			trimmedCell = parts[0];
 			colspan = parseInt(parts[1], 10);
 		} else if (!trimmedCell.trim()) {
-			// Fallback: count consecutive empty cells (backward compatibility)
-			let j = i + 1;
-			while (j < cells.length && !cells[j].trim()) {
-				colspan++;
-				mergedIndices.add(j);
-				j++;
+			// Fallback: merge empty run into previous cell (backward compatibility)
+			let run = 1,
+				k = i + 1;
+			while (k < cells.length && !cells[k].trim()) {
+				run++;
+				mergedIndices.add(k++);
+			}
+			if (processedCells.length) {
+				const target = processedCells[processedCells.length - 1];
+				const allowed =
+					maxColspan != null ? Math.min(run, Math.max(0, maxColspan - target.colspan)) : run;
+				target.colspan += allowed;
+				numCols += allowed;
+				continue;
+			} else {
+				colspan = maxColspan != null ? Math.min(run, maxColspan) : run;
 			}
 		}
 

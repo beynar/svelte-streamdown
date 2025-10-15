@@ -146,10 +146,18 @@
 				/ {citationWithSources.length}
 			</div>
 			<div class={streamdown.theme.inlineCitation.carousel.buttons}>
-				<button class={streamdown.theme.components.button} onclick={() => stepper.previous()}>
+				<button
+					disabled={!stepper.canGoPrevious}
+					class={streamdown.theme.components.button}
+					onclick={() => stepper.previous()}
+				>
 					{@render (streamdown.icons?.chevronLeft || chevronLeft)()}
 				</button>
-				<button class={streamdown.theme.components.button} onclick={() => stepper.next()}>
+				<button
+					disabled={!stepper.canGoNext}
+					class={streamdown.theme.components.button}
+					onclick={() => stepper.next()}
+				>
 					{@render (streamdown.icons?.chevronRight || chevronRight)()}
 				</button>
 			</div>

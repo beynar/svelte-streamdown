@@ -137,28 +137,28 @@ export const theme = {
 	},
 	inlineCitation: {
 		preview:
-			'text-sm text-gray-600 bg-gray-100 rounded-md px-2 py-0.5 cursor-pointer inline-flex border border-gray-200 hover:bg-gray-100/50 outline-none focus:ring-1 focus:ring-blue-600',
+			'text-sm text-muted-foreground bg-muted rounded-md px-2 py-0.5 cursor-pointer inline-flex border border-border hover:bg-muted/50 outline-none focus:ring-1 focus:ring-primary',
 
 		carousel: {
+			header: 'flex items-center justify-between',
+			stepCounter: 'h-fit text-xs font-semibold text-muted-foreground tabular-nums',
+			buttons: 'flex w-fit items-center justify-end gap-2',
 			title: 'mb-2 line-clamp-2 font-semibold',
-			url: 'flex items-center gap-2 text-sm text-gray-600',
-			favicon: 'h-4 w-4 rounded',
-			header: 'flex items-start justify-between',
-			stepCounter: 'h-fit text-xs font-semibold text-gray-600 tabular-nums',
-			buttons: 'flex w-fit items-center justify-end gap-2'
+			url: 'flex items-center gap-2 text-sm text-muted-foreground',
+			favicon: 'h-4 w-4 rounded'
 		},
 		list: {
-			base: 'grid gap-4',
-			item: 'grid gap-2 gap-2',
-			title: 'mb-2 line-clamp-1 text-sm font-semibold',
-			url: 'flex items-center gap-2 text-xs text-gray-600',
-			favicon: 'h-4 w-4 rounded'
+			base: 'grid gap-2',
+			item: 'grid gap-1 hover:bg-muted rounded-md p-2',
+			title: 'line-clamp-1 font-semibold text-sm',
+			url: 'flex items-center gap-2 text-xs text-muted-foreground',
+			favicon: 'h-3 w-3 rounded'
 		}
 	},
 
 	components: {
 		button:
-			'cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100 w-6 h-6',
+			'disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100 w-6 h-6',
 		popover: 'fixed z-[1000] max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow'
 	}
 } satisfies Record<
@@ -336,7 +336,7 @@ export const shadcnTheme = {
 	},
 	components: {
 		button:
-			'cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-border flex items-center justify-center w-6 h-6',
+			'disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-border flex items-center justify-center w-6 h-6',
 		popover:
 			'fixed z-[1000] max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-popover border border-border p-2 shadow'
 	}

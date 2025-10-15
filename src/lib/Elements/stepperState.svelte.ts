@@ -115,6 +115,13 @@ export class StepperState<Item> {
 		}
 	};
 
+	get canGoNext() {
+		return this.activeStep < this.items.length - 1;
+	}
+	get canGoPrevious() {
+		return this.activeStep > 0;
+	}
+
 	canGoToStep = (targetStep: number): boolean => {
 		return targetStep >= 0 && targetStep < this.items.length;
 	};

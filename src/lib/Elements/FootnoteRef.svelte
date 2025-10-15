@@ -40,27 +40,27 @@
 </script>
 
 {#if popover.isOpen}
-	<Slot
-		props={{
-			token,
-			isOpen: popover.isOpen
-		}}
-		render={streamdown.snippets.footnotePopover}
+	<dialog
+		id={'footnote-popover-' + id}
+		aria-modal="false"
+		transition:scale|global={{ start: 0.95, duration: 100 }}
+		{@attach clickOutside.attachment}
+		{@attach popover.popoverAttachment}
+		open
+		class={`${streamdown.theme.components.popover}`}
 	>
-		<dialog
-			id={'footnote-popover-' + id}
-			aria-modal="false"
-			transition:scale|global={{ start: 0.95, duration: 100 }}
-			{@attach clickOutside.attachment}
-			{@attach popover.popoverAttachment}
-			open
-			class={`${streamdown.theme.components.popover}`}
+		<Slot
+			props={{
+				token,
+				isOpen: popover.isOpen
+			}}
+			render={streamdown.snippets.footnotePopover}
 		>
 			{#each token.content.lines as line}
 				<Block block={line} />
 			{/each}
-		</dialog>
-	</Slot>
+		</Slot>
+	</dialog>
 {/if}
 
 {#if token.label !== 'streamdown:footnote'}

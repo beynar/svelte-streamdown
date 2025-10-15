@@ -9,7 +9,7 @@
 	let isStreaming = $state(false);
 	let streamingProgress = $state(0);
 	let cancelRequested = $state(false);
-	let progress = $state(9.9);
+	let progress = $state(100);
 
 	// Update content based on progress percentage
 	$effect(() => {
@@ -227,7 +227,6 @@
 				type: 'slideDown'
 			}}
 			baseTheme="shadcn"
-			inlineCitationsMode="list"
 			mermaidConfig={{
 				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
 			}}
@@ -235,24 +234,22 @@
 			shikiPreloadThemes={['github-dark', 'github-light']}
 			allowedLinkPrefixes={['*']}
 			sources={{
+				smith2023: {
+					title: 'AI Research Paper',
+					url: 'https://example.com/paper',
+					content: 'Detailed content of the citation...'
+				},
+				nested: {
+					subsection: {
+						title: 'Nested Citation',
+						url: 'https://example.com/nested'
+					}
+				},
+
 				ref: {
 					title: 'Streamdown',
 					url: 'https://streamdown.ai/',
 					content: 'This is a reference for Streamdown'
-				},
-				nested: {
-					ref: {
-						title: 'Nested Reference',
-						url: 'https://www.google.com',
-						content: 'This is a nested reference'
-					},
-					array: [
-						{
-							title: 'array reference',
-							url: 'https://www.google.com',
-							content: 'This is a nested reference 2'
-						}
-					]
 				},
 				ref2: {
 					title: 'Reference 2',

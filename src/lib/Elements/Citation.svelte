@@ -22,8 +22,16 @@
 	const citationWithSources = $derived.by(() => {
 		return token.keys.reduce((acc, key) => {
 			const source = get<Record<string, any>>(streamdown.sources, key);
+			const safeUrl = (url: string | null) => {
+				if (url == null) return null;
+				try {
+					return new URL(url);
+				} catch (error) {
+					return null;
+				}
+			};
 			if (source) {
-				const url = source.url ? new URL(source.url) : null;
+				const url = safeUrl(source.url);
 				acc.push({
 					key,
 					title: source.title ?? null,
@@ -73,30 +81,30 @@
 </script>
 
 {#if popover.isOpen}
-	<Slot
-		props={{
-			token,
-			isOpen: popover.isOpen
-		}}
-		render={streamdown.snippets.inlineCitationPopover}
+	<dialog
+		id={'citation-popover-' + id}
+		aria-modal="false"
+		transition:scale|global={{ start: 0.95, duration: 200 }}
+		{@attach clickOutside.attachment}
+		{@attach popover.popoverAttachment}
+		open
+		class={`${streamdown.theme.components.popover}`}
+		style:max-width="400px"
 	>
-		<dialog
-			id={'citation-popover-' + id}
-			aria-modal="false"
-			transition:scale|global={{ start: 0.95, duration: 200 }}
-			{@attach clickOutside.attachment}
-			{@attach popover.popoverAttachment}
-			open
-			class={`${streamdown.theme.components.popover}`}
-			style:max-width="400px"
+		<Slot
+			props={{
+				token,
+				isOpen: popover.isOpen
+			}}
+			render={streamdown.snippets.inlineCitationPopover}
 		>
 			{#if streamdown.inlineCitationsMode === 'carousel'}
 				{@render carouselView()}
 			{:else}
 				{@render listView()}
 			{/if}
-		</dialog>
-	</Slot>
+		</Slot>
+	</dialog>
 {/if}
 
 {#snippet listView()}
@@ -120,8 +128,8 @@
 									alt={title || url.host}
 									class={streamdown.theme.inlineCitation.list.favicon}
 								/>
-								{url.host}{url.pathname === '/' ? '' : url.pathname}
 							{/if}
+							{url.host}{url.pathname === '/' ? '' : url.pathname}
 						</span>
 					{/if}
 				</a>
@@ -149,7 +157,9 @@
 	{/if}
 	<div
 		use:stepper.scroller
-		style:height="{stepper.stepHeights[stepper.activeStep]}px"
+		style:height={Number.isFinite(stepper.stepHeights[stepper.activeStep])
+			? `${stepper.stepHeights[stepper.activeStep]}px`
+			: 'auto'}
 		style:overflow="hidden"
 		style:position="relative"
 		style:transition-duration="200ms"

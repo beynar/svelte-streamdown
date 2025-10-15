@@ -239,6 +239,98 @@ III. Third item
     :   Topic 3   :  Description 3
     :   Topic 3   :  Description 3
 
+### Citation Support
+
+Streamdown supports inline citations that allow you to reference external sources and display them in interactive popovers. Citations work out-of-the-box with a simple object structure and support nested references like this `[smith2023, nested.subsection]` will render into [smith2023, nested.subsection] 
+
+To enable inline citations, pass a `sources` object as a prop to the `Streamdown` component.
+
+#### Basic Usage
+
+```svelte
+<script>
+  import { Streamdown } from 'svelte-streamdown';
+
+  let content = `According to [smith2023], AI is advancing rapidly. See also [nested.subsection] for related work.`;
+
+  let sources = {
+    "smith2023": {
+      title: "AI Research Paper",
+      url: "https://example.com/paper",
+      content: "Detailed content of the citation..."
+    },
+    "nested": {
+      "subsection": {
+        title: "Nested Citation",
+        url: "https://example.com/nested"
+      }
+    }
+  };
+</script>
+
+<Streamdown {content} {sources} />
+```
+
+#### Default Citation Structure
+
+Citations work with objects containing these properties:
+
+- `title` (optional): Display title for the citation
+- `url` (optional): Link to the source
+- `content` (optional): Rich content to display in carousel mode
+
+
+#### Display Modes
+
+Streamdown offers two ways to display citations:
+
+**List View**: Shows all citations in a compact list format
+**Carousel View** (default): Step-through navigation for multiple citations with full content display
+
+You can control the display mode using the `inlineCitationsMode` prop:
+
+```svelte
+<!-- List view -->
+<Streamdown {content} {sources} inlineCitationsMode="list" />
+
+<!-- Carousel view (default) -->
+<Streamdown {content} {sources} inlineCitationsMode="carousel" />
+```
+
+#### Citation Popovers
+
+Citations appear as clickable buttons that open popovers when clicked. The popover shows:
+- Source title and URL (when available)
+- Favicon from the source domain
+- Rich content (in carousel mode)
+- Navigation controls (in carousel mode for multiple citations)
+
+#### Custom Citation Rendering
+
+If your citation data structure doesn't match the default format, you can customize how citations are rendered using `inlineCitationPreview`, `inlineCitationContent` or `inlineCitationPopover` snippets:
+
+```svelte
+<Streamdown {content} {sources}>
+  {#snippet inlineCitationPreview({ token })}
+    <!-- Customize the clickable citation button -->   
+      {token.keys[0]}
+  {/snippet}
+
+  {#snippet inlineCitationContent({ source, key, token })}
+    <!-- Customize content displayed in popover -->
+    <div class="custom-content">
+      <h4>{source.customTitle || key}</h4>
+      <p>{source.customDescription}</p>
+    </div>
+  {/snippet}
+</Streamdown>
+```
+
+These snippets allow you to:
+- **`inlineCitationPreview`**: Customize the content of the clickable button that appears in the text
+- **`inlineCitationContent`**: Customize how individual citation content is displayed within popovers
+- **`inlineCitationPopover`**: Completely customize the list of citations
+
 ## 🔄 Differences from Original React Version
 
 This Svelte port maintains feature parity with the original [Streamdown](https://streamdown.ai/) while adapting to Svelte's patterns:

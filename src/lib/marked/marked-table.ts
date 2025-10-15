@@ -146,7 +146,6 @@ function splitRow(src: string): string[] {
 			continue;
 		}
 		if (ch === '`') {
-			// count backticks
 			let run = 1;
 			while (i + run < src.length && src[i + run] === '`') run++;
 			if (!inCode) {
@@ -161,7 +160,19 @@ function splitRow(src: string): string[] {
 			continue;
 		}
 		if (ch === '|' && !inCode) {
-			out.push(buf.trim());
+			// Count consecutive pipes for colspan
+			let consecutivePipes = 1;
+			while (i + consecutivePipes < src.length && src[i + consecutivePipes] === '|') {
+				consecutivePipes++;
+			}
+
+			if (consecutivePipes > 1) {
+				// Multiple pipes = colspan marker
+				out.push(buf.trim() + '\x00COLSPAN:' + consecutivePipes);
+				i += consecutivePipes - 1;
+			} else {
+				out.push(buf.trim());
+			}
 			buf = '';
 			continue;
 		}
@@ -207,31 +218,33 @@ const processSpans = (
 	const mergedIndices = new Set<number>();
 
 	for (i = 0; i < cells.length; i++) {
-		// Skip cells that were merged into previous colspans
 		if (mergedIndices.has(i)) continue;
 
 		trimmedCell = cells[i];
-
-		// Count consecutive empty cells for colspan
 		let colspan = 1;
-		if (!trimmedCell.trim()) {
-			// Count how many consecutive empty cells we have
+
+		// Check for colspan marker from consecutive pipes
+		if (trimmedCell.includes('\x00COLSPAN:')) {
+			const parts = trimmedCell.split('\x00COLSPAN:');
+			trimmedCell = parts[0];
+			colspan = parseInt(parts[1], 10);
+		} else if (!trimmedCell.trim()) {
+			// Fallback: count consecutive empty cells (backward compatibility)
 			let j = i + 1;
 			while (j < cells.length && !cells[j].trim()) {
 				colspan++;
-				mergedIndices.add(j); // Mark as merged
+				mergedIndices.add(j);
 				j++;
 			}
 		}
 
-		// Apply maxColspan limit if specified
 		if (maxColspan !== null && colspan > maxColspan) colspan = maxColspan;
 
 		processedCells[cellIndex] = {
 			rowspan: 1,
 			colspan: colspan,
 			text: trimmedCell.trim().replace(/\\\|/g, '|'),
-			position: numCols // Store original column position for better tracking
+			position: numCols
 		};
 
 		numCols += processedCells[cellIndex].colspan;

@@ -113,7 +113,7 @@
 	</Slot>
 {:else if token.type === 'table'}
 	<Slot props={{ token, children }} render={streamdown.snippets.table}>
-		<div {style} class={streamdown.theme.table.base} style:overscroll-behavior="none">
+		<div {style} class={streamdown.theme.table.base} style:overscroll-behavior-x="none">
 			<table class={streamdown.theme.table.table}>
 				{@render children()}
 			</table>

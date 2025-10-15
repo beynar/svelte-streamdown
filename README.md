@@ -134,11 +134,11 @@ pie title Project Time Allocation
 
 | H1                        | H2  | H3  |
 | ------------------------- | --- | --- |
-| This cell spans 3 columns |     |     |
+| This cell spans 3 columns |||
 
 | Header 1                  | Header 2 | Header 3 |
 | ------------------------- | -------- | -------- |
-| This cell spans 2 columns |          | Normal   |
+| This cell spans 2 columns || Normal   |
 | Normal                    | Normal   | Normal   |
 
 #### Rowspan
@@ -154,7 +154,7 @@ pie title Project Time Allocation
 | --------------- | -------- |
 | Cell B          | Cell A   |
 | --------------- | -------- |
-| Footer          |          |
+| Footer          ||
 
 #### Column alignment
 
@@ -241,7 +241,7 @@ III. Third item
 
 ### Citation Support
 
-Streamdown supports inline citations that allow you to reference external sources and display them in interactive popovers. Citations work out-of-the-box with a simple object structure and support nested references like this `[smith2023, nested.subsection]` will render into [smith2023, nested.subsection] 
+Streamdown supports inline citations that allow you to reference external sources and display them in interactive popovers. Citations work out-of-the-box with a simple object structure and support nested references like this `[cloudflare.website, vercel]` will render into [cloudflare.website, vercel]
 
 To enable inline citations, pass a `sources` object as a prop to the `Streamdown` component.
 
@@ -275,17 +275,17 @@ To enable inline citations, pass a `sources` object as a prop to the `Streamdown
 
 Citations work with objects containing these properties:
 
-- `title` (optional): Display title for the citation
-- `url` (optional): Link to the source
-- `content` (optional): Rich content to display in carousel mode
+- `title (or name or author)`: Display title for the citation
+- `url (or href, url, link or source)`: Link to the source
+- `content (or text, summary or excerpt)`: Rich content to display in carousel mode
 
 
 #### Display Modes
 
 Streamdown offers two ways to display citations:
 
-**List View**: Shows all citations in a compact list format
-**Carousel View** (default): Step-through navigation for multiple citations with full content display
+- **List View**: Shows all citations in a compact list format
+- **Carousel View** (default): Step-through navigation for multiple citations with full content display
 
 You can control the display mode using the `inlineCitationsMode` prop:
 
@@ -462,6 +462,7 @@ This heading will use a custom component!`;
 | Prop                       | Type                                                                             | Default          | Description                                                                                                                                        |
 | -------------------------- | -------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `content`                  | `string`                                                                         | -                | **Required.** The markdown content to render                                                                                                       |
+| `sources`                  | `Record<string, any>`                                                            | -                | Citation data object for inline citations                                                                                                          |
 | `class`                    | `string`                                                                         | -                | CSS class names for the wrapper element                                                                                                            |
 | `parseIncompleteMarkdown`  | `boolean`                                                                        | `true`           | Parse and fix incomplete markdown syntax                                                                                                           |
 | `defaultOrigin`            | `string`                                                                         | -                | Default origin for relative URLs                                                                                                                   |
@@ -498,7 +499,7 @@ This heading will use a custom component!`;
 
 **Tables**: `table`, `thead`, `tbody`, `tr`, `th`, `td`, `tfoot`
 
-**Special Content**: `blockquote`, `hr`, `alert`, `mermaid`, `math`, `footnoteRef`
+**Special Content**: `blockquote`, `hr`, `alert`, `mermaid`, `math`, `footnoteRef`, `inlineCitation`
 
 **Note**: The above elements are **supported by Streamdown** and should be customized using individual props or the theme system.
 

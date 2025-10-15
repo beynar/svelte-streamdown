@@ -31,14 +31,14 @@
 				}
 			};
 			if (source) {
-				const url = safeUrl(source.url);
+				const url = safeUrl(source.url ?? source.href ?? source.link ?? source.source);
 				acc.push({
 					key,
-					title: source.title ?? null,
+					title: source.title ?? source.name ?? source.author ?? null,
 					url,
 					host: url ? url.host.replace('www.', '') : null,
 					favicon: url ? `https://www.google.com/s2/favicons?domain=${url.hostname}&sz=128` : null,
-					content: source.content ?? source.text ?? null,
+					content: source.content ?? source.text ?? source.summary ?? source.excerpt ?? null,
 					source
 				});
 			}

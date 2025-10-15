@@ -105,7 +105,7 @@
 			>
 			<span class="sm:hidden">{theme.resolvedTheme === 'dark' ? '☀️' : '🌙'}</span>
 		</button>
-		{#if !isStreaming || !isMobile}
+		{#if !isStreaming}
 			<button
 				class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-3"
 				onclick={() => simulateStreaming()}
@@ -114,7 +114,7 @@
 				{isStreaming ? `⏳ ${streamingProgress}%` : '▶️ Stream'}
 			</button>
 		{/if}
-		{#if isStreaming || !isMobile}
+		{#if isStreaming}
 			<button
 				class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-3"
 				onclick={() => stopStreaming()}
@@ -123,25 +123,18 @@
 				⏹️ Stop
 			</button>
 		{/if}
-		<button
-			class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-3"
-			onclick={() => {
-				stopStreaming();
-				content = data.readme;
-			}}
-		>
-			<span class="hidden sm:inline">📄 Show All</span>
-			<span class="sm:hidden">📄 All</span>
-		</button>
-		<button
-			class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-3"
-			onclick={() => {
-				stopStreaming();
-				content = '';
-			}}
-		>
-			🗑️ Clear
-		</button>
+		{#if progress !== 100 && !isStreaming}
+			<button
+				class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-3"
+				onclick={() => {
+					stopStreaming();
+					content = data.readme;
+				}}
+			>
+				<span class="hidden sm:inline">📄 Show All</span>
+				<span class="sm:hidden">📄 All</span>
+			</button>
+		{/if}
 		<button
 			class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-3"
 			onclick={() => {
@@ -153,23 +146,34 @@
 			>
 			<span class="sm:hidden">{animationEnabled ? '🔄 Off' : '🔄 On'}</span>
 		</button>
+		<a
+			class="inline-flex h-8 items-center justify-center rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-3"
+			href="/prompting"
+		>
+			<span class="hidden sm:inline">📋 Prompting Guide</span>
+			<span class="sm:hidden">📋 Prompting</span>
+		</a>
 	</div>
 
 	<!-- Speed slider row -->
-	<div class="flex items-center gap-2 md:ml-4">
-		<label for="speed-slider" class="text-xs whitespace-nowrap text-muted-foreground">Speed:</label>
-		<input
-			id="speed-slider"
-			type="range"
-			min="1"
-			max="50"
-			step="1"
-			bind:value={streamSpeed}
-			disabled={isStreaming}
-			class="h-2 w-16 cursor-pointer appearance-none rounded-lg bg-muted outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-20 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:bg-foreground [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:transition-colors hover:[&::-webkit-slider-thumb]:bg-foreground/80"
-		/>
-		<span class="w-8 text-xs whitespace-nowrap text-muted-foreground">{streamSpeed}ms</span>
-	</div>
+	{#if !isMobile}
+		<div class="flex items-center gap-2 md:ml-4">
+			<label for="speed-slider" class="text-xs whitespace-nowrap text-muted-foreground"
+				>Speed:</label
+			>
+			<input
+				id="speed-slider"
+				type="range"
+				min="1"
+				max="50"
+				step="1"
+				bind:value={streamSpeed}
+				disabled={isStreaming}
+				class="h-2 w-16 cursor-pointer appearance-none rounded-lg bg-muted outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-20 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:bg-foreground [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:transition-colors hover:[&::-webkit-slider-thumb]:bg-foreground/80"
+			/>
+			<span class="w-8 text-xs whitespace-nowrap text-muted-foreground">{streamSpeed}ms</span>
+		</div>
+	{/if}
 
 	<!-- Progress slider row -->
 	<div class="flex w-full flex-1 items-center gap-2 md:ml-4">
@@ -187,31 +191,6 @@
 			class="h-2 flex-1 cursor-pointer appearance-none rounded-lg bg-muted outline-none disabled:cursor-not-allowed disabled:opacity-50 [&::-moz-range-thumb]:h-4 [&::-moz-range-thumb]:w-4 [&::-moz-range-thumb]:appearance-none [&::-moz-range-thumb]:rounded-full [&::-moz-range-thumb]:border-none [&::-moz-range-thumb]:bg-foreground [&::-webkit-slider-thumb]:h-4 [&::-webkit-slider-thumb]:w-4 [&::-webkit-slider-thumb]:appearance-none [&::-webkit-slider-thumb]:rounded-full [&::-webkit-slider-thumb]:bg-foreground [&::-webkit-slider-thumb]:transition-colors hover:[&::-webkit-slider-thumb]:bg-foreground/80"
 		/>
 		<span class="w-8 text-xs whitespace-nowrap text-muted-foreground">{progress}%</span>
-	</div>
-
-	<!-- GitHub link -->
-	<div class="flex justify-end">
-		<a
-			class="inline-flex h-8 items-center justify-center gap-2 rounded-md border border-border bg-background px-2 text-xs font-medium text-foreground transition-colors hover:bg-muted hover:text-foreground disabled:pointer-events-none disabled:opacity-50 sm:px-3"
-			href="https://github.com/beynar/svelte-streamdown"
-		>
-			<svg
-				xmlns="http://www.w3.org/2000/svg"
-				viewBox="0 0 24 24"
-				fill="none"
-				stroke="currentColor"
-				stroke-width="2"
-				stroke-linecap="round"
-				stroke-linejoin="round"
-				class="size-4 sm:size-6"
-			>
-				<path
-					d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
-				/>
-				<path d="M9 18c-4.51 2-5-2-7-2" />
-			</svg>
-			<span class="hidden sm:inline">GitHub</span>
-		</a>
 	</div>
 </div>
 
@@ -234,15 +213,17 @@
 			shikiPreloadThemes={['github-dark', 'github-light']}
 			allowedLinkPrefixes={['*']}
 			sources={{
-				smith2023: {
-					title: 'AI Research Paper',
-					url: 'https://example.com/paper',
+				vercel: {
+					title: 'Triangle cloud',
+					url: 'https://vercel.com',
 					content: 'Detailed content of the citation...'
 				},
-				nested: {
-					subsection: {
-						title: 'Nested Citation',
-						url: 'https://example.com/nested'
+				cloudflare: {
+					website: {
+						title: 'Orange cloud',
+						url: 'https://cloudflare.com',
+						content:
+							'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.'
 					}
 				},
 
@@ -261,4 +242,29 @@
 			{content}
 		></Streamdown>
 	</div>
+</div>
+
+<!-- Floating GitHub Button -->
+<div class="fixed right-6 bottom-6 z-50">
+	<a
+		class="inline-flex h-12 w-12 items-center justify-center rounded-full border border-border bg-background shadow-lg transition-all hover:scale-110 hover:bg-muted focus:ring-2 focus:ring-ring focus:ring-offset-2 focus:outline-none"
+		href="https://github.com/beynar/svelte-streamdown"
+		aria-label="View on GitHub"
+	>
+		<svg
+			xmlns="http://www.w3.org/2000/svg"
+			viewBox="0 0 24 24"
+			fill="none"
+			stroke="currentColor"
+			stroke-width="2"
+			stroke-linecap="round"
+			stroke-linejoin="round"
+			class="size-6"
+		>
+			<path
+				d="M15 22v-4a4.8 4.8 0 0 0-1-3.5c3 0 6-2 6-5.5.08-1.25-.27-2.48-1-3.5.28-1.15.28-2.35 0-3.5 0 0-1 0-3 1.5-2.64-.5-5.36-.5-8 0C6 2 5 2 5 2c-.3 1.15-.3 2.35 0 3.5A5.403 5.403 0 0 0 4 9c0 3.5 3 5.5 6 5.5-.39.49-.68 1.05-.85 1.65-.17.6-.22 1.23-.15 1.85v4"
+			/>
+			<path d="M9 18c-4.51 2-5-2-7-2" />
+		</svg>
+	</a>
 </div>

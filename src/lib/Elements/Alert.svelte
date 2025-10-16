@@ -22,8 +22,10 @@
 
 	const {
 		children,
-		token
+		token,
+		id
 	}: {
+		id: string;
 		children: Snippet;
 		token: AlertToken;
 	} = $props();
@@ -37,6 +39,7 @@
 	render={streamdown.snippets.alert}
 >
 	<div
+		data-streamdown-alert={id}
 		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 		class={`${streamdown.theme.alert.base} ${streamdown.theme.alert[token.variant]}`}
 	>

@@ -10,9 +10,11 @@
 	import { save } from '$lib/utils/save.js';
 
 	let {
-		token
+		token,
+		id
 	}: {
 		token: TableToken;
+		id: string;
 	} = $props();
 	const streamdown = useStreamdown();
 	const popover = new Popover();
@@ -45,7 +47,6 @@
 	});
 
 	const copyOrDownload = (type: 'Markdown' | 'HTML' | 'CSV') => {
-		console.log(type);
 		if (type === 'Markdown') {
 			copyValue = token.raw;
 			if (modeState === 'copy') {
@@ -54,15 +55,13 @@
 				save('table.md', copyValue, 'text/markdown');
 			}
 		} else if (type === 'HTML') {
-			const dialog = popover.content as HTMLDialogElement;
-			const table = dialog.parentElement?.querySelector('table');
+			const table = document.parentElement?.querySelector(`[data-streamdown-table=${id}]`);
 
 			if (table) {
 				let html = (table.cloneNode(true) as HTMLElement).outerHTML;
 				// remove comments
 				html = html.replace(/<!--[\s\S]*?-->/g, '');
 				copyValue = html;
-				console.log({ copyValue });
 				// Remove class and style attributes
 				html = html.replace(/class="[^"]*"/g, '');
 				html = html.replace(/style="[^"]*"/g, '');
@@ -84,8 +83,8 @@
 				}
 			}
 		} else if (type === 'CSV') {
-			const dialog = popover.content as HTMLDialogElement;
-			const table = dialog.parentElement?.querySelector('table');
+			const table = document.querySelector(`[data-streamdown-table=${id}]`);
+
 			if (table) {
 				const rows = table.querySelectorAll('tr');
 				const rowSpanFills: Array<{ rowIndex: number; colIndex: number; colSpan: number }> = [];
@@ -100,7 +99,11 @@
 						const rowSpan = parseInt(cell.getAttribute('rowspan') || '1');
 
 						// Add the cell content
-						rowData.push((cell.textContent || '').replace(',', '.'));
+						// Add the cell content, quoting if it contains commas, quotes, or newlines
+						const content = cell.textContent || '';
+						const needsQuoting = /[,"\n]/.test(content);
+						const escapedContent = content.replace(/"/g, '""');
+						rowData.push(needsQuoting ? `"${escapedContent}"` : content);
 
 						// Add empty cells for colspan
 						for (let i = 0; i < colSpan - 1; i++) {
@@ -134,7 +137,6 @@
 
 				const csv = matrix.map((row) => row.join(',')).join('\n');
 				copyValue = csv;
-				console.log({ csv, matrix, rowSpanFills });
 				if (modeState === 'copy') {
 					copy.copy();
 				} else {

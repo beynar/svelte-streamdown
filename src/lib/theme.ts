@@ -160,7 +160,7 @@ export const theme = {
 		button:
 			'disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer p-1 text-gray-600 transition-all hover:text-gray-900 rounded hover:bg-gray-100 w-6 h-6',
 		popover:
-			'min-w-[250px] max-w-md  fixed z-[1000] max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-white p-4 shadow'
+			'min-w-[250px] max-w-md  fixed z-[1000] max-h-md overflow-y-auto rounded-lg bg-white p-4 shadow'
 	}
 } satisfies Record<
 	| keyof Omit<
@@ -339,7 +339,7 @@ export const shadcnTheme = {
 		button:
 			'disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer p-1 text-muted-foreground transition-all hover:text-foreground rounded hover:bg-border flex items-center justify-center w-6 h-6',
 		popover:
-			'min-w-[250px] max-w-md fixed z-[1000] max-h-[30vh] max-w-3xl overflow-y-auto rounded-lg bg-popover border border-border p-2 shadow'
+			'min-w-[250px] max-w-md fixed z-[1000] max-h-md overflow-y-auto rounded-lg bg-popover border border-border p-2 shadow'
 	}
 } satisfies Theme;
 

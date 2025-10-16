@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { onMount, flushSync } from 'svelte';
+	import { onMount } from 'svelte';
 	import { useStreamdown } from '$lib/context.svelte.js';
 	import type { Tokens } from 'marked';
 	import type { MermaidConfig } from 'mermaid';
@@ -10,9 +10,11 @@
 	const streamdown = useStreamdown();
 
 	const {
-		token
+		token,
+		id
 	}: {
 		token: Tokens.Code;
+		id: string;
 	} = $props();
 
 	let mermaid = $state<any>(null);
@@ -209,7 +211,7 @@
 	};
 </script>
 
-<div>
+<div data-streamdown-mermaid={id}>
 	{#if mermaid}
 		<div
 			style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}

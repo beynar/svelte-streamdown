@@ -9,9 +9,11 @@
 	import { checkIcon, copyIcon, downloadIcon } from './icons.js';
 
 	const {
-		token
+		token,
+		id
 	}: {
 		token: Tokens.Code;
+		id: string;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -49,6 +51,7 @@
 </script>
 
 <div
+	data-streamdown-code={id}
 	style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 	class={streamdown.theme.code.base}
 >

@@ -6,9 +6,11 @@
 	import 'katex/dist/katex.min.css';
 
 	const {
-		token
+		token,
+		id
 	}: {
 		token: MathToken;
+		id: string;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -46,6 +48,7 @@
 
 {#if token.isInline}
 	<span
+		data-streamdown-inline-math={id}
 		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 		bind:this={inner}
 		class={streamdown.theme.math.inline}
@@ -53,7 +56,12 @@
 		{@html html}
 	</span>
 {:else}
-	<div style={streamdown.isMounted ? streamdown.animationBlockStyle : ''} class="h-fit w-full">
+	<div
+		data-streamdown-block-math={id}
+		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+		style:height="fit-content"
+		style:width="100%"
+	>
 		<div class="overflow-x-auto">
 			<div bind:this={inner} class={streamdown.theme.math.block}>
 				{@html html}

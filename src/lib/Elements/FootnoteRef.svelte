@@ -41,6 +41,7 @@
 
 {#if popover.isOpen}
 	<dialog
+		data-streamdown-footnote-popover={id}
 		id={'footnote-popover-' + id}
 		aria-modal="false"
 		transition:scale|global={{ start: 0.95, duration: 100 }}
@@ -65,6 +66,7 @@
 
 {#if token.label !== 'streamdown:footnote'}
 	<button
+		data-streamdown-footnote-ref={id}
 		style={streamdown.animationBlockStyle}
 		bind:this={popover.reference}
 		class={streamdown.theme.footnoteRef.base}

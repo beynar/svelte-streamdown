@@ -56,7 +56,7 @@ export type Extension = {
 };
 
 export type StreamdownToken =
-	| Exclude<MarkedToken, Tokens.List | Tokens.ListItem>
+	| Exclude<MarkedToken, Tokens.List | Tokens.ListItem | Tokens.Table>
 	| ListToken
 	| ListItemToken
 	| MathToken

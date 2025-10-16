@@ -103,9 +103,11 @@
 		get controls() {
 			const codeControls = controls?.code ?? true;
 			const mermaidControls = controls?.mermaid ?? true;
+			const tableControls = controls?.table ?? true;
 			return {
 				code: codeControls,
-				mermaid: mermaidControls
+				mermaid: mermaidControls,
+				table: tableControls
 			};
 		},
 		get children() {

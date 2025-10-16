@@ -9,10 +9,12 @@
 
 	const {
 		children,
-		token
+		token,
+		id
 	}: {
 		children: Snippet;
 		token: Tokens.Image;
+		id: string;
 	} = $props();
 
 	const transformedUrl = $derived(
@@ -32,6 +34,7 @@
 			render={streamdown.snippets.image}
 		>
 			<span
+				data-streamdown-image={id}
 				style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 				class={streamdown.theme.image.base}
 			>
@@ -40,6 +43,7 @@
 		</Slot>
 	{:else}
 		<span
+			data-streamdown-image-blocked={id}
 			class="inline-block rounded bg-gray-200 px-3 py-1 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-400"
 			title={`Blocked URL: ${token.href}`}
 		>

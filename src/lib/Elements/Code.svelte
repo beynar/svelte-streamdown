@@ -6,11 +6,14 @@
 	import type { Tokens } from 'marked';
 	import { type ThemedToken } from 'shiki';
 	import { untrack } from 'svelte';
+	import { checkIcon, copyIcon, downloadIcon } from './icons.js';
 
 	const {
-		token
+		token,
+		id
 	}: {
 		token: Tokens.Code;
+		id: string;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -48,6 +51,7 @@
 </script>
 
 <div
+	data-streamdown-code={id}
 	style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 	class={streamdown.theme.code.base}
 >
@@ -58,14 +62,18 @@
 				<button
 					class={streamdown.theme.components.button}
 					onclick={downloadCode}
-					title="Download file"
+					title="Download code"
 					type="button"
 				>
 					{@render (streamdown.icons?.download || downloadIcon)()}
 				</button>
 
 				<button class={streamdown.theme.components.button} onclick={copy.copy} type="button">
-					{@render (streamdown.icons?.copy || copyIcon)()}
+					{#if copy.isCopied}
+						{@render (streamdown.icons?.check || checkIcon)()}
+					{:else}
+						{@render (streamdown.icons?.copy || copyIcon)()}
+					{/if}
 				</button>
 			</div>
 		{/if}
@@ -106,38 +114,4 @@
 			{line.trim().length > 0 ? line : '\u200B'}
 		</span>
 	{/each}
-{/snippet}
-
-{#snippet copyIcon()}
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		width="100%"
-		height="100%"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-		><rect width="8" height="4" x="8" y="2" rx="1" ry="1" /><path
-			d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"
-		/></svg
-	>
-{/snippet}
-
-{#snippet downloadIcon()}
-	<svg
-		xmlns="http://www.w3.org/2000/svg"
-		width="100%"
-		height="100%"
-		viewBox="0 0 24 24"
-		fill="none"
-		stroke="currentColor"
-		stroke-width="2"
-		stroke-linecap="round"
-		stroke-linejoin="round"
-		><path d="M12 15V3" /><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path
-			d="m7 10 5 5 5-5"
-		/></svg
-	>
 {/snippet}

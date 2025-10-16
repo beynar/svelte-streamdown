@@ -16,6 +16,7 @@ export interface StreamdownContext
 	controls: {
 		code: boolean;
 		mermaid: boolean;
+		table: boolean;
 	};
 	inlineCitationsMode: 'list' | 'carousel';
 	animation: {
@@ -202,6 +203,7 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	controls?: {
 		code?: boolean;
 		mermaid?: boolean;
+		table?: boolean;
 	};
 	renderHtml?: boolean | ((token: Tokens.HTML | Tokens.Tag) => string);
 
@@ -227,6 +229,7 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 		important?: Snippet;
 		chevronLeft?: Snippet;
 		chevronRight?: Snippet;
+		check?: Snippet;
 	};
 	extensions?: Extension[];
 	children?: Snippet<[{ streamdown: StreamdownContext; token: GenericToken; children: Snippet }]>;

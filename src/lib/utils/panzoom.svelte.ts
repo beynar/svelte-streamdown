@@ -235,6 +235,10 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 	}
 
 	function onTouchStart(e: TouchEvent) {
+		const hasButton = e
+			.composedPath()
+			.some((el: EventTarget) => (el as HTMLElement).tagName?.toLowerCase?.() === 'button');
+		if (hasButton) return;
 		if (!node) return;
 		if (animating) {
 			e.preventDefault();
@@ -402,7 +406,18 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 
 		if (expand) {
 			// Expanding: immediately apply expanded state
-			eventTarget.parentElement!.style.height = eventTarget.clientHeight + 'px';
+			// We should add margin to the parent element to account for the expanded height
+			if (eventTarget.parentElement) {
+				const styleAttributes = ['margin-block', 'height'] as const;
+				styleAttributes.forEach((attribute) => {
+					if (eventTarget?.parentElement) {
+						eventTarget.parentElement.style.setProperty(
+							attribute,
+							getComputedStyle(eventTarget).getPropertyValue(attribute)
+						);
+					}
+				});
+			}
 			eventTarget.dataset.expanded = 'true';
 			isExpanded = true;
 			zoomToFit();

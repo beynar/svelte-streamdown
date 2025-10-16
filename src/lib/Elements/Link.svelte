@@ -9,10 +9,12 @@
 
 	const {
 		children,
-		token
+		token,
+		id
 	}: {
 		children: Snippet;
 		token: Tokens.Link;
+		id: string;
 	} = $props();
 
 	const transformedUrl = $derived(
@@ -33,6 +35,7 @@
 		render={streamdown.snippets.link}
 	>
 		<a
+			data-streamdown-link={id}
 			class={streamdown.theme.link.base}
 			href={transformedUrl}
 			target="_blank"
@@ -43,6 +46,7 @@
 	</Slot>
 {:else}
 	<span
+		data-streamdown-link-blocked={id}
 		class={streamdown.theme.link.blocked}
 		title={token.title ? `Blocked URL: ${token.href}` : undefined}
 	>

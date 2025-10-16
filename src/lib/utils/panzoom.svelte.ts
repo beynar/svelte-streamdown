@@ -408,7 +408,6 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 			// Expanding: immediately apply expanded state
 			// We should add margin to the parent element to account for the expanded height
 			if (eventTarget.parentElement) {
-				eventTarget.parentElement.style.height = eventTarget.clientHeight + 'px';
 				const styleAttributes = ['margin-block', 'height'] as const;
 				styleAttributes.forEach((attribute) => {
 					if (eventTarget?.parentElement) {

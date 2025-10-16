@@ -55,7 +55,7 @@
 				save('table.md', copyValue, 'text/markdown');
 			}
 		} else if (type === 'HTML') {
-			const table = document.parentElement?.querySelector(`[data-streamdown-table=${id}]`);
+			const table = document.querySelector(`[data-streamdown-table=${id}]`);
 
 			if (table) {
 				let html = (table.cloneNode(true) as HTMLElement).outerHTML;

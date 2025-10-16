@@ -198,7 +198,7 @@
 	<Link {id} {token} {children} />
 {:else if token.type === 'sub'}
 	<Slot props={{ children, token }} render={streamdown.snippets.sub}>
-		<sub data-streamdpwn-sub={id} class={streamdown.theme.sub.base}>
+		<sub data-streamdown-sub={id} class={streamdown.theme.sub.base}>
 			{@render children()}
 		</sub>
 	</Slot>

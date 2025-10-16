@@ -108,7 +108,7 @@ export const theme = {
 	mermaid: {
 		base: 'group relative my-4 h-auto rounded-xl border border-gray-200 bg-white overflow-hidden items-center min-h-[500px]',
 		icon: 'size-5',
-		buttons: 'absolute right-1 top-1 z-10 flex h-fit w-fit items-center gap-1'
+		buttons: 'absolute right-1 top-1 flex h-fit w-fit items-center gap-1'
 	},
 	math: {
 		block: '',
@@ -288,7 +288,7 @@ export const shadcnTheme = {
 	mermaid: {
 		base: 'group relative my-4 h-auto rounded-lg border border-border bg-card overflow-hidden items-center min-h-[500px]',
 		icon: 'size-5',
-		buttons: 'absolute right-1 top-1 z-10 flex h-fit w-fit items-center gap-1'
+		buttons: 'absolute right-1 top-1 flex h-fit w-fit items-center gap-1'
 	},
 	math: {
 		block: 'text-foreground',

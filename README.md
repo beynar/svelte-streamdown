@@ -69,6 +69,10 @@ Full support for
     with _rich_ **content** support
     and multiline
 
+> [!NOTE]
+> 🧠 **AI Prompting Tip:** For best results, use our [comprehensive prompt](/prompting) covering all supported markdown features.
+
+
 ### 💻 Interactive Code Blocks
 
 - Syntax highlighting powered by Shiki

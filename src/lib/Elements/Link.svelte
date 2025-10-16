@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { useStreamdown } from '$lib/context.svelte.js';
-	import { transformUrl } from '$lib/utils/url.js';
+	import { isPathRelativeUrl, transformUrl } from '$lib/utils/url.js';
 	import Slot from './Slot.svelte';
 	import type { Tokens } from 'marked';
 	import type { Snippet } from 'svelte';
@@ -17,12 +17,14 @@
 		id: string;
 	} = $props();
 
+	const isRelativeUrl = $derived(isPathRelativeUrl(token.href));
+
 	const transformedUrl = $derived(
 		transformUrl(token.href, streamdown.allowedLinkPrefixes ?? [], streamdown.defaultOrigin)
 	);
 </script>
 
-{#if transformedUrl || token.href === 'streamdown:incomplete-link'}
+{#if transformedUrl || token.href === 'streamdown:incomplete-link' || isRelativeUrl}
 	<Slot
 		props={{
 			href: transformedUrl,
@@ -37,9 +39,9 @@
 		<a
 			data-streamdown-link={id}
 			class={streamdown.theme.link.base}
-			href={transformedUrl}
-			target="_blank"
-			rel="noopener noreferrer"
+			{...isRelativeUrl
+				? { href: token.href }
+				: { href: transformedUrl, target: '_blank', rel: 'noopener noreferrer' }}
 		>
 			{@render children()}
 		</a>

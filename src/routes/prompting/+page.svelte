@@ -202,22 +202,21 @@ All heading levels supported:
 1. Decimal numbering
 2. Second item
 3. Third item
+	a. Lowercase alpha
+	b. Second item
+	c. Third item
+		A. Uppercase alpha
+		B. Second item
+		C. Third item
+			i. Lowercase roman
+			ii. Second item
+			iii. Third item
+				I. Uppercase roman
+				II. Second item
+				III. Third item
 
-a. Lowercase alpha
-b. Second item
-c. Third item
 
-A. Uppercase alpha
-B. Second item
-C. Third item
 
-i. Lowercase roman
-ii. Second item
-iii. Third item
-
-I. Uppercase roman
-II. Second item
-III. Third item
 
 #### Task Lists
 - [ ] Uncompleted task

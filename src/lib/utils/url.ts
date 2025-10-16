@@ -1,5 +1,6 @@
 export const parseUrl = (url: unknown, defaultOrigin?: string): URL | null => {
 	if (typeof url !== 'string') return null;
+
 	try {
 		// Try to parse as absolute URL first
 		const urlObject = new URL(url);
@@ -18,7 +19,7 @@ export const parseUrl = (url: unknown, defaultOrigin?: string): URL | null => {
 	}
 };
 
-const isPathRelativeUrl = (url: unknown): boolean => {
+export const isPathRelativeUrl = (url: unknown): boolean => {
 	if (typeof url !== 'string') return false;
 	return url.startsWith('/');
 };
@@ -30,6 +31,7 @@ export const transformUrl = (
 ): string | null => {
 	if (!url) return null;
 	const parsedUrl = parseUrl(url, defaultOrigin);
+	console.log('parsedUrl', { parsedUrl, url });
 	if (!parsedUrl) return null;
 
 	// If the input is path relative, we output a path relative URL as well,

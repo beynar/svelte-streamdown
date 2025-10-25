@@ -36,6 +36,7 @@ import {
 } from './marked-dl.js';
 import { markedAlign, type AlignToken } from './marked-align.js';
 import { markedCitations, type CitationToken } from './marked-citations.js';
+import { markedMdx, type MdxToken } from './marked-mdx.js';
 
 export type GenericToken = {
 	type: string;
@@ -78,7 +79,8 @@ export type StreamdownToken =
 	| DescriptionDetailToken
 	| DescriptionTermToken
 	| AlignToken
-	| CitationToken;
+	| CitationToken
+	| MdxToken;
 
 // Re-export table types from marked-table
 export type { TableToken, THead, TBody, TFoot, THeadRow, TRow, TH, TD } from './marked-table.js';
@@ -141,6 +143,7 @@ export const lex = (markdown: string, extensions: Extension[] = []): StreamdownT
 			markedDl,
 			markedAlign,
 			markedCitations,
+			markedMdx,
 			...extensions
 		)
 	)
@@ -156,6 +159,7 @@ export const parseBlocks = (markdown: string, extensions: Extension[] = []): str
 			markedDl,
 			markedTable,
 			markedAlign,
+			markedMdx,
 			...extensions.filter(
 				({ level, applyInBlockParsing }) => level === 'block' && applyInBlockParsing
 			)
@@ -180,5 +184,6 @@ export type {
 	BrToken,
 	HrToken,
 	AlignToken,
-	CitationToken
+	CitationToken,
+	MdxToken
 };

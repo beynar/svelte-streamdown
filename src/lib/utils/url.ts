@@ -31,7 +31,6 @@ export const transformUrl = (
 ): string | null => {
 	if (!url) return null;
 	const parsedUrl = parseUrl(url, defaultOrigin);
-	console.log('parsedUrl', { parsedUrl, url });
 	if (!parsedUrl) return null;
 
 	// If the input is path relative, we output a path relative URL as well,

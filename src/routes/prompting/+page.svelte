@@ -141,6 +141,26 @@ According to research[smith2023] and studies[jones2024]
 Use : term : definition format.
 : Term 1 : Definition 1
 : Term 2 : Definition 2
+
+### 26. MDX Components
+Embed custom components using JSX-style syntax with PascalCase names.
+
+Self-closing:
+<ComponentName attribute="value" count={42} enabled={true} />
+
+With markdown children:
+<ComponentName title="Hello">
+# This is markdown
+Content with **formatting**
+</ComponentName>
+
+Attributes:
+- Strings: attribute="text"
+- Numbers: count={42} or value={3.14}
+- Booleans: enabled={true} or disabled={false}
+- Expressions: value={variableName}
+
+Component names MUST start with capital letter.
 \`\`\`
 
 ## Feature Examples
@@ -314,6 +334,24 @@ Multiple citations: [ref1] [ref2] [ref3]
 : Term 1 : Definition 1
 : **Term 2** : *Definition 2*
 : Term 3 : Definition 3
+
+### MDX Components
+MDX components allow embedding custom Svelte components in markdown:
+
+<Card title="Example Card" priority={1}>
+This is **markdown content** inside a custom component.
+
+You can use any markdown features inside MDX components.
+</Card>
+
+<Alert type="info" dismissible={true}>
+Self-closing or with children - both work!
+</Alert>
+
+<Button label="Click Me" variant="primary" />
+
+> [!NOTE]
+> MDX components must start with a **capital letter** (PascalCase) to be recognized. Lowercase tags are treated as regular HTML.
 
 `;
 	const theme = useTheme();

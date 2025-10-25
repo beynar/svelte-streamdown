@@ -299,9 +299,11 @@
 		{@html content}
 	{/if}
 {:else if token.type === 'mdx'}
-	{@const snippet = (streamdown.snippets as any)[token.tagName]}
-	{#if snippet}
-		<Slot props={{ token, children, ...token.attributes }} render={snippet}>
+	{#if token.tagName in streamdown.snippets}
+		<Slot
+			props={{ token, children, ...token.attributes }}
+			render={streamdown.snippets[token.tagName as keyof typeof streamdown.snippets]}
+		>
 			{@render children()}
 		</Slot>
 	{:else}

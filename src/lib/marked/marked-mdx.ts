@@ -90,9 +90,35 @@ export const markedMdx: Extension = {
 			const [openTag, tagName, attributeString] = openTagMatch;
 			const attributes = parseAttributes(attributeString);
 
-			// Find matching closing tag
+			// Find matching closing tag with nesting support
 			const closingTag = `</${tagName}>`;
-			const closingIndex = src.indexOf(closingTag);
+			const openTagPattern = new RegExp(`<${tagName}(?:\\s|>)`, 'g');
+			const closeTagPattern = new RegExp(`</${tagName}>`, 'g');
+
+			let depth = 1;
+			let searchPos = openTag.length;
+			let closingIndex = -1;
+
+			while (depth > 0 && searchPos < src.length) {
+				openTagPattern.lastIndex = searchPos;
+				closeTagPattern.lastIndex = searchPos;
+
+				const nextOpen = openTagPattern.exec(src);
+				const nextClose = closeTagPattern.exec(src);
+
+				if (!nextClose) break;
+
+				if (nextOpen && nextOpen.index < nextClose.index) {
+					depth++;
+					searchPos = openTagPattern.lastIndex;
+				} else {
+					depth--;
+					if (depth === 0) {
+						closingIndex = nextClose.index;
+					}
+					searchPos = closeTagPattern.lastIndex;
+				}
+			}
 
 			if (closingIndex !== -1) {
 				// Extract content between tags

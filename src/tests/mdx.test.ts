@@ -208,6 +208,26 @@ describe('MDX tokenization', () => {
 		expect(mdxToken.attributes.value).toBe('myVariable');
 	});
 
+	test('should parse nested MDX components with same tag name', () => {
+		const tokens = lex('<Box id="outer">\n<Box id="inner">\nNested content\n</Box>\n</Box>');
+		const mdxTokens = getTokensByType(tokens, 'mdx');
+
+		expect(mdxTokens.length).toBeGreaterThan(0);
+		const outerBox = mdxTokens[0];
+		expect(outerBox.tagName).toBe('Box');
+		expect(outerBox.attributes.id).toBe('outer');
+
+		// Check that inner Box is in the children tokens
+		const innerBox = outerBox.tokens?.find((t: any) => t.type === 'mdx');
+		expect(innerBox).toBeDefined();
+		expect(innerBox.tagName).toBe('Box');
+		expect(innerBox.attributes.id).toBe('inner');
+
+		// Check that nested content is in the inner box
+		const innerContent = innerBox.tokens?.find((t: any) => t.type === 'paragraph');
+		expect(innerContent).toBeDefined();
+	});
+
 	test('should not parse lowercase component as MDX', () => {
 		const tokens = lex('<lowercase />');
 		const mdxTokens = getTokensByType(tokens, 'mdx');

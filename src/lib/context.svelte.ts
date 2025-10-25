@@ -1,4 +1,4 @@
-import type { Snippet } from 'svelte';
+import type { Component, Snippet, SvelteComponent } from 'svelte';
 import type { DeepPartialTheme, Theme } from './theme.js';
 import type { MermaidConfig } from 'mermaid';
 import type { KatexOptions } from 'katex';
@@ -96,7 +96,8 @@ import type {
 	TH,
 	Extension,
 	GenericToken,
-	CitationToken
+	CitationToken,
+	MdxToken
 } from './marked/index.js';
 import type { Tokens } from 'marked';
 import type { ListItemToken, ListToken } from './marked/marked-list.js';
@@ -147,6 +148,7 @@ type TokenSnippet = {
 	inlineCitationPopover: CitationToken;
 	inlineCitationContent: CitationToken;
 	inlineCitationPreview: CitationToken;
+	mdx: MdxToken;
 };
 
 type PredefinedElements = keyof TokenSnippet;
@@ -162,7 +164,11 @@ export type Snippets<Source extends Record<string, any> = Record<string, any>> =
 						source: Source;
 						key: string;
 					}
-				: {})
+				: K extends 'mdx'
+					? {
+							props: Record<string, number | string | boolean | null | undefined>;
+						}
+					: {})
 		]
 	>;
 };
@@ -233,4 +239,16 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	};
 	extensions?: Extension[];
 	children?: Snippet<[{ streamdown: StreamdownContext; token: GenericToken; children: Snippet }]>;
+	mdxComponents?: Record<
+		string,
+		Component<
+			{
+				token: MdxToken;
+				children: Snippet;
+				props: any;
+			},
+			any,
+			any
+		>
+	>;
 } & Partial<Snippets<Source>>;

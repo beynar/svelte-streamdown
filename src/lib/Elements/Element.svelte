@@ -299,16 +299,13 @@
 		{@html content}
 	{/if}
 {:else if token.type === 'mdx'}
-	{#if token.tagName in streamdown.snippets}
-		<Slot
-			props={{ token, children, ...token.attributes }}
-			render={streamdown.snippets[token.tagName as keyof typeof streamdown.snippets]}
-		>
+	{@const Component = streamdown.mdxComponents?.[token.tagName]}
+	{#if Component}
+		<Component {token} {children} props={token.attributes} />
+	{:else}
+		<Slot props={{ token, children, props: token.attributes }} render={streamdown.snippets.mdx}>
 			{@render children()}
 		</Slot>
-	{:else}
-		<!-- Fallback if no snippet provided for this component -->
-		{@render children()}
 	{/if}
 {:else}
 	<!-- For tokens we don't handle specifically, it may certainely be a custom extension to to the children props to handle -->

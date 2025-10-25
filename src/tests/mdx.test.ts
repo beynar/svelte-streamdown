@@ -293,36 +293,36 @@ describe('MDX tokenization', () => {
 });
 
 describe('MDX incomplete markdown', () => {
-	test('should escape incomplete opening tag', () => {
+	test('should remove incomplete opening tag', () => {
 		const input = '<Component';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should be escaped with backticks to prevent tokenization
-		expect(result).toBe('`<Component`');
+		// Should be removed to prevent tokenization
+		expect(result).toBe('');
 	});
 
-	test('should escape incomplete opening tag with partial attribute', () => {
+	test('should remove incomplete opening tag with partial attribute', () => {
 		const input = '<Component attr';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should escape incomplete attribute
-		expect(result).toBe('`<Component attr`');
+		// Should remove incomplete attribute
+		expect(result).toBe('');
 	});
 
-	test('should escape incomplete attribute with unclosed quote', () => {
+	test('should remove incomplete attribute with unclosed quote', () => {
 		const input = '<Component title="incomplete';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should escape due to unclosed quote
-		expect(result).toBe('`<Component title="incomplete`');
+		// Should remove due to unclosed quote
+		expect(result).toBe('');
 	});
 
-	test('should escape incomplete attribute with unclosed brace', () => {
+	test('should remove incomplete attribute with unclosed brace', () => {
 		const input = '<Component count={42';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should escape due to unclosed brace
-		expect(result).toBe('`<Component count={42`');
+		// Should remove due to unclosed brace
+		expect(result).toBe('');
 	});
 
 	test('should complete unclosed component tag', () => {
@@ -365,12 +365,12 @@ describe('MDX incomplete markdown', () => {
 		expect(result).toBe('<Button label="Click" count={5} />');
 	});
 
-	test('should escape incomplete tag in paragraph', () => {
+	test('should remove incomplete tag in paragraph', () => {
 		const input = 'Some text <Component attr';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should only escape the incomplete part
-		expect(result).toBe('Some text `<Component attr`');
+		// Should only remove the incomplete part
+		expect(result).toBe('Some text ');
 	});
 
 	test('should complete unclosed tag with markdown children', () => {
@@ -389,12 +389,12 @@ describe('MDX incomplete markdown', () => {
 		expect(result).toBe('<Card1 />\n<Card2>\nContent\n</Card2>');
 	});
 
-	test('should escape incomplete tag after complete tag', () => {
+	test('should remove incomplete tag after complete tag', () => {
 		const input = '<Card />\n<Component attr';
 		const result = parseIncompleteMarkdown(input);
 
-		// First complete, second escaped
-		expect(result).toBe('<Card />\n`<Component attr`');
+		// First complete, second removed
+		expect(result).toBe('<Card />\n');
 	});
 
 	test('should complete deeply nested unclosed tags', () => {
@@ -421,12 +421,12 @@ describe('MDX incomplete markdown', () => {
 		expect(result).toBe('<Component title="test">\n</Component>');
 	});
 
-	test('should escape partial attribute name', () => {
+	test('should remove partial attribute name', () => {
 		const input = '<Component tit';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should escape incomplete syntax
-		expect(result).toBe('`<Component tit`');
+		// Should remove incomplete syntax
+		expect(result).toBe('');
 	});
 
 	test('should handle unclosed tag with list children', () => {
@@ -461,20 +461,20 @@ describe('MDX incomplete markdown', () => {
 		expect(result).toBe('<Component123>\nContent\n</Component123>');
 	});
 
-	test('should escape empty incomplete tag', () => {
+	test('should remove empty incomplete tag', () => {
 		const input = '<C';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should escape minimal incomplete tag
-		expect(result).toBe('`<C`');
+		// Should remove minimal incomplete tag
+		expect(result).toBe('');
 	});
 
 	test('should handle multiple incomplete tags on same line', () => {
 		const input = '<Card1> content <Card2';
 		const result = parseIncompleteMarkdown(input);
 
-		// First opens, second incomplete
-		expect(result).toBe('<Card1> content `<Card2`\n</Card1>');
+		// First opens, second removed
+		expect(result).toBe('<Card1> content \n</Card1>');
 	});
 
 	test('should complete tag and preserve formatting', () => {
@@ -493,11 +493,11 @@ describe('MDX incomplete markdown', () => {
 		expect(result).toBe('<Component text="Hello, World!" />');
 	});
 
-	test('should escape incomplete self-closing tag', () => {
+	test('should remove incomplete self-closing tag', () => {
 		const input = '<Component /';
 		const result = parseIncompleteMarkdown(input);
 
 		// Missing closing bracket
-		expect(result).toBe('`<Component /`');
+		expect(result).toBe('');
 	});
 });

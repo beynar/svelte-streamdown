@@ -490,6 +490,7 @@ This heading will use a custom component!`;
 | `animation.tokenize`       | `'word' \| 'char'`                                                               | `'word'`         | Tokenization method for text animations                                                                                                            |
 | `animation.animateOnMount` | `boolean`                                                                        | `false`          | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM |
 | `extensions`               | `Array<Extension>`                                                               | `[]`             | Custom marked tokenizers to render special markdown blocks or inline tokens                                                                        |
+| `mdxComponents`            | `Record<string, Component>`                                                      | `{}`             | Map of MDX component names to Svelte components (e.g., `{ Card, Button }`)                                                                         |
 | `children`                 | `Snippet<[{token:GenericToken, streamdown: StreamdownContext, children: Snippet` | `undefined`      | Snippet used to render elements not supported by Streamdown, custom extensions, and MDX components                                                 |
 
 #### All Available Customizable Elements:
@@ -506,9 +507,9 @@ This heading will use a custom component!`;
 
 **Special Content**: `blockquote`, `hr`, `alert`, `mermaid`, `math`, `footnoteRef`, `inlineCitation`
 
-**MDX Components**: Any PascalCase component (e.g., `Card`, `Button`, `MyComponent`) - pass as snippets with the component name
+**MDX Components**: Handled via a single `mdx` snippet that receives `token`, `props`, and `children`. Use `token.tagName` to differentiate between components.
 
-**Note**: The above elements are **supported by Streamdown** and should be customized using individual props or the theme system.
+**Note**: The above elements are **supported by Streamdown** and should be customized using individual props or the theme system. MDX components require the `mdx` snippet.
 
 ## 🎨 Theming System
 
@@ -637,23 +638,79 @@ This is **markdown content** inside a component!
 </script>
 
 <Streamdown {content}>
-  {#snippet Card({ title, count, children })}
-    <div class="rounded-lg border border-gray-200 p-4 shadow-sm">
-      <h3 class="text-xl font-bold">{title}</h3>
-      <p class="text-gray-600">Count: {count}</p>
-      <div class="mt-2">
-        {@render children()}
+  {#snippet mdx({ token, props, children })}
+    {#if token.tagName === 'Card'}
+      <div class="rounded-lg border border-gray-200 p-4 shadow-sm">
+        <h3 class="text-xl font-bold">{props.title}</h3>
+        <p class="text-gray-600">Count: {props.count}</p>
+        <div class="mt-2">
+          {@render children()}
+        </div>
       </div>
-    </div>
-  {/snippet}
-  
-  {#snippet Button({ label, active })}
-    <button class="rounded px-4 py-2 {active ? 'bg-blue-500 text-white' : 'bg-gray-200'}">
-      {label}
-    </button>
+    {:else if token.tagName === 'Button'}
+      <button class="rounded px-4 py-2 {props.active ? 'bg-blue-500 text-white' : 'bg-gray-200'}">
+        {props.label}
+      </button>
+    {:else}
+      {@render children()}
+    {/if}
   {/snippet}
 </Streamdown>
 ```
+
+### Alternative: Using Svelte Components Directly
+
+Instead of using the `mdx` snippet with conditional logic, you can pass Svelte components directly using the `mdxComponents` prop:
+
+```svelte
+<script>
+  import { Streamdown } from 'svelte-streamdown';
+  import Card from './Card.svelte';
+  import Button from './Button.svelte';
+  
+  let content = `
+# Using MDX Components
+
+<Card title="Hello" count={42}>
+This is **markdown content** inside a component!
+</Card>
+
+<Button label="Click me" active={true} />
+`;
+</script>
+
+<Streamdown {content} mdxComponents={{ Card, Button }} />
+```
+
+**Your Svelte components** (`Card.svelte`, `Button.svelte`) should accept props and a `children` snippet:
+
+```svelte
+<!-- Card.svelte -->
+<script>
+  let { title, count, children } = $props();
+</script>
+
+<div class="rounded-lg border border-gray-200 p-4 shadow-sm">
+  <h3 class="text-xl font-bold">{title}</h3>
+  <p class="text-gray-600">Count: {count}</p>
+  <div class="mt-2">
+    {@render children()}
+  </div>
+</div>
+```
+
+```svelte
+<!-- Button.svelte -->
+<script>
+  let { label, active } = $props();
+</script>
+
+<button class="rounded px-4 py-2 {active ? 'bg-blue-500 text-white' : 'bg-gray-200'}">
+  {label}
+</button>
+```
+
+This approach is cleaner when you have standalone component files, while the `mdx` snippet approach is better for inline component definitions or when you need shared logic across components.
 
 ### Supported Syntax
 
@@ -689,7 +746,7 @@ MDX components support three attribute value types:
 
 MDX components are streaming-safe. Incomplete components are automatically handled during AI streaming:
 
-- Incomplete tags like `<Component attr` are escaped with backticks
+- Incomplete tags like `<Component attr` not rendered to prevent runtime errors
 - Unclosed components like `<Card>content` are auto-closed with `</Card>`
 - Malformed attributes are escaped to prevent rendering errors
 
@@ -697,21 +754,31 @@ This ensures your UI remains stable even when receiving partial markdown from st
 
 ### Component Props
 
-MDX component snippets receive:
-- `token`: The full MdxToken with `tagName`, `attributes`, etc.
+The `mdx` snippet receives three parameters:
+- `token`: The full MdxToken with `tagName`, `attributes`, `selfClosing`, etc.
+- `props`: Object containing all parsed attributes (e.g., `props.title`, `props.count`)
 - `children`: Snippet containing parsed markdown content
-- **All attributes spread directly**: Access attributes by name (e.g., `title`, `count`, `active`)
 
-Example:
+Use `token.tagName` to determine which component is being rendered:
+
 ```svelte
 <!-- Markdown: <Card title="Hello" count={5}>Content</Card> -->
 <Streamdown {content}>
-  {#snippet Card({ title, count, children })}
-    <div>
-      <h3>{title}</h3>
-      <span>Count: {count}</span>
+  {#snippet mdx({ token, props, children })}
+    {#if token.tagName === 'Card'}
+      <div>
+        <h3>{props.title}</h3>
+        <span>Count: {props.count}</span>
+        {@render children()}
+      </div>
+    {:else if token.tagName === 'Alert'}
+      <div class="alert alert-{props.type}">
+        {@render children()}
+      </div>
+    {:else}
+      <!-- Fallback for unknown components -->
       {@render children()}
-    </div>
+    {/if}
   {/snippet}
 </Streamdown>
 ```

@@ -424,7 +424,22 @@ Self-closing or with children - both work!
 			shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
 			shikiPreloadThemes={['github-dark', 'github-light']}
 			{content}
-		></Streamdown>
+		>
+			{#snippet mdx({ token, props, children })}
+				{#if token.tagName === 'Alert'}
+					<div class="alert">
+						<h2>{props.title}</h2>
+						{@render children()}
+					</div>
+				{:else if token.tagName === 'Button'}
+					<button class="button">
+						{props.label}
+					</button>
+				{:else}
+					{@render children()}
+				{/if}
+			{/snippet}
+		</Streamdown>
 	</div>
 </div>
 

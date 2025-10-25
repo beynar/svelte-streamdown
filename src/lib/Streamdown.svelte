@@ -29,6 +29,7 @@
 		extensions,
 		sources,
 		inlineCitationsMode = 'carousel',
+		mdxComponents,
 		...snippets
 	}: StreamdownProps<Source> = $props();
 
@@ -118,6 +119,9 @@
 		},
 		get icons() {
 			return icons;
+		},
+		get mdxComponents() {
+			return mdxComponents;
 		}
 	});
 

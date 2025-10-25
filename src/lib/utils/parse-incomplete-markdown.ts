@@ -846,7 +846,7 @@ class IncompleteMarkdownParser {
 					};
 				},
 				handler: ({ line, state }) => {
-					// Escape incomplete MDX syntax by wrapping in backticks
+					// Remove incomplete MDX syntax (don't render it)
 					const lineStates = state.mdxLineStates || [];
 					const currentState = lineStates[state.currentLine];
 
@@ -856,8 +856,8 @@ class IncompleteMarkdownParser {
 						for (let i = currentState.incompletePositions.length - 1; i >= 0; i--) {
 							const pos = currentState.incompletePositions[i];
 							const before = result.substring(0, pos);
-							const incomplete = result.substring(pos);
-							result = before + '`' + incomplete + '`';
+							// Simply remove the incomplete MDX tag
+							result = before;
 						}
 						return result;
 					}

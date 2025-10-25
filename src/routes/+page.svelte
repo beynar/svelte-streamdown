@@ -2,7 +2,7 @@
 	import Streamdown from '$lib/Streamdown.svelte';
 	import { useTheme } from 'svelte-themes';
 	import { markedCollapsible } from './custom-extension.js';
-
+	import Card from './Card.svelte';
 	let { data } = $props();
 
 	let content = $state(data.readme);
@@ -241,6 +241,9 @@
 				}
 			}}
 			{content}
+			mdxComponents={{
+				Card
+			}}
 		></Streamdown>
 	</div>
 </div>

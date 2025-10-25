@@ -228,6 +228,50 @@ describe('MDX tokenization', () => {
 		expect(innerContent).toBeDefined();
 	});
 
+	test('should handle self-closing component inside paired component with same tag name', () => {
+		const tokens = lex('<Card>\n<Card disabled={true} />\nContent\n</Card>');
+		const mdxTokens = getTokensByType(tokens, 'mdx');
+
+		expect(mdxTokens.length).toBeGreaterThan(0);
+		const outerCard = mdxTokens[0];
+		expect(outerCard.tagName).toBe('Card');
+		expect(outerCard.selfClosing).toBe(false);
+
+		// Check that inner self-closing Card is in the children tokens
+		const innerCard = outerCard.tokens?.find((t: any) => t.type === 'mdx');
+		expect(innerCard).toBeDefined();
+		expect(innerCard.tagName).toBe('Card');
+		expect(innerCard.selfClosing).toBe(true);
+		expect(innerCard.attributes.disabled).toBe(true);
+
+		// Check that "Content" is also in the outer card
+		const content = outerCard.tokens?.find((t: any) => t.type === 'paragraph');
+		expect(content).toBeDefined();
+	});
+
+	test('should handle multiple self-closing components inside paired component', () => {
+		const tokens = lex(
+			'<Container>\n<Icon name="star" />\n<Icon name="heart" />\nText content\n</Container>'
+		);
+		const mdxTokens = getTokensByType(tokens, 'mdx');
+
+		expect(mdxTokens.length).toBeGreaterThan(0);
+		const container = mdxTokens[0];
+		expect(container.tagName).toBe('Container');
+		expect(container.selfClosing).toBe(false);
+
+		// Check that both self-closing Icons are in the children
+		const icons = container.tokens?.filter((t: any) => t.type === 'mdx');
+		expect(icons).toBeDefined();
+		expect(icons.length).toBe(2);
+		expect(icons[0].tagName).toBe('Icon');
+		expect(icons[0].selfClosing).toBe(true);
+		expect(icons[0].attributes.name).toBe('star');
+		expect(icons[1].tagName).toBe('Icon');
+		expect(icons[1].selfClosing).toBe(true);
+		expect(icons[1].attributes.name).toBe('heart');
+	});
+
 	test('should not parse lowercase component as MDX', () => {
 		const tokens = lex('<lowercase />');
 		const mdxTokens = getTokensByType(tokens, 'mdx');

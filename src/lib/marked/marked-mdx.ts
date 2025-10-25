@@ -92,8 +92,11 @@ export const markedMdx: Extension = {
 
 			// Find matching closing tag with nesting support
 			const closingTag = `</${tagName}>`;
-			const openTagPattern = new RegExp(`<${tagName}(?:\\s|>)`, 'g');
-			const closeTagPattern = new RegExp(`</${tagName}>`, 'g');
+
+			// Escape special regex characters in tagName to prevent ReDoS
+			const escapedTagName = tagName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+			const openTagPattern = new RegExp(`<${escapedTagName}(?:\\s|>)`, 'g');
+			const closeTagPattern = new RegExp(`</${escapedTagName}>`, 'g');
 
 			let depth = 1;
 			let searchPos = openTag.length;
@@ -109,7 +112,18 @@ export const markedMdx: Extension = {
 				if (!nextClose) break;
 
 				if (nextOpen && nextOpen.index < nextClose.index) {
-					depth++;
+					// Verify this is not a self-closing tag by finding the full tag and checking for />
+					const tagStart = nextOpen.index;
+					const tagEndPos = src.indexOf('>', tagStart);
+
+					if (tagEndPos !== -1) {
+						const fullTag = src.substring(tagStart, tagEndPos + 1);
+						const isSelfClosing = fullTag.trimEnd().endsWith('/>');
+
+						if (!isSelfClosing) {
+							depth++;
+						}
+					}
 					searchPos = openTagPattern.lastIndex;
 				} else {
 					depth--;

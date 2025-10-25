@@ -27,6 +27,8 @@ interface ParseState {
 	blockingContexts: Set<'code' | 'math' | 'center' | 'right'>;
 	lineContexts?: Array<{ code: boolean; math: boolean; center: boolean; right: boolean }>;
 	fenceInfo?: string;
+	mdxUnclosedTags?: Array<{ tagName: string; lineIndex: number }>;
+	mdxLineStates?: Array<{ inMdx: boolean; incompletePositions: number[] }>;
 }
 
 class IncompleteMarkdownParser {
@@ -740,6 +742,140 @@ class IncompleteMarkdownParser {
 						return line + '\n' + ' '.repeat(indent) + '[/' + alignType + ']';
 					}
 					return line;
+				}
+			},
+			{
+				name: 'mdx',
+				skipInBlockTypes: ['code', 'math', 'center', 'right'],
+				preprocess: ({ text }) => {
+					// Track MDX component states across the entire text
+					const lines = text.split('\n');
+					const openTags: Array<{ tagName: string; lineIndex: number }> = [];
+					let mdxLineStates: Array<{ inMdx: boolean; incompletePositions: number[] }> = [];
+
+					for (let i = 0; i < lines.length; i++) {
+						const line = lines[i];
+						let inMdx = false;
+						let incompletePositions: number[] = [];
+
+						// Find all MDX tags in the line
+						let searchPos = 0;
+						while (searchPos < line.length) {
+							// Look for opening bracket with capital letter (MDX component)
+							const tagStart = line.indexOf('<', searchPos);
+							if (tagStart === -1 || tagStart >= line.length - 1) break;
+
+							const nextChar = line[tagStart + 1];
+							// Only match if starts with capital letter (MDX component)
+							if (!/[A-Z]/.test(nextChar)) {
+								searchPos = tagStart + 1;
+								continue;
+							}
+
+							// Try to match complete self-closing tag
+							const selfClosingMatch = line
+								.substring(tagStart)
+								.match(/^<([A-Z][a-zA-Z0-9]*)((?:\s+\w+=(?:"[^"]*"|{[^}]*}))*)\s*\/>/);
+							if (selfClosingMatch) {
+								searchPos = tagStart + selfClosingMatch[0].length;
+								continue;
+							}
+
+							// Try to match complete opening tag with immediate closing
+							const completeMatch = line
+								.substring(tagStart)
+								.match(/^<([A-Z][a-zA-Z0-9]*)((?:\s+\w+=(?:"[^"]*"|{[^}]*}))*)\s*>.*?<\/\1>/);
+							if (completeMatch) {
+								searchPos = tagStart + completeMatch[0].length;
+								continue;
+							}
+
+							// Try to match opening tag
+							const openTagMatch = line
+								.substring(tagStart)
+								.match(/^<([A-Z][a-zA-Z0-9]*)((?:\s+\w+=(?:"[^"]*"|{[^}]*}))*)\s*>/);
+							if (openTagMatch) {
+								const tagName = openTagMatch[1];
+								openTags.push({ tagName, lineIndex: i });
+								inMdx = true;
+								searchPos = tagStart + openTagMatch[0].length;
+								continue;
+							}
+
+							// Check for incomplete self-closing (e.g., <Component /)
+							const incompleteSelfClosing = line
+								.substring(tagStart)
+								.match(/^<([A-Z][a-zA-Z0-9]*)[^>]*\/$/);
+							if (incompleteSelfClosing) {
+								incompletePositions.push(tagStart);
+								break; // This is at the end of the line
+							}
+
+							// Check for incomplete tag (no closing >) - only at end of line
+							const incompleteTag = line
+								.substring(tagStart)
+								.match(/^<([A-Z][a-zA-Z0-9]*)(?:\s+[^>]*)?$/);
+							if (incompleteTag) {
+								incompletePositions.push(tagStart);
+								break; // This is at the end of the line
+							}
+
+							searchPos = tagStart + 1;
+						}
+
+						// Check for closing tags
+						const closeTagMatches = line.matchAll(/<\/([A-Z][a-zA-Z0-9]*)>/g);
+						for (const closeMatch of closeTagMatches) {
+							const tagName = closeMatch[1];
+							// Find and remove the matching open tag
+							const openIndex = openTags.findIndex((t) => t.tagName === tagName);
+							if (openIndex !== -1) {
+								openTags.splice(openIndex, 1);
+							}
+						}
+
+						mdxLineStates[i] = { inMdx, incompletePositions };
+					}
+
+					return {
+						text,
+						state: {
+							mdxUnclosedTags: openTags,
+							mdxLineStates
+						}
+					};
+				},
+				handler: ({ line, state }) => {
+					// Escape incomplete MDX syntax by wrapping in backticks
+					const lineStates = state.mdxLineStates || [];
+					const currentState = lineStates[state.currentLine];
+
+					if (currentState?.incompletePositions && currentState.incompletePositions.length > 0) {
+						// Process incomplete positions from right to left to preserve indices
+						let result = line;
+						for (let i = currentState.incompletePositions.length - 1; i >= 0; i--) {
+							const pos = currentState.incompletePositions[i];
+							const before = result.substring(0, pos);
+							const incomplete = result.substring(pos);
+							result = before + '`' + incomplete + '`';
+						}
+						return result;
+					}
+
+					return line;
+				},
+				postprocess: ({ text, state }) => {
+					// Complete unclosed MDX components at the end
+					const unclosedTags = state.mdxUnclosedTags || [];
+					if (unclosedTags.length > 0) {
+						// Close tags in reverse order (innermost first)
+						let result = text;
+						for (let i = unclosedTags.length - 1; i >= 0; i--) {
+							result += `\n</${unclosedTags[i].tagName}>`;
+						}
+						return result;
+					}
+					return text;
 				}
 			}
 		];

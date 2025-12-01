@@ -1,6 +1,6 @@
 {
 	"name": "svelte-streamdown",
-	"version": "2.5.2",
+	"version": "2.6.1",
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -72,6 +72,7 @@
 	},
 	"dependencies": {
 		"@floating-ui/dom": "^1.7.4",
+		"@shikijs/langs": "^3.17.1",
 		"clsx": "^2.1.1",
 		"katex": "^0.16.22",
 		"marked": "^16.2.1",

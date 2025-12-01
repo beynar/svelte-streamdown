@@ -17,7 +17,10 @@
 	} = $props();
 
 	const streamdown = useStreamdown();
-	const highlighter = HighlighterManager.create(streamdown.shikiPreloadThemes);
+	const highlighter = HighlighterManager.create(
+		streamdown.shikiPreloadThemes,
+		streamdown.shikiLanguages
+	);
 
 	const copy = useCopy({
 		get content() {

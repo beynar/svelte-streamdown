@@ -1,5 +1,5 @@
 // Simplified interface that merges Plugin and PatternRule
-interface Plugin {
+export interface Plugin {
 	name: string;
 	pattern?: RegExp;
 	handler?: (payload: HandlerPayload) => string;
@@ -31,7 +31,7 @@ interface ParseState {
 	mdxLineStates?: Array<{ inMdx: boolean; incompletePositions: number[] }>;
 }
 
-class IncompleteMarkdownParser {
+export class IncompleteMarkdownParser {
 	private plugins: Plugin[] = [];
 	private state: ParseState = {
 		currentLine: 0,

@@ -4,6 +4,7 @@ import type { MermaidConfig } from 'mermaid';
 import type { KatexOptions } from 'katex';
 import { getContext, onMount, setContext } from 'svelte';
 import type { BundledTheme } from 'shiki';
+import type { LanguageInfo } from './utils/bundledLanguages.js';
 
 export interface StreamdownContext
 	extends Omit<
@@ -175,6 +176,7 @@ export type Snippets<Source extends Record<string, any> = Record<string, any>> =
 
 export type StreamdownProps<Source extends Record<string, any> = Record<string, any>> = {
 	streamdown?: StreamdownContext;
+	static?: boolean;
 	sources?: {
 		[key: string]: Source;
 	};
@@ -195,6 +197,7 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	mergeTheme?: boolean;
 	shikiTheme?: BundledTheme;
 	shikiPreloadThemes?: BundledTheme[];
+	shikiLanguages?: LanguageInfo[];
 	mermaidConfig?: MermaidConfig;
 	katexConfig?: KatexOptions | ((inline: boolean) => KatexOptions);
 	translations?: {

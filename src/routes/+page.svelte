@@ -199,6 +199,7 @@
 		class="mx-auto mb-48 max-w-4xl border border-t-0 border-dashed border-border px-2 pt-6 sm:px-4 sm:pt-10 [&>h1]:mt-0"
 	>
 		<Streamdown
+			static
 			extensions={[markedCollapsible]}
 			animation={{
 				animateOnMount: false,
@@ -240,7 +241,27 @@
 						'This is a reference 2 with a longer content: lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.'
 				}
 			}}
-			{content}
+			shikiLanguages={[
+				{
+					id: 'liquid',
+					name: 'Liquid',
+					import: () => import('@shikijs/langs/liquid')
+				}
+			]}
+			content={`
+			
+\`\`\`javascript
+const items = [1, 2, 3, 4, 5];
+for (const item of items) {
+	console.log(item);
+}
+\`\`\`
+\`\`\`liquid
+{% for item in items %}
+	<div>{{ item }}</div>
+{% endfor %}
+\`\`\`
+			`}
 			mdxComponents={{
 				Card
 			}}

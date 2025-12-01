@@ -9,6 +9,7 @@
 		class: className,
 		shikiTheme,
 		shikiPreloadThemes,
+		shikiLanguages,
 		parseIncompleteMarkdown,
 		defaultOrigin,
 		allowedLinkPrefixes = ['*'],
@@ -30,6 +31,7 @@
 		sources,
 		inlineCitationsMode = 'carousel',
 		mdxComponents,
+		static: isStatic,
 		...snippets
 	}: StreamdownProps<Source> = $props();
 
@@ -81,6 +83,9 @@
 		get shikiPreloadThemes() {
 			return shikiPreloadThemes;
 		},
+		get shikiLanguages() {
+			return shikiLanguages;
+		},
 		get sources() {
 			return sources;
 		},
@@ -127,13 +132,17 @@
 
 	const id = $props.id();
 
-	const blocks = $derived(parseBlocks(content, streamdown.extensions));
+	const blocks = $derived(isStatic ? content : parseBlocks(content, streamdown.extensions));
 </script>
 
 <div bind:this={element} class={className}>
-	{#each blocks as block, index (`${id}-block-${index}`)}
-		<Block {block} />
-	{/each}
+	{#if isStatic}
+		<Block static={isStatic} block={content} />
+	{:else}
+		{#each blocks as block, index (`${id}-block-${index}`)}
+			<Block static={isStatic} {block} />
+		{/each}
+	{/if}
 </div>
 
 <style global>

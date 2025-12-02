@@ -7,13 +7,17 @@
 	import { getContext } from 'svelte';
 
 	let {
-		block
+		block,
+		static: isStatic = false
 	}: {
 		block: string;
+		static?: boolean;
 	} = $props();
 
 	const streamdown = useStreamdown();
-	const tokens = $derived(lex(parseIncompleteMarkdown(block.trim()), streamdown.extensions));
+	const tokens = $derived(
+		lex(isStatic ? block : parseIncompleteMarkdown(block.trim()), streamdown.extensions)
+	);
 	const insidePopover = getContext('POPOVER');
 </script>
 
@@ -24,8 +28,8 @@
 			{@const isTextOnlyNode = children.length === 0}
 			<Element {token}>
 				{#if isTextOnlyNode}
-					{#if streamdown.animation.enabled && !insidePopover}
-						<AnimatedText text={'text' in token ? token.text : ''} />
+					{#if streamdown.animation.enabled && !insidePopover && !isStatic}
+						<AnimatedText text={'text' in token ? token.text || '' : ''} />
 					{:else}
 						{'text' in token ? token.text : ''}
 					{/if}

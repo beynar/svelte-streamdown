@@ -462,6 +462,45 @@ This heading will use a custom component!`;
 />
 ```
 
+## 📦 Bundle Optimization
+
+Streamdown is optimized for minimal bundle size by making heavy components **opt-in**. By default, Code blocks, Mermaid diagrams, and Math expressions render as lightweight fallbacks (plain text). To enable full functionality, import and pass the components you need:
+
+### Enabling Heavy Components
+
+```svelte
+<script>
+	import { Streamdown } from 'svelte-streamdown';
+	// Import only the components you need
+	import Code from 'svelte-streamdown/code';       // Shiki syntax highlighting
+	import Mermaid from 'svelte-streamdown/mermaid'; // Mermaid diagrams
+	import Math from 'svelte-streamdown/math';       // KaTeX math rendering
+</script>
+
+<Streamdown
+	{content}
+	components={{ code: Code, mermaid: Mermaid, math: Math }}
+/>
+```
+
+### Component Dependencies
+
+| Component | Import Path | Dependency | Size Impact |
+|-----------|-------------|------------|-------------|
+| `Code` | `svelte-streamdown/code` | Shiki | ~2MB (languages + themes) |
+| `Mermaid` | `svelte-streamdown/mermaid` | Mermaid.js | ~1.5MB |
+| `Math` | `svelte-streamdown/math` | KaTeX | ~300KB |
+
+> [!TIP]
+> Only import the components your application actually uses. If your content doesn't include code blocks, mermaid diagrams, or math expressions, you can skip those imports entirely for a much smaller bundle.
+
+### Fallback Behavior
+
+When a heavy component is not provided:
+- **Code blocks**: Render as plain `<pre><code>` without syntax highlighting
+- **Mermaid**: Renders the mermaid source as a code block
+- **Math**: Renders the raw LaTeX/math text
+
 ## 📋 Props API
 
 | Prop                       | Type                                                                             | Default          | Description                                                                                                                                        |
@@ -479,7 +518,9 @@ This heading will use a custom component!`;
 | `theme`                    | `DeepPartial<Theme>`                                                             | -                | Custom theme overrides                                                                                                                             |
 | `baseTheme`                | `'tailwind' \| 'shadcn'`                                                         | `'tailwind'`     | Base theme to use before applying overrides                                                                                                        |
 | `mergeTheme`               | `boolean`                                                                        | `true`           | Whether to merge theme with base theme                                                                                                             |
-| `shikiTheme`               | `BundledTheme`                                                                   | `'github-light'` | Code highlighting theme                                                                                                                            |
+| `shikiTheme`               | `string`                                                                         | `'github-light'` | Code highlighting theme (`github-dark` or `github-light` by default, or custom theme key)                                                          |
+| `shikiThemes`              | `Record<string, ThemeRegistration>`                                              | -                | Additional themes as pre-imported objects (e.g., `{ nord: nordTheme }`)                                                                            |
+| `shikiLanguages`           | `LanguageInfo[]`                                                                 | -                | Additional syntax highlighting languages (merged with defaults)                                                                                    |
 | `mermaidConfig`            | `MermaidConfig`                                                                  | -                | Mermaid diagram configuration                                                                                                                      |
 | `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`                            | -                | KaTeX math rendering options                                                                                                                       |
 | `animation`                | `AnimationConfig`                                                                | -                | Animation configuration for streaming content                                                                                                      |
@@ -491,6 +532,7 @@ This heading will use a custom component!`;
 | `animation.animateOnMount` | `boolean`                                                                        | `false`          | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM |
 | `extensions`               | `Array<Extension>`                                                               | `[]`             | Custom marked tokenizers to render special markdown blocks or inline tokens                                                                        |
 | `mdxComponents`            | `Record<string, Component>`                                                      | `{}`             | Map of MDX component names to Svelte components (e.g., `{ Card, Button }`)                                                                         |
+| `components`               | `{ code?, mermaid?, math? }`                                                     | -                | Optional heavy components for syntax highlighting, diagrams, and math rendering                                                                    |
 | `children`                 | `Snippet<[{token:GenericToken, streamdown: StreamdownContext, children: Snippet` | `undefined`      | Snippet used to render elements not supported by Streamdown, custom extensions, and MDX components                                                 |
 
 #### All Available Customizable Elements:

@@ -6,6 +6,7 @@
 	import { on } from 'svelte/events';
 	import { usePanzoom } from '$lib/utils/panzoom.svelte';
 	import { fitViewIcon, fullscreenIcon, zoomInIcon, zoomOutIcon } from './icons.js';
+	import MermaidDownload from './MermaidDownload.svelte';
 
 	const streamdown = useStreamdown();
 
@@ -254,6 +255,7 @@
 					>
 						{@render (streamdown.icons?.fullscreen || fullscreenIcon)()}
 					</button>
+					<MermaidDownload {id} />
 				</div>
 			{/if}
 			<svg {@attach panzoom.attach} data-mermaid-svg></svg>

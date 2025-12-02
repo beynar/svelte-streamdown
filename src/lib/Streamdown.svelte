@@ -8,13 +8,14 @@
 		content = '',
 		class: className,
 		shikiTheme,
-		shikiPreloadThemes,
+		shikiLanguages,
+		shikiThemes,
 		parseIncompleteMarkdown,
 		defaultOrigin,
 		allowedLinkPrefixes = ['*'],
 		allowedImagePrefixes = ['*'],
 		theme,
-		mermaidConfig,
+		mermaidConfig = {},
 		katexConfig,
 		translations,
 		baseTheme,
@@ -30,8 +31,21 @@
 		sources,
 		inlineCitationsMode = 'carousel',
 		mdxComponents,
+		components,
+		static: isStatic,
 		...snippets
 	}: StreamdownProps<Source> = $props();
+	import { useDarkMode } from '$lib/utils/darkMode.svelte.js';
+
+	const darkMode = useDarkMode();
+
+	const shikiThemedTheme = $derived(
+		shikiThemes ? Object.keys(shikiThemes)[0] : darkMode.current ? 'github-dark' : 'github-light'
+	);
+
+	const mermaidThemedTheme = $derived(
+		mermaidConfig?.theme ? mermaidConfig.theme : darkMode.current ? 'dark' : 'default'
+	);
 
 	streamdown = new StreamdownContext({
 		get element() {
@@ -53,7 +67,7 @@
 			return allowedImagePrefixes;
 		},
 		get shikiTheme() {
-			return shikiTheme || 'github-light';
+			return shikiTheme || shikiThemedTheme;
 		},
 		get snippets() {
 			return snippets;
@@ -67,7 +81,10 @@
 			return baseTheme;
 		},
 		get mermaidConfig() {
-			return mermaidConfig;
+			return {
+				theme: mermaidThemedTheme,
+				...mermaidConfig
+			};
 		},
 		get katexConfig() {
 			return katexConfig;
@@ -78,8 +95,11 @@
 		get translations() {
 			return translations;
 		},
-		get shikiPreloadThemes() {
-			return shikiPreloadThemes;
+		get shikiLanguages() {
+			return shikiLanguages;
+		},
+		get shikiThemes() {
+			return shikiThemes;
 		},
 		get sources() {
 			return sources;
@@ -122,18 +142,25 @@
 		},
 		get mdxComponents() {
 			return mdxComponents;
+		},
+		get components() {
+			return components;
 		}
 	});
 
 	const id = $props.id();
 
-	const blocks = $derived(parseBlocks(content, streamdown.extensions));
+	const blocks = $derived(isStatic ? content : parseBlocks(content, streamdown.extensions));
 </script>
 
 <div bind:this={element} class={className}>
-	{#each blocks as block, index (`${id}-block-${index}`)}
-		<Block {block} />
-	{/each}
+	{#if isStatic}
+		<Block static={isStatic} block={content} />
+	{:else}
+		{#each blocks as block, index (`${id}-block-${index}`)}
+			<Block static={isStatic} {block} />
+		{/each}
+	{/if}
 </div>
 
 <style global>

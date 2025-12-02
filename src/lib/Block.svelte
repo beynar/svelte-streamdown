@@ -16,7 +16,7 @@
 
 	const streamdown = useStreamdown();
 	const tokens = $derived(
-		lex(isStatic ? block.trim() : parseIncompleteMarkdown(block.trim()), streamdown.extensions)
+		lex(isStatic ? block : parseIncompleteMarkdown(block.trim()), streamdown.extensions)
 	);
 	const insidePopover = getContext('POPOVER');
 </script>
@@ -28,7 +28,7 @@
 			{@const isTextOnlyNode = children.length === 0}
 			<Element {token}>
 				{#if isTextOnlyNode}
-					{#if streamdown.animation.enabled && !insidePopover}
+					{#if streamdown.animation.enabled && !insidePopover && !isStatic}
 						<AnimatedText text={'text' in token ? token.text || '' : ''} />
 					{:else}
 						{'text' in token ? token.text : ''}

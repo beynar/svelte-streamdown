@@ -14,6 +14,9 @@ importers:
       '@shikijs/langs':
         specifier: ^3.17.1
         version: 3.17.1
+      '@shikijs/themes':
+        specifier: ^3.17.1
+        version: 3.17.1
       clsx:
         specifier: ^2.1.1
         version: 2.1.1
@@ -787,6 +790,9 @@ packages:
 
   '@shikijs/themes@3.13.0':
     resolution: {integrity: sha512-Vxw1Nm1/Od8jyA7QuAenaV78BG2nSr3/gCGdBkLpfLscddCkzkL36Q5b67SrLLfvAJTOUzW39x4FHVCFriPVgg==}
+
+  '@shikijs/themes@3.17.1':
+    resolution: {integrity: sha512-aohwwqNUB5h2ATfgrqYRPl8vyazqCiQ2wIV4xq+UzaBRHpqLMGSemkasK+vIEpl0YaendoaKUsDfpwhCqyHIaQ==}
 
   '@shikijs/types@3.13.0':
     resolution: {integrity: sha512-oM9P+NCFri/mmQ8LoFGVfVyemm5Hi27330zuOBp0annwJdKH1kOLndw3zCtAVDehPLg9fKqoEx3Ht/wNZxolfw==}
@@ -2780,6 +2786,10 @@ snapshots:
   '@shikijs/themes@3.13.0':
     dependencies:
       '@shikijs/types': 3.13.0
+
+  '@shikijs/themes@3.17.1':
+    dependencies:
+      '@shikijs/types': 3.17.1
 
   '@shikijs/types@3.13.0':
     dependencies:

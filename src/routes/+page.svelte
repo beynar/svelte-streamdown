@@ -3,6 +3,9 @@
 	import { useTheme } from 'svelte-themes';
 	import { markedCollapsible } from './custom-extension.js';
 	import Card from './Card.svelte';
+	import Code from '$lib/Elements/Code.svelte';
+	import Mermaid from '$lib/Elements/Mermaid.svelte';
+	import MathComponent from '$lib/Elements/Math.svelte';
 	let { data } = $props();
 
 	let content = $state(data.readme);
@@ -90,6 +93,22 @@
 	});
 
 	const theme = useTheme();
+
+	// const shikiLanguages = [
+	// 	{
+	// 		id: 'liquid',
+	// 		name: 'Liquid',
+	// 		import: () => import('@shikijs/langs/liquid')
+	// 	}
+	// ];
+
+	import vitesseDark from '@shikijs/themes/vitesse-dark';
+	import vitesseLight from '@shikijs/themes/vitesse-light';
+
+	const shikiThemes = {
+		'vitesse-dark': vitesseDark,
+		'vitesse-light': vitesseLight
+	};
 </script>
 
 <div
@@ -207,11 +226,6 @@
 				type: 'slideDown'
 			}}
 			baseTheme="shadcn"
-			mermaidConfig={{
-				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
-			}}
-			shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
-			shikiPreloadThemes={['github-dark', 'github-light']}
 			allowedLinkPrefixes={['*']}
 			inlineCitationsMode="list"
 			sources={{
@@ -241,27 +255,12 @@
 						'This is a reference 2 with a longer content: lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.'
 				}
 			}}
-			shikiLanguages={[
-				{
-					id: 'liquid',
-					name: 'Liquid',
-					import: () => import('@shikijs/langs/liquid')
-				}
-			]}
-			content={`
-			
-\`\`\`javascript
-const items = [1, 2, 3, 4, 5];
-for (const item of items) {
-	console.log(item);
-}
-\`\`\`
-\`\`\`liquid
-{% for item in items %}
-	<div>{{ item }}</div>
-{% endfor %}
-\`\`\`
-			`}
+			{content}
+			components={{
+				code: Code,
+				math: MathComponent,
+				mermaid: Mermaid
+			}}
 			mdxComponents={{
 				Card
 			}}

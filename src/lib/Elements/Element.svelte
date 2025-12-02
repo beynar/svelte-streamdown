@@ -1,10 +1,7 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 	import Link from './Link.svelte';
-	import Code from './Code.svelte';
 	import Image from './Image.svelte';
-	import Mermaid from './Mermaid.svelte';
-	import Math from './Math.svelte';
 	import Alert from './Alert.svelte';
 	import type { StreamdownToken } from '$lib/marked/index.js';
 	import Slot from './Slot.svelte';
@@ -12,8 +9,15 @@
 	import FootnoteRef from './FootnoteRef.svelte';
 	import Citation from './Citation.svelte';
 	import TableDownload from './TableDownload.svelte';
+	// Import fallback components
+	import { CodeFallback, MermaidFallback, MathFallback } from './fallbacks/index.js';
 	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
 	const streamdown = useStreamdown();
+
+	// Use provided components or fallback to lightweight versions
+	const CodeComponent = $derived(streamdown.components?.code ?? CodeFallback);
+	const MermaidComponent = $derived(streamdown.components?.mermaid ?? MermaidFallback);
+	const MathComponent = $derived(streamdown.components?.math ?? MathFallback);
 
 	// Only apply animation on block level elements. Leaves text elements to be animated by their text children.
 	const style = $derived(streamdown.isMounted ? streamdown.animationBlockStyle : '');
@@ -68,11 +72,11 @@
 	</Slot>
 {:else if token.type === 'code' && token.lang === 'mermaid'}
 	<Slot props={{ children, token }} render={streamdown.snippets.code}>
-		<Mermaid {id} {token} />
+		<MermaidComponent {id} {token} />
 	</Slot>
 {:else if token.type === 'code'}
 	<Slot props={{ children, token }} render={streamdown.snippets.code}>
-		<Code {id} {token} />
+		<CodeComponent {id} {token} />
 	</Slot>
 {:else if token.type === 'codespan'}
 	<Slot props={{ children, token }} render={streamdown.snippets.codespan}>
@@ -240,7 +244,7 @@
 		}}
 		render={streamdown.snippets.math}
 	>
-		<Math {id} {token} />
+		<MathComponent {id} {token} />
 	</Slot>
 {:else if token.type === 'alert'}
 	<Alert {id} {token} {children} />

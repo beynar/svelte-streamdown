@@ -3,8 +3,8 @@ import type { DeepPartialTheme, Theme } from './theme.js';
 import type { MermaidConfig } from 'mermaid';
 import type { KatexOptions } from 'katex';
 import { getContext, onMount, setContext } from 'svelte';
-import type { BundledTheme } from 'shiki';
 import type { LanguageInfo } from './utils/bundledLanguages.js';
+import type { ThemeRegistration } from 'shiki';
 
 export interface StreamdownContext
 	extends Omit<
@@ -12,7 +12,7 @@ export interface StreamdownContext
 		keyof Snippets | 'class' | 'theme' | 'shikiTheme' | 'inlineCitationsMode'
 	> {
 	snippets: Snippets;
-	shikiTheme: BundledTheme;
+	shikiTheme: string;
 	theme: Theme;
 	controls: {
 		code: boolean;
@@ -195,9 +195,9 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	theme?: DeepPartialTheme;
 	baseTheme?: 'tailwind' | 'shadcn';
 	mergeTheme?: boolean;
-	shikiTheme?: BundledTheme;
-	shikiPreloadThemes?: BundledTheme[];
+	shikiTheme?: string;
 	shikiLanguages?: LanguageInfo[];
+	shikiThemes?: Record<string, ThemeRegistration>;
 	mermaidConfig?: MermaidConfig;
 	katexConfig?: KatexOptions | ((inline: boolean) => KatexOptions);
 	translations?: {
@@ -254,4 +254,9 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 			any
 		>
 	>;
+	components?: {
+		code?: Component<{ token: Tokens.Code; id: string }, any, any>;
+		mermaid?: Component<{ token: Tokens.Code; id: string }, any, any>;
+		math?: Component<{ token: MathToken; id: string }, any, any>;
+	};
 } & Partial<Snippets<Source>>;

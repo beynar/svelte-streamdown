@@ -3,6 +3,7 @@
 	import { save } from '$lib/utils/save.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
 	import { HighlighterManager, languageExtensionMap } from '$lib/utils/hightlighter.svelte.js';
+	import { bundledLanguagesInfo } from '$lib/utils/bundledLanguages.js';
 	import type { Tokens } from 'marked';
 	import { type ThemedToken } from 'shiki';
 	import { untrack } from 'svelte';
@@ -18,7 +19,8 @@
 
 	const streamdown = useStreamdown();
 	const highlighter = HighlighterManager.create(
-		streamdown.shikiPreloadThemes,
+		bundledLanguagesInfo,
+		streamdown.shikiThemes,
 		streamdown.shikiLanguages
 	);
 

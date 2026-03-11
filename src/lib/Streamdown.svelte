@@ -40,7 +40,11 @@
 	const darkMode = useDarkMode();
 
 	const shikiThemedTheme = $derived(
-		shikiThemes ? Object.keys(shikiThemes)[0] : darkMode.current ? 'github-dark' : 'github-light'
+		shikiThemes
+			? Object.keys(shikiThemes)[0] || 'github-light'
+			: darkMode.current
+				? 'github-dark'
+				: 'github-light'
 	);
 
 	const mermaidThemedTheme = $derived(

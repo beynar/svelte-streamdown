@@ -2,6 +2,9 @@ import { type StreamdownToken, type Extension } from './index.js';
 import { StreamdownContext } from '$lib/context.svelte.js';
 import { getContext } from 'svelte';
 
+const footnoteRegex = /^\[\^([^\]\n]+)\]:(?:[ \t]+|\n|$)([^\n]*(?:\n(?:[ \t]+[^\n]*)?)*)/;
+const footnoteRefRegex = /^\[\^([^\]\n]+)\]/;
+const footNoteLastLineRegex = /^[ \t]*?[>\-*][ ]|[`]{3,}$|^[ \t]*?[|].+[|]$/;
 const safeGetContext = () => {
 	try {
 		return getContext<StreamdownContext>('streamdown');
@@ -13,6 +16,7 @@ const safeGetContext = () => {
 export function markedFootnote(): Extension[] {
 	const ensureMaps = (tokenizer: any) => {
 		const streamdown = safeGetContext();
+
 		if (!streamdown) {
 			if (!tokenizer.lexer.hasFootnotes) {
 				tokenizer.lexer.footnotes = {
@@ -37,22 +41,19 @@ export function markedFootnote(): Extension[] {
 			level: 'block',
 			tokenizer(this, src) {
 				const maps = ensureMaps(this);
-				const match =
-					/^\[\^([^\]\n]+)\]:(?:[ \t]+|[\n]*?|$)([^\n]*?(?:\n|$)(?:\n*?[ ]{4,}[^\n]*)*)/.exec(src);
+				const match = footnoteRegex.exec(src);
 
 				if (match) {
 					const [raw, label, text = ''] = match;
 					let content = text.split('\n').reduce((acc, curr) => {
-						return acc + '\n' + curr.replace(/^(?:[ ]{4}|[\t])/, '');
+						return acc + '\n' + curr.replace(/^[ \t]+/, '');
 					}, '');
 
 					const contentLastLine = content.trimEnd().split('\n').pop();
 
 					content +=
 						// add lines after list, blockquote, codefence, and table
-						contentLastLine && /^[ \t]*?[>\-*][ ]|[`]{3,}$|^[ \t]*?[|].+[|]$/.test(contentLastLine)
-							? '\n\n'
-							: '';
+						contentLastLine && footNoteLastLineRegex.test(contentLastLine) ? '\n\n' : '';
 
 					const lines = content.split('\n');
 
@@ -79,7 +80,7 @@ export function markedFootnote(): Extension[] {
 			level: 'inline',
 			tokenizer(this, src) {
 				const maps = ensureMaps(this);
-				const match = /^\[\^([^\]\n]+)\]/.exec(src);
+				const match = footnoteRefRegex.exec(src);
 
 				if (match) {
 					const [raw, label] = match;

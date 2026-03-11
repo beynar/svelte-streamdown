@@ -99,7 +99,8 @@ $$
 - Pan and Zoom
 - Full screen mode
 
-**Example:**
+
+# **Example:**
 
 ```mermaid
 graph TD
@@ -802,7 +803,7 @@ The `mdx` snippet receives three parameters:
 - `children`: Snippet containing parsed markdown content
 
 Use `token.tagName` to determine which component is being rendered:
-
+<Card title="Hello" count={5}>Content</Card>
 ```svelte
 <!-- Markdown: <Card title="Hello" count={5}>Content</Card> -->
 <Streamdown {content}>

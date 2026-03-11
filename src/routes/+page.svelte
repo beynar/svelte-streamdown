@@ -218,51 +218,15 @@
 		class="mx-auto mb-48 max-w-4xl border border-t-0 border-dashed border-border px-2 pt-6 sm:px-4 sm:pt-10 [&>h1]:mt-0"
 	>
 		<Streamdown
-			static
-			extensions={[markedCollapsible]}
-			animation={{
-				animateOnMount: false,
-				enabled: animationEnabled,
-				type: 'slideDown'
-			}}
-			baseTheme="shadcn"
-			allowedLinkPrefixes={['*']}
-			inlineCitationsMode="list"
-			sources={{
-				vercel: {
-					title: 'Triangle cloud',
-					url: 'https://vercel.com',
-					content: 'Detailed content of the citation...'
-				},
-				cloudflare: {
-					website: {
-						title: 'Orange cloud',
-						url: 'https://cloudflare.com',
-						content:
-							'Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.'
-					}
-				},
-
-				ref: {
-					title: 'Streamdown',
-					url: 'https://streamdown.ai/',
-					content: 'This is a reference for Streamdown'
-				},
-				ref2: {
-					title: 'Reference 2',
-					url: 'https://www.google.com',
-					content:
-						'This is a reference 2 with a longer content: lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos. Lorem ipsum dolor sit amet consectetur adipisicing elit. Quisquam, quos.'
-				}
-			}}
-			{content}
+			content={`
+$$
+f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}
+$$
+			`}
 			components={{
 				code: Code,
 				math: MathComponent,
 				mermaid: Mermaid
-			}}
-			mdxComponents={{
-				Card
 			}}
 		></Streamdown>
 	</div>

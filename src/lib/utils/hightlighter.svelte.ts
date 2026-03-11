@@ -117,6 +117,10 @@ class HighlighterManager {
 				})
 				.then(() => {
 					this.loadedLanguages.set(language, true);
+				})
+				.catch((err) => {
+					this.loadedLanguages.set(language, false);
+					throw err;
 				});
 			this.loadedLanguages.set(language, languageLoaderPromise);
 			await languageLoaderPromise;

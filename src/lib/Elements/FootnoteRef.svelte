@@ -37,6 +37,8 @@
 			popover.isOpen = false;
 		}
 	});
+
+	$inspect(token);
 </script>
 
 {#if popover.isOpen}
@@ -48,7 +50,7 @@
 		{@attach clickOutside.attachment}
 		{@attach popover.popoverAttachment}
 		open
-		class={`${streamdown.theme.components.popover}`}
+		class={streamdown.theme.components.popover}
 	>
 		<Slot
 			props={{

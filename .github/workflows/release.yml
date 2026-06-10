@@ -1,0 +1,56 @@
+name: Release
+
+# Publishes svelte-streamdown to npm using trusted publishing (OIDC).
+#
+# Prerequisites (one-time, done by the repo owner on npmjs.com):
+#   1. Go to the svelte-streamdown package settings on npmjs.com.
+#   2. Under "Trusted Publisher", add a GitHub Actions publisher pointing at:
+#        - Repository: beynar/svelte-streamdown
+#        - Workflow filename: release.yml
+#   Once configured, no NPM_TOKEN secret is required: the npm CLI exchanges the
+#   GitHub OIDC token (id-token: write below) for a short-lived publish token.
+#
+# Trigger: pushing a version tag. This repo tags as bare `x.y.z` (e.g. 3.0.0),
+# so both `v1.2.3` and `1.2.3` shapes are matched. Make sure the tag matches the
+# `version` in package.json before pushing.
+
+on:
+  push:
+    tags:
+      - 'v[0-9]+.[0-9]+.[0-9]+'
+      - '[0-9]+.[0-9]+.[0-9]+'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      # Required for npm trusted publishing (OIDC) and provenance attestation.
+      id-token: write
+      contents: read
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: 'https://registry.npmjs.org'
+          cache: pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      # Trusted publishing requires npm >= 11.5.1. The bundled npm may be older,
+      # so upgrade the npm CLI before publishing.
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
+      # `npm publish` runs the package's `prepack` script
+      # (svelte-kit sync && svelte-package && publint), which builds dist/ — no
+      # separate build step is needed (and `pnpm build` would build the demo app).
+      - name: Publish to npm
+        run: npm publish --provenance --access public

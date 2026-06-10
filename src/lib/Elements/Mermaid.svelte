@@ -58,7 +58,7 @@
 		maxZoom: 4,
 		zoomSpeed: 1,
 		get activateMouseWheel() {
-			return insider.isInside;
+			return insider.isInside && streamdown.controls.mermaidMouseWheelZoom;
 		}
 	});
 

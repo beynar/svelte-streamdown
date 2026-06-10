@@ -501,3 +501,31 @@ describe('MDX incomplete markdown', () => {
 		expect(result).toBe('');
 	});
 });
+
+describe('regression: nested same-name components', () => {
+	test('outer component spans to its matching close (depth counting)', () => {
+		const src = '<Card>outer\n\n<Card>inner</Card>\n\nrest</Card>';
+		const tokens = lex(src) as any[];
+
+		expect(tokens.length).toBe(1);
+		expect(tokens[0].type).toBe('mdx');
+		expect(tokens[0].raw).toBe(src);
+
+		// The inner same-name component nests as its own mdx token
+		const inner = tokens[0].tokens.find((t: any) => t.type === 'mdx');
+		expect(inner).toBeDefined();
+		expect(inner.tagName).toBe('Card');
+		expect(inner.text).toBe('inner');
+	});
+
+	test('incomplete parser closes nested same-name tags in LIFO order', () => {
+		// The literal </A> closes the INNER A; auto-closers must then be </B></A>
+		// (innermost first). Matching the close against the first open used to
+		// leave the remaining stack out of order, appending </A></B> instead.
+		const input = '<A>\n<B>\n<A>text</A>\nstreaming';
+		const result = parseIncompleteMarkdown(input);
+
+		expect(result.endsWith('</B>\n</A>')).toBe(true);
+		expect(result.endsWith('</A>\n</B>')).toBe(false);
+	});
+});

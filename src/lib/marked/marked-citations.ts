@@ -5,13 +5,14 @@ export const markedCitations: Extension = {
 	level: 'inline',
 
 	start(src) {
-		return src.indexOf('[') === -1 ? -1 : 0;
+		const i = src.indexOf('[');
+		return i === -1 ? -1 : i;
 	},
 
 	tokenizer(this, src) {
 		// Match inline citations like [1], [ref], [1] [2], [ref] [ref2], etc.
 		// Requires non-empty bracket contents and spaces between adjacent citation brackets
-		const match = src.match(/^\[[^\]]+\](?:\s+\[[^\]]+\])*/);
+		const match = src.match(/^\[[^\][]+\](?:\s+\[[^\][]+\])*/);
 
 		if (match) {
 			// Early exit: if first closing bracket is immediately followed by '[', it's likely link-style syntax
@@ -26,7 +27,7 @@ export const markedCitations: Extension = {
 				return undefined;
 			}
 			// Extract all citation keys (anything inside brackets)
-			const citations = match[0].match(/\[([^\]]+)\]/g);
+			const citations = match[0].match(/\[([^\][]+)\]/g);
 			if (citations) {
 				// Filter out task list syntax ([ ], [x], [X]) after trimming
 				const validCitations = citations.filter((citation) => {

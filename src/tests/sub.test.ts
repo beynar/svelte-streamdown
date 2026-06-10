@@ -100,7 +100,6 @@ describe('tokenization', () => {
 		// Check first item
 		const firstItemTokens = listToken.tokens[0].tokens || [];
 		const firstParagraph = firstItemTokens.find((t: any) => t.type === 'text');
-		console.dir({ firstParagraph }, { depth: null });
 		expect(firstParagraph).toBeDefined();
 
 		const firstSubTokens = (firstParagraph.tokens || []).filter(

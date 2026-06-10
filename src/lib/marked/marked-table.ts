@@ -213,13 +213,10 @@ const processSpans = (
 	// Track colspan cells that need rowspan
 	const colspanCells = new Map<string, { original: WorkingCell; newCell: WorkingCell }>();
 
-	// First pass: Process each cell's colspan and merge consecutive empty cells
+	// First pass: Process each cell's colspan
 	let cellIndex = 0;
-	const mergedIndices = new Set<number>();
 
 	for (i = 0; i < cells.length; i++) {
-		if (mergedIndices.has(i)) continue;
-
 		trimmedCell = cells[i];
 		let colspan = 1;
 
@@ -228,24 +225,6 @@ const processSpans = (
 			const parts = trimmedCell.split('\x00COLSPAN:');
 			trimmedCell = parts[0];
 			colspan = parseInt(parts[1], 10);
-		} else if (!trimmedCell.trim()) {
-			// Fallback: merge empty run into previous cell (backward compatibility)
-			let run = 1,
-				k = i + 1;
-			while (k < cells.length && !cells[k].trim()) {
-				run++;
-				mergedIndices.add(k++);
-			}
-			if (processedCells.length) {
-				const target = processedCells[processedCells.length - 1];
-				const allowed =
-					maxColspan != null ? Math.min(run, Math.max(0, maxColspan - target.colspan)) : run;
-				target.colspan += allowed;
-				numCols += allowed;
-				continue;
-			} else {
-				colspan = maxColspan != null ? Math.min(run, maxColspan) : run;
-			}
 		}
 
 		if (maxColspan !== null && colspan > maxColspan) colspan = maxColspan;
@@ -271,8 +250,10 @@ const processSpans = (
 		const isRowspanIndicator = cellText.slice(-1) === '^' && !cellText.match(/\^[^^\n\r]+\^$/); // Not a superscript pattern ^text^
 
 		if (isRowspanIndicator && prevRow.length > 0) {
-			// Clean the ^ indicator from the cell text
+			// Clean the ^ indicator from the cell text. A cell that is nothing but
+			// carets (the usual `^^` continuation marker) carries no content.
 			cell.text = cellText.slice(0, -1).trim();
+			if (/^\^*$/.test(cell.text)) cell.text = '';
 			cellText = cell.text;
 			let targetFound = false;
 			const startPosition = cell.position || 0;
@@ -295,8 +276,10 @@ const processSpans = (
 						// If the cell spans exactly match, simple case
 						if (cell.colspan === prevCell.colspan && cell.position === prevCell.position) {
 							cell.rowSpanTarget = prevCell.rowSpanTarget ?? prevCell;
-							// Only append text if it's different from the target cell
-							const textToAppend = cell.text.slice(0, -1).trim();
+							// Only append text if it's different from the target cell.
+							// cell.text was already cleaned of its ^ indicator above —
+							// slicing again here used to drop the last real character.
+							const textToAppend = cell.text.trim();
 							const targetText = cell.rowSpanTarget.text.trim();
 
 							// Don't append if the text is the same or already contained (common case for rowspan indicators)
@@ -323,8 +306,9 @@ const processSpans = (
 					} else {
 						// Standard case of single column cell with rowspan
 						cell.rowSpanTarget = prevCell.rowSpanTarget ?? prevCell;
-						// Only append text if it's different from the target cell
-						const textToAppend = cell.text.slice(0, -1).trim();
+						// Only append text if it's different from the target cell.
+						// cell.text was already cleaned of its ^ indicator above.
+						const textToAppend = cell.text.trim();
 						const targetText = cell.rowSpanTarget.text.trim();
 
 						// Don't append if the text is the same or already contained (common case for rowspan indicators)
@@ -339,13 +323,8 @@ const processSpans = (
 				}
 			}
 
-			// If no target was found but it's a rowspan cell, clean the ^ indicator
-			if (!targetFound && cell.rowspan > 0) {
-				// Only clean if it was actually a rowspan indicator, not superscript
-				if (isRowspanIndicator) {
-					cell.text = cell.text.slice(0, -1);
-				}
-			}
+			// No target found: cell.text was already cleaned of its ^ indicator
+			// above, so the cell simply renders as a normal cell.
 		}
 	}
 

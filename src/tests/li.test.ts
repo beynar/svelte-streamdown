@@ -198,6 +198,20 @@ describe('tokenization', () => {
 		expect(listToken.tokens[1].loose).toBe(true);
 	});
 
+	test('should treat list item with interior blank line as loose with paragraph blocks', () => {
+		const tokens = lex('- Item 1\n\n  Some paragraph\n- Item 2');
+		const listToken = getFirstTokenByType(tokens, 'list');
+
+		expect(listToken).toBeDefined();
+		expect(listToken.loose).toBe(true);
+		expect(listToken.tokens[0].loose).toBe(true);
+
+		// Item 1 must split into two paragraph blocks (not inline text)
+		const firstItemTypes = listToken.tokens[0].tokens.map((token: any) => token.type);
+		expect(firstItemTypes.filter((type: string) => type === 'paragraph').length).toBe(2);
+		expect(firstItemTypes).not.toContain('text');
+	});
+
 	test('should parse ordered list item and verify properties', () => {
 		const tokens = lex('1. First ordered item\n2. Second ordered item');
 		const listToken = getFirstTokenByType(tokens, 'list');
@@ -256,7 +270,6 @@ describe('tokenization', () => {
 
 		// Use the input that actually works - should be input1 now (with space after dash)
 		const tokens = lex(input1); // Try the one with space after dash: '- \n- Item 2'
-		console.log(tokens);
 		const listToken = getFirstTokenByType(tokens, 'list');
 
 		expect(tokens.length).toBe(1); // Should be 1 list token with 2 items
@@ -275,8 +288,6 @@ describe('tokenization', () => {
 	test('should parse list item with only whitespace (edge case)', () => {
 		const tokens = lex('-    \n- Item 2');
 		const listToken = getFirstTokenByType(tokens, 'list');
-
-		console.log('Whitespace test - tokens:', listToken?.tokens?.length);
 
 		expect(listToken).toBeDefined();
 		// Just check that we get a valid list, don't assume the count

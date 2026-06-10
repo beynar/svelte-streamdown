@@ -88,7 +88,6 @@ describe('tokenization', () => {
 		expect(tableHeader).toBeDefined();
 		expect(tableFirstRow).toBeDefined();
 		expect(tableCells.length).toBe(3);
-		console.log(tableHeader);
 
 		expect(tableCells[0].align).toBe('left');
 		expect(tableCells[1].align).toBe('center');
@@ -344,5 +343,36 @@ describe('incomplete markdown', () => {
 		expect(result).toBe(
 			'| **Bold** | *Italic *| `Code `| [Link](streamdown:incomplete-link)|\n|----------|---------|-------|-------|\n| Cell 1   | Cell 2  | Cell 3 | Cell 4 |'
 		);
+	});
+});
+
+describe('regression: rowspan indicator cleanup', () => {
+	const bodyRows = (src: string) => {
+		const table = (lex(src) as any[]).find((t) => t.type === 'table');
+		const tbody = table.tokens.find((t: any) => t.type === 'tbody');
+		return tbody.tokens.map((row: any) =>
+			row.tokens.map((c: any) => ({ text: c.text, rowspan: c.rowspan }))
+		);
+	};
+
+	test('pure ^^ marker extends the cell above without leaking a caret', () => {
+		const rows = bodyRows('| A | B |\n|---|---|\n| span | one |\n| ^^ | two |');
+		expect(rows[0][0]).toEqual({ text: 'span', rowspan: 2 });
+		// Marker cell is absorbed: no stray "^" text, hidden from rendering
+		expect(rows[1][0].text).toBe('');
+		expect(rows[1][0].rowspan).toBe(0);
+	});
+
+	test('cell content with a trailing ^ keeps its full text when merged', () => {
+		const rows = bodyRows('| A | B |\n|---|---|\n| first | one |\n| more text^ | two |');
+		// The last character of "more text" used to be dropped ("more tex")
+		expect(rows[0][0].text).toBe('first more text');
+		expect(rows[0][0].rowspan).toBe(2);
+	});
+
+	test('superscript cells are not treated as rowspan markers', () => {
+		const rows = bodyRows('| A | B |\n|---|---|\n| x^2^ | one |\n| y | two |');
+		expect(rows[0][0].text).toBe('x^2^');
+		expect(rows[0][0].rowspan).toBe(1);
 	});
 });

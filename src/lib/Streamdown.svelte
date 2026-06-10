@@ -2,7 +2,7 @@
 	import Block from './Block.svelte';
 	import { StreamdownContext, type StreamdownProps } from './context.svelte.js';
 	import { mergeTheme, shadcnTheme } from './theme.js';
-	import { parseBlocks } from './marked/index.js';
+	import { parseBlocks, createParseBlocksCache } from './marked/index.js';
 
 	let {
 		content = '',
@@ -127,11 +127,15 @@
 		},
 		get controls() {
 			const codeControls = controls?.code ?? true;
-			const mermaidControls = controls?.mermaid ?? true;
+			const mermaid = controls?.mermaid;
+			const isMermaidObject = typeof mermaid === 'object' && mermaid !== null;
+			const mermaidControls = isMermaidObject ? (mermaid.enabled ?? true) : (mermaid ?? true);
+			const mermaidMouseWheelZoom = isMermaidObject ? (mermaid.mouseWheelZoom ?? true) : true;
 			const tableControls = controls?.table ?? true;
 			return {
 				code: codeControls,
 				mermaid: mermaidControls,
+				mermaidMouseWheelZoom,
 				table: tableControls
 			};
 		},
@@ -154,7 +158,12 @@
 
 	const id = $props.id();
 
-	const blocks = $derived(isStatic ? content : parseBlocks(content, streamdown.extensions));
+	// Per-instance incremental state: append-only content updates re-lex only
+	// the last couple of blocks instead of the whole document.
+	const blocksCache = createParseBlocksCache();
+	const blocks = $derived(
+		isStatic ? content : parseBlocks(content, streamdown.extensions, blocksCache)
+	);
 </script>
 
 <div bind:this={element} class={className}>

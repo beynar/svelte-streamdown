@@ -317,4 +317,37 @@ describe('incomplete markdown', () => {
 		// Should complete all incomplete formatters in the order they appear
 		expect(result).toBe('Text with **bold and *italic***');
 	});
+
+	test('should complete a half-typed closing ** without leaving a stray asterisk', () => {
+		// While streaming "A **Svelte port** of...", the closing ** arrives one char
+		// at a time. At "A **Svelte port*" the bold must close cleanly as ** — not
+		// become *** (which renders bold text followed by a literal "*").
+		expect(parseIncompleteMarkdown('A **Svelte port*')).toBe('A **Svelte port**');
+		expect(parseIncompleteMarkdown('**bold*')).toBe('**bold**');
+	});
+
+	test('should complete bold with no closing asterisks yet', () => {
+		expect(parseIncompleteMarkdown('A **Svelte port')).toBe('A **Svelte port**');
+	});
+
+	test('should leave already-complete bold unchanged', () => {
+		expect(parseIncompleteMarkdown('A **Svelte port** of the original')).toBe(
+			'A **Svelte port** of the original'
+		);
+	});
+
+	test('should complete a half-typed closing __ without leaving a stray underscore', () => {
+		// Same class of bug as bold, but with the '__' marker: "__under_" must close
+		// as '__' rather than becoming '___' (bold text + stray "_").
+		expect(parseIncompleteMarkdown('__under_')).toBe('__under__');
+		expect(parseIncompleteMarkdown('a **b** and __c_')).toBe('a **b** and __c__');
+	});
+
+	test('should complete a half-typed closing *** (bold italic) to exactly ***', () => {
+		// The closing '***' can arrive one char at a time. Each partial state should
+		// complete to '***', never leaving stray asterisks.
+		expect(parseIncompleteMarkdown('***both*')).toBe('***both***');
+		expect(parseIncompleteMarkdown('***both**')).toBe('***both***');
+		expect(parseIncompleteMarkdown('***both')).toBe('***both***');
+	});
 });

@@ -9,6 +9,17 @@ export function createSyntaxPattern(type: variantType): string {
 	return `^\\s*[\\*_]*\\[!${type.toUpperCase()}\\][\\*_]*\\s*`;
 }
 
+// Precomputed once per variant instead of recompiling on every blockquote:
+//  - syntax: detects the `[!NOTE]` marker (case-insensitive)
+//  - strip:  removes the marker (global) when building the alert token
+const VARIANT_PATTERNS: { type: variantType; syntax: RegExp; strip: RegExp }[] = variants.map(
+	(type) => ({
+		type,
+		syntax: new RegExp(createSyntaxPattern(type), 'i'),
+		strip: new RegExp(`[\\*_]*\\[!${type.toUpperCase()}\\][\\*_]*`, 'g')
+	})
+);
+
 const defaultLexer = new Lexer({ gfm: true });
 const defaultTokenizer = defaultLexer.options.tokenizer!;
 
@@ -26,11 +37,11 @@ export const markedAlert: Extension = {
 };
 
 export function processAlertToken(token: Tokens.Blockquote, tokenizer: Tokenizer): void {
-	const matchedVariant = variants.find((type) =>
-		new RegExp(createSyntaxPattern(type), 'i').test(('text' in token && token.text) || '')
+	const matched = VARIANT_PATTERNS.find((v) =>
+		v.syntax.test(('text' in token && token.text) || '')
 	);
 
-	if (!matchedVariant) {
+	if (!matched) {
 		Object.assign(token, {
 			tokens: token.tokens
 				.map((token) => {
@@ -40,7 +51,8 @@ export function processAlertToken(token: Tokens.Blockquote, tokenizer: Tokenizer
 		});
 		return;
 	}
-	const alertPattern = new RegExp(`[\\*_]*\\[!${matchedVariant.toUpperCase()}\\][\\*_]*`, 'g');
+	const matchedVariant = matched.type;
+	const alertPattern = matched.strip;
 	const tokens = token.tokens
 		.map((token) => {
 			let cleanedRaw = token.raw;

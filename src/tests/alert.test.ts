@@ -316,8 +316,9 @@ describe('incomplete markdown', () => {
 		const input = '> [!IMPORTANT]\n> Visit [Google';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should complete the link inside alert
-		expect(result).toBe('> [!IMPORTANT]\n> Visit [Google](streamdown:incomplete-link)');
+		// A bare trailing "[text" with no other link evidence on the line is
+		// completed as an inline citation (see citations.test.ts), not a link.
+		expect(result).toBe('> [!IMPORTANT]\n> Visit [Google]');
 	});
 
 	test('should handle incomplete image inside alert', () => {

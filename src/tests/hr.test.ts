@@ -70,8 +70,6 @@ describe('tokenization', () => {
 		const tokens = lex('- - -');
 		const hrToken = getFirstTokenByType(tokens, 'hr');
 
-		console.log(tokens);
-
 		expect(hrToken).toBeDefined();
 		expect(hrToken.type).toBe('hr');
 		expect(hrToken.raw).toBe('- - -');
@@ -276,7 +274,6 @@ describe('incomplete markdown', () => {
 		const input = 'Text before\n\n---\n\n***\n\n___\n\nText after';
 		const result = parseIncompleteMarkdown(input);
 
-		console.log({ result });
 		// Should leave valid horizontal rules unchanged
 		expect(result).toBe('Text before\n\n---\n\n***\n\n___\n\nText after');
 	});
@@ -303,5 +300,22 @@ describe('incomplete markdown', () => {
 
 		// Should work with horizontal rules in different markdown contexts
 		expect(result).toBe('# Heading\n\n---\n\n> Blockquote\n\n***\n\n- List item');
+	});
+});
+
+describe('regression: spaced thematic breaks', () => {
+	test('should parse dashes separated by spaces as hr, not a list', () => {
+		expect((lex('- - - -') as any[])[0].type).toBe('hr');
+		expect((lex('- - -') as any[])[0].type).toBe('hr');
+	});
+
+	test('should parse spaced underscores and stars as hr', () => {
+		expect((lex('_ _ _ _') as any[])[0].type).toBe('hr');
+		expect((lex('* * * *') as any[])[0].type).toBe('hr');
+	});
+
+	test('should keep real list items as lists', () => {
+		expect((lex('- - a') as any[])[0].type).toBe('list');
+		expect((lex('- item') as any[])[0].type).toBe('list');
 	});
 });

@@ -2,50 +2,12 @@ import devtoolsJson from 'vite-plugin-devtools-json';
 import tailwindcss from '@tailwindcss/vite';
 import { sveltekit } from '@sveltejs/kit/vite';
 import { defineConfig } from 'vitest/config';
-import { copyFileSync, watchFile } from 'fs';
-import { resolve } from 'path';
 
-// Plugin to copy README.md from root to src folder
-function copyReadmePlugin() {
-	const rootReadme = resolve('README.md');
-	const srcReadme = resolve('src/README.md');
-
-	const copyReadme = () => {
-		try {
-			copyFileSync(rootReadme, srcReadme);
-			console.log('📝 Copied README.md to src folder');
-		} catch (error) {
-			console.error('❌ Failed to copy README.md:', error);
-		}
-	};
-
-	return {
-		name: 'copy-readme',
-		buildStart() {
-			// Copy on build start
-			copyReadme();
-		},
-		configureServer(server) {
-			// Watch and copy during development
-			const watcher = watchFile(rootReadme, (curr, prev) => {
-				if (curr.mtime !== prev.mtime) {
-					copyReadme();
-					// Trigger HMR update
-					server.ws.send({ type: 'full-reload' });
-				}
-			});
-
-			// Cleanup on server close
-			server.httpServer?.on('close', () => {
-				watcher?.close?.();
-			});
-		}
-	};
-}
-
+// The demo page imports the root README.md directly with `?raw` (see
+// src/routes/+page.server.ts), so Vite watches it natively — no copy-to-src
+// plugin or markdown asset handling needed.
 export default defineConfig({
-	plugins: [tailwindcss(), sveltekit(), devtoolsJson(), copyReadmePlugin()],
-	assetsInclude: ['**/*.md'],
+	plugins: [tailwindcss(), sveltekit(), devtoolsJson()],
 	test: {
 		expect: { requireAssertions: true },
 		projects: [

@@ -422,7 +422,6 @@ Self-closing or with children - both work!
 				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
 			}}
 			shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
-			shikiPreloadThemes={['github-dark', 'github-light']}
 			{content}
 		>
 			{#snippet mdx({ token, props, children })}

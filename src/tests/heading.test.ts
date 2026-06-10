@@ -241,7 +241,8 @@ describe('incomplete markdown', () => {
 		const input = '#### Heading with [link';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should complete with incomplete markers
-		expect(result).toBe('#### Heading with [link](streamdown:incomplete-link)');
+		// A bare trailing "[text" with no other link evidence on the line is
+		// completed as an inline citation (see citations.test.ts), not a link.
+		expect(result).toBe('#### Heading with [link]');
 	});
 });

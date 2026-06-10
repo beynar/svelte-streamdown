@@ -37,8 +37,6 @@
 			popover.isOpen = false;
 		}
 	});
-
-	$inspect(token);
 </script>
 
 {#if popover.isOpen}

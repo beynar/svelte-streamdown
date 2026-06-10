@@ -5,12 +5,20 @@ export const markedAlign: Extension = {
 	name: 'align',
 	level: 'block',
 	tokenizer(this, src) {
-		// Check if the source starts with [center] or [right] blocks
-		const centerMatch = src.match(/^\[center\]\n([\s\S]*?)\n\[\/center\]/);
-		const rightMatch = src.match(/^\[right\]\n([\s\S]*?)\n\[\/right\]/);
+		// Check if the source starts with [center] or [right] blocks.
+		// A block ends at its explicit closing tag, or right before the opening
+		// tag of the next alignment block (blocks don't nest — they become
+		// siblings). The content group is optional so empty blocks
+		// ([center]\n[/center]) tokenize too.
+		const centerMatch = src.match(
+			/^\[center\]\n(?:([\s\S]*?)\n)?(?:\[\/center\]|(?=\[(?:center|right)\]\n))/
+		);
+		const rightMatch = src.match(
+			/^\[right\]\n(?:([\s\S]*?)\n)?(?:\[\/right\]|(?=\[(?:center|right)\]\n))/
+		);
 
 		if (centerMatch) {
-			const text = centerMatch[1];
+			const text = centerMatch[1] ?? '';
 			const raw = centerMatch[0];
 
 			// Tokenize the content inside the alignment block
@@ -26,7 +34,7 @@ export const markedAlign: Extension = {
 		}
 
 		if (rightMatch) {
-			const text = rightMatch[1];
+			const text = rightMatch[1] ?? '';
 			const raw = rightMatch[0];
 
 			// Tokenize the content inside the alignment block

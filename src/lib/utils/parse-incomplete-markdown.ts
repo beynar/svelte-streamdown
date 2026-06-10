@@ -155,6 +155,8 @@ export class IncompleteMarkdownParser {
 					let inMathBlock = false;
 					let inCenterBlock = false;
 					let inRightBlock = false;
+					let centerOpenLine = -1;
+					let rightOpenLine = -1;
 
 					// Track which lines are in which contexts for state management
 					const lineContexts: Array<{
@@ -167,8 +169,9 @@ export class IncompleteMarkdownParser {
 					for (let i = 0; i < lines.length; i++) {
 						const line = lines[i];
 
-						// Check for block boundaries
-						if (line.trim().startsWith('```') || line.trim().startsWith('~~~')) {
+						// Check for block boundaries (fences may be quoted inside blockquotes/alerts: "> ```")
+						const fenceLine = line.replace(/^[ \t]*(?:>[ \t]*)*/, '');
+						if (fenceLine.startsWith('```') || fenceLine.startsWith('~~~')) {
 							inCodeBlock = !inCodeBlock;
 						}
 						if (line.trim().startsWith('$$') && !line.trim().includes('$$', 2)) {
@@ -176,12 +179,14 @@ export class IncompleteMarkdownParser {
 						}
 						if (line.trim() === '[center]') {
 							inCenterBlock = true;
+							centerOpenLine = i;
 						}
 						if (line.trim() === '[/center]') {
 							inCenterBlock = false;
 						}
 						if (line.trim() === '[right]') {
 							inRightBlock = true;
+							rightOpenLine = i;
 						}
 						if (line.trim() === '[/right]') {
 							inRightBlock = false;
@@ -199,8 +204,10 @@ export class IncompleteMarkdownParser {
 					const finalContexts = new Set<string>();
 					if (inCodeBlock) finalContexts.add('code');
 					if (inMathBlock) finalContexts.add('math');
-					if (inCenterBlock) finalContexts.add('center');
-					if (inRightBlock) finalContexts.add('right');
+					// Only auto-close center/right when content follows the opening tag;
+					// a bare trailing '[center]'/'[right]' line is left untouched.
+					if (inCenterBlock && centerOpenLine < lines.length - 1) finalContexts.add('center');
+					if (inRightBlock && rightOpenLine < lines.length - 1) finalContexts.add('right');
 
 					// Return both the text and the updated state
 					return {
@@ -212,20 +219,22 @@ export class IncompleteMarkdownParser {
 					};
 				},
 				postprocess: ({ text, state }) => {
-					// Complete incomplete blocks at end of input
+					// Complete incomplete blocks at end of input.
+					// Close inner blocks (code/math) before alignment wrappers.
+					let result = text;
 					if (state.blockingContexts.has('code')) {
-						return text + '\n```';
+						result += '\n```';
 					}
 					if (state.blockingContexts.has('math')) {
-						return text + '\n$$';
+						result += '\n$$';
 					}
 					if (state.blockingContexts.has('center')) {
-						return text + '\n[/center]';
+						result += '\n[/center]';
 					}
 					if (state.blockingContexts.has('right')) {
-						return text + '\n[/right]';
+						result += '\n[/right]';
 					}
-					return text;
+					return result;
 				}
 			},
 			{
@@ -244,7 +253,13 @@ export class IncompleteMarkdownParser {
 						if (isEndingWithTripleAsterisk) {
 							return line.substring(0, lastTripleAsteriskIndex);
 						}
-						return line.substring(0, endOfCellOrLine) + '***' + line.substring(endOfCellOrLine);
+						const before = line.substring(0, endOfCellOrLine);
+						// Part of the closing '***' may have already arrived (a trailing '*' or
+						// '**'); only add the missing asterisks so we complete to exactly '***'
+						// instead of leaving stray asterisks after the text.
+						const trailing = before.match(/\*+$/)?.[0].length ?? 0;
+						const missing = trailing >= 1 && trailing <= 2 ? 3 - trailing : 3;
+						return before + '*'.repeat(missing) + line.substring(endOfCellOrLine);
 					}
 					return line;
 				}
@@ -265,7 +280,12 @@ export class IncompleteMarkdownParser {
 						if (isEndingWithDoubleAsterisk) {
 							return line.substring(0, lastDoubleAsteriskIndex);
 						}
-						return line.substring(0, endOfCellOrLine) + '**' + line.substring(endOfCellOrLine);
+						const before = line.substring(0, endOfCellOrLine);
+						// If the content already ends with a single '*' — the first half of the
+						// closing '**' arriving mid-stream — only add one more '*' to complete it.
+						// Otherwise we'd emit '***' and leave a stray '*' after the bold text.
+						const closing = before.endsWith('*') && !before.endsWith('**') ? '*' : '**';
+						return before + closing + line.substring(endOfCellOrLine);
 					}
 					return line;
 				}
@@ -286,7 +306,11 @@ export class IncompleteMarkdownParser {
 						if (isEndingWithDoubleUnderscore) {
 							return line.substring(0, lastDoubleUnderscoreIndex);
 						}
-						return line.substring(0, endOfCellOrLine) + '__' + line.substring(endOfCellOrLine);
+						const before = line.substring(0, endOfCellOrLine);
+						// A half-typed closing '__' (a lone trailing '_') only needs one more '_',
+						// not a full '__' that would leave a stray underscore after the text.
+						const closing = before.endsWith('_') && !before.endsWith('__') ? '_' : '__';
+						return before + closing + line.substring(endOfCellOrLine);
 					}
 					return line;
 				}
@@ -307,7 +331,10 @@ export class IncompleteMarkdownParser {
 							if (isEndingWithDoubleTilde) {
 								return line.substring(0, lastDoubleTildeIndex);
 							}
-							return line.substring(0, endOfCellOrLine) + '~~' + line.substring(endOfCellOrLine);
+							const before = line.substring(0, endOfCellOrLine);
+							// A half-typed closing '~~' (a lone trailing '~') only needs one more '~'.
+							const closing = before.endsWith('~') && !before.endsWith('~~') ? '~' : '~~';
+							return before + closing + line.substring(endOfCellOrLine);
 						}
 					}
 					return line;
@@ -502,33 +529,8 @@ export class IncompleteMarkdownParser {
 				}
 			},
 			{
-				name: 'inlineCitation',
-				pattern: /\[/,
-				skipInBlockTypes: ['code', 'math'],
-				handler: ({ line }) => {
-					// Count unescaped opening brackets without matching closing brackets
-					let unclosedBrackets = 0;
-					for (let i = 0; i < line.length; i++) {
-						if (line[i] === '[' && (i === 0 || line[i - 1] !== '\\')) {
-							// Check if this bracket has a matching closing bracket later in the line
-							const restOfLine = line.substring(i + 1);
-							const closingIndex = restOfLine.indexOf(']');
-							if (closingIndex === -1) {
-								unclosedBrackets++;
-							}
-						}
-					}
-
-					// If there's an odd number of unclosed brackets, add closing bracket
-					if (unclosedBrackets % 2 === 1) {
-						const endOfCellOrLine = findEndOfCellOrLineContaining(line, line.length - 1);
-						return line.substring(0, endOfCellOrLine) + ']' + line.substring(endOfCellOrLine);
-					}
-
-					return line;
-				}
-			},
-			{
+				// Must run before inlineCitation: otherwise a trailing `[^label` gets
+				// closed with a plain `]`, defeating the streamdown:footnote marker.
 				name: 'footnoteRef',
 				pattern: /\[\^[^\]\s,]*/,
 				skipInBlockTypes: ['code', 'math'],
@@ -537,6 +539,63 @@ export class IncompleteMarkdownParser {
 						return line.replace(/\[\^[^\]\s,]*/, '[^streamdown:footnote]');
 					}
 					return line;
+				}
+			},
+			{
+				name: 'inlineCitation',
+				pattern: /\[/,
+				skipInBlockTypes: ['code', 'math'],
+				handler: ({ line }) => {
+					// Lines that already contain link/image "](" syntax belong to the
+					// linksAndImages plugin: completing or preserving them is its job.
+					if (line.includes('](')) {
+						return line;
+					}
+
+					// Collect unescaped opening brackets without a matching closing bracket
+					const unclosedPositions: number[] = [];
+					for (let i = 0; i < line.length; i++) {
+						if (line[i] === '[' && (i === 0 || line[i - 1] !== '\\')) {
+							// Check if this bracket has a matching closing bracket later in the line
+							if (line.indexOf(']', i + 1) === -1) {
+								unclosedPositions.push(i);
+							}
+						}
+					}
+
+					// Close every unclosed citation bracket (right to left so indices stay
+					// valid). Brackets that look like incomplete images (`![`), footnotes
+					// (`[^`), link text containing markdown formatting, table-cell content,
+					// or a trailing bracket preceded by a completed `[...]` pair (evidence
+					// of an in-progress link) are left for the dedicated plugins
+					// (footnoteRef, linksAndImages).
+					let result = line;
+					for (let k = unclosedPositions.length - 1; k >= 0; k--) {
+						const pos = unclosedPositions[k];
+						const endOfCellOrLine = findEndOfCellOrLineContaining(result, pos);
+						const content = result.substring(pos + 1, endOfCellOrLine);
+						const isImage = pos > 0 && result[pos - 1] === '!';
+						const isFootnote = content.startsWith('^');
+						const hasFormatting = /[*~`_]/.test(content);
+						const isTableCell = endOfCellOrLine < result.length && result[endOfCellOrLine] === '|';
+						const hasPriorCompletedPair = /\[[^\]]*\]/.test(line.substring(0, pos));
+						if (isImage || isFootnote || hasFormatting || isTableCell || hasPriorCompletedPair) {
+							continue;
+						}
+						if (k === unclosedPositions.length - 1) {
+							// Last bracket: close at end of cell/line (keeps multi-key citations together)
+							result =
+								result.substring(0, endOfCellOrLine) + ']' + result.substring(endOfCellOrLine);
+						} else {
+							// Earlier brackets: close right after the citation key (first word)
+							const keyMatch = content.match(/^\s*\S+/);
+							if (keyMatch) {
+								const insertAt = pos + 1 + keyMatch[0].length;
+								result = result.substring(0, insertAt) + ']' + result.substring(insertAt);
+							}
+						}
+					}
+					return result;
 				}
 			},
 			{
@@ -707,8 +766,11 @@ export class IncompleteMarkdownParser {
 					const linkMatch = line.match(/(!?\[)([^\]]*?)$/);
 					if (linkMatch && !line.includes('](')) {
 						const [, openBracket, linkTextWithPossibleBoundary] = linkMatch;
-						// Find the position of the opening bracket
-						const bracketIndex = line.lastIndexOf(openBracket);
+						// Position of the matched opening bracket (the regex matches the first
+						// bracket that stays unclosed through the end of the line). Using the
+						// match index keeps the replacement aligned with the captured link text;
+						// `lastIndexOf` could point at a different bracket and duplicate text.
+						const bracketIndex = linkMatch.index ?? 0;
 						const endOfCellOrLine = findEndOfCellOrLineContaining(line, bracketIndex);
 
 						// Extract the clean link text (remove any trailing | or whitespace)
@@ -720,26 +782,10 @@ export class IncompleteMarkdownParser {
 						// Replace from bracket to end of cell/line, including boundary if it's |
 						const includeBoundary = endOfCellOrLine < line.length && line[endOfCellOrLine] === '|';
 						const incompleteEnd = includeBoundary ? endOfCellOrLine + 1 : endOfCellOrLine;
-						const incompletePart = line.substring(bracketIndex, incompleteEnd);
 						const completedPart =
 							openBracket + linkText + '](' + marker + ')' + (includeBoundary ? '|' : '');
 
-						return line.replace(incompletePart, completedPart);
-					}
-					return line;
-				}
-			},
-			{
-				name: 'alignmentBlocks',
-				pattern: /^(\s*\[(center|right)\])$/,
-				skipInBlockTypes: ['code', 'math'],
-				handler: ({ line, state }) => {
-					// Check if this is an opening alignment tag without content or closing tag
-					const alignMatch = line.match(/^(\s*\[(center|right)\])$/);
-					if (alignMatch) {
-						const indent = alignMatch[1].length - alignMatch[1].trim().length;
-						const alignType = alignMatch[2];
-						return line + '\n' + ' '.repeat(indent) + '[/' + alignType + ']';
+						return line.substring(0, bracketIndex) + completedPart + line.substring(incompleteEnd);
 					}
 					return line;
 				}
@@ -747,13 +793,20 @@ export class IncompleteMarkdownParser {
 			{
 				name: 'mdx',
 				skipInBlockTypes: ['code', 'math', 'center', 'right'],
-				preprocess: ({ text }) => {
+				preprocess: ({ text, state }) => {
 					// Track MDX component states across the entire text
 					const lines = text.split('\n');
 					const openTags: Array<{ tagName: string; lineIndex: number }> = [];
 					let mdxLineStates: Array<{ inMdx: boolean; incompletePositions: number[] }> = [];
 
 					for (let i = 0; i < lines.length; i++) {
+						// Lines inside code fences or math blocks are opaque content: MDX-looking
+						// tags there must not open/close/track components.
+						const lineCtx = state.lineContexts?.[i];
+						if (lineCtx?.code || lineCtx?.math) {
+							mdxLineStates[i] = { inMdx: false, incompletePositions: [] };
+							continue;
+						}
 						const line = lines[i];
 						let inMdx = false;
 						let incompletePositions: number[] = [];
@@ -766,6 +819,25 @@ export class IncompleteMarkdownParser {
 							if (tagStart === -1 || tagStart >= line.length - 1) break;
 
 							const nextChar = line[tagStart + 1];
+
+							// Closing tag for a component opened on an earlier line. Handled
+							// inside the scan so a close that is part of a same-line complete
+							// pair (consumed below) is never double-counted against the stack.
+							const closeTagMatch = line.substring(tagStart).match(/^<\/([A-Z][a-zA-Z0-9]*)>/);
+							if (closeTagMatch) {
+								const tagName = closeTagMatch[1];
+								// Pop the innermost same-name open (LIFO) so the auto-appended
+								// closers keep the right nesting order.
+								for (let openIndex = openTags.length - 1; openIndex >= 0; openIndex--) {
+									if (openTags[openIndex].tagName === tagName) {
+										openTags.splice(openIndex, 1);
+										break;
+									}
+								}
+								searchPos = tagStart + closeTagMatch[0].length;
+								continue;
+							}
+
 							// Only match if starts with capital letter (MDX component)
 							if (!/[A-Z]/.test(nextChar)) {
 								searchPos = tagStart + 1;
@@ -821,17 +893,6 @@ export class IncompleteMarkdownParser {
 							}
 
 							searchPos = tagStart + 1;
-						}
-
-						// Check for closing tags
-						const closeTagMatches = line.matchAll(/<\/([A-Z][a-zA-Z0-9]*)>/g);
-						for (const closeMatch of closeTagMatches) {
-							const tagName = closeMatch[1];
-							// Find and remove the matching open tag
-							const openIndex = openTags.findIndex((t) => t.tagName === tagName);
-							if (openIndex !== -1) {
-								openTags.splice(openIndex, 1);
-							}
 						}
 
 						mdxLineStates[i] = { inMdx, incompletePositions };

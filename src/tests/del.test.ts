@@ -342,4 +342,10 @@ describe('incomplete markdown', () => {
 		// Should complete strikethrough at end of entire string
 		expect(result).toBe('# Heading with ~~strikethrough~~\n\n> Blockquote with ~~another~~');
 	});
+
+	test('should complete a half-typed closing ~~ without leaving a stray tilde', () => {
+		// While streaming "~~strike~~", the closing ~~ arrives one char at a time.
+		// At "~~strike~" it must close as ~~ — not become ~~~ (stray "~").
+		expect(parseIncompleteMarkdown('~~strike~')).toBe('~~strike~~');
+	});
 });

@@ -107,7 +107,11 @@ describe('tokenization', () => {
 		expect(listToken.tokens.length).toBe(1);
 
 		const listItemTokens = listToken.tokens[0].tokens || [];
-		const paragraphToken = listItemTokens.find((t: any) => t.type === 'text');
+		// Loose list items wrap their content in `paragraph` tokens (CommonMark-correct),
+		// while tight items keep inline `text` tokens. Accept either container.
+		const paragraphToken = listItemTokens.find(
+			(t: any) => t.type === 'paragraph' || t.type === 'text'
+		);
 		expect(paragraphToken).toBeDefined();
 
 		const paragraphTokens = paragraphToken.tokens || [];
@@ -344,7 +348,6 @@ describe('incomplete markdown', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete footnote and italic
-		console.log(result);
 		expect(result).toBe(
 			'# Heading with footnote[^streamdown:footnote]\n\n> Blockquote with *incomplete*'
 		);

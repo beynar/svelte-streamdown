@@ -42,6 +42,12 @@ export const transformUrl = (
 	if (
 		urlString &&
 		allowedPrefixes.some((prefix) => {
+			// Protocol-only prefixes (e.g. 'https://', 'http://', 'mailto:') allow any
+			// URL using that protocol. They are not valid absolute URLs on their own
+			// (new URL('https://') throws), so we match them with a simple prefix check.
+			if (prefix.endsWith('://') || (prefix.endsWith(':') && !prefix.includes('//'))) {
+				return urlString.href.startsWith(prefix);
+			}
 			const parsedPrefix = parseUrl(prefix);
 			if (!parsedPrefix) {
 				return false;

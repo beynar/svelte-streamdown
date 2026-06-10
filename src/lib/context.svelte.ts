@@ -17,6 +17,7 @@ export interface StreamdownContext
 	controls: {
 		code: boolean;
 		mermaid: boolean;
+		mermaidMouseWheelZoom: boolean;
 		table: boolean;
 	};
 	inlineCitationsMode: 'list' | 'carousel';
@@ -211,7 +212,7 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	};
 	controls?: {
 		code?: boolean;
-		mermaid?: boolean;
+		mermaid?: boolean | { enabled?: boolean; mouseWheelZoom?: boolean };
 		table?: boolean;
 	};
 	renderHtml?: boolean | ((token: Tokens.HTML | Tokens.Tag) => string);

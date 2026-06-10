@@ -73,7 +73,6 @@ Full support for
 > [!NOTE]
 > 🧠 **AI Prompting Tip:** For best results, use our [comprehensive prompt](/prompting) covering all supported markdown features.
 
-
 ### 💻 Interactive Code Blocks
 
 - Syntax highlighting powered by Shiki
@@ -82,15 +81,27 @@ Full support for
 
 ### 🔢 Mathematical Expressions
 
-LaTeX math support through KaTeX:
+LaTeX math support through KaTeX. Use single dollars for **inline** math and double dollars for **block** (display) math:
 
-- Perfect rendering for scientific content
-- Inline math: $E = mc^2$
+- Inline math: `$E = mc^2$` renders inline as $E = mc^2$
 - Block math:
 
 $$
-\\sum_{i=1}^n x_i
+f(x) = \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}
 $$
+
+KaTeX is an **opt-in** heavy component, so you must import the `Math` component and pass it via the `components` prop. Without it, math is rendered as raw text:
+
+```svelte
+<script>
+	import { Streamdown } from 'svelte-streamdown';
+	import Math from 'svelte-streamdown/math'; // KaTeX math rendering
+</script>
+
+<Streamdown {content} components={{ math: Math }} />
+```
+
+Pass KaTeX options through the [`katexConfig`](#-props-api) prop (e.g. to set `throwOnError` or macros). See [Bundle Optimization](#-bundle-optimization) for details on enabling heavy components.
 
 ### 🧜‍♀️ Mermaid Diagrams
 
@@ -98,7 +109,6 @@ $$
 - **Incremental rendering** during streaming content
 - Pan and Zoom
 - Full screen mode
-
 
 # **Example:**
 
@@ -140,11 +150,11 @@ pie title Project Time Allocation
 
 | H1                        | H2  | H3  |
 | ------------------------- | --- | --- |
-| This cell spans 3 columns |||
+| This cell spans 3 columns |     |     |
 
 | Header 1                  | Header 2 | Header 3 |
 | ------------------------- | -------- | -------- |
-| This cell spans 2 columns || Normal   |
+| This cell spans 2 columns |          | Normal   |
 | Normal                    | Normal   | Normal   |
 
 #### Rowspan
@@ -160,7 +170,7 @@ pie title Project Time Allocation
 | --------------- | -------- |
 | Cell B          | Cell A   |
 | --------------- | -------- |
-| Footer          ||
+| Footer          |          |
 
 #### Column alignment
 
@@ -255,23 +265,23 @@ To enable inline citations, pass a `sources` object as a prop to the `Streamdown
 
 ```svelte
 <script>
-  import { Streamdown } from 'svelte-streamdown';
+	import { Streamdown } from 'svelte-streamdown';
 
-  let content = `According to [smith2023], AI is advancing rapidly. See also [nested.subsection] for related work.`;
+	let content = `According to [smith2023], AI is advancing rapidly. See also [nested.subsection] for related work.`;
 
-  let sources = {
-    "smith2023": {
-      title: "AI Research Paper",
-      url: "https://example.com/paper",
-      content: "Detailed content of the citation..."
-    },
-    "nested": {
-      "subsection": {
-        title: "Nested Citation",
-        url: "https://example.com/nested"
-      }
-    }
-  };
+	let sources = {
+		smith2023: {
+			title: 'AI Research Paper',
+			url: 'https://example.com/paper',
+			content: 'Detailed content of the citation...'
+		},
+		nested: {
+			subsection: {
+				title: 'Nested Citation',
+				url: 'https://example.com/nested'
+			}
+		}
+	};
 </script>
 
 <Streamdown {content} {sources} />
@@ -284,7 +294,6 @@ Citations work with objects containing these properties:
 - `title (or name or author)`: Display title for the citation
 - `url (or href, url, link or source)`: Link to the source
 - `content (or text, summary or excerpt)`: Rich content to display in carousel mode
-
 
 #### Display Modes
 
@@ -306,6 +315,7 @@ You can control the display mode using the `inlineCitationsMode` prop:
 #### Citation Popovers
 
 Citations appear as clickable buttons that open popovers when clicked. The popover shows:
+
 - Source title and URL (when available)
 - Favicon from the source domain
 - Rich content (in carousel mode)
@@ -317,22 +327,23 @@ If your citation data structure doesn't match the default format, you can custom
 
 ```svelte
 <Streamdown {content} {sources}>
-  {#snippet inlineCitationPreview({ token })}
-    <!-- Customize the clickable citation button -->   
-      {token.keys[0]}
-  {/snippet}
+	{#snippet inlineCitationPreview({ token })}
+		<!-- Customize the clickable citation button -->
+		{token.keys[0]}
+	{/snippet}
 
-  {#snippet inlineCitationContent({ source, key, token })}
-    <!-- Customize content displayed in popover -->
-    <div class="custom-content">
-      <h4>{source.customTitle || key}</h4>
-      <p>{source.customDescription}</p>
-    </div>
-  {/snippet}
+	{#snippet inlineCitationContent({ source, key, token })}
+		<!-- Customize content displayed in popover -->
+		<div class="custom-content">
+			<h4>{source.customTitle || key}</h4>
+			<p>{source.customDescription}</p>
+		</div>
+	{/snippet}
 </Streamdown>
 ```
 
 These snippets allow you to:
+
 - **`inlineCitationPreview`**: Customize the content of the clickable button that appears in the text
 - **`inlineCitationContent`**: Customize how individual citation content is displayed within popovers
 - **`inlineCitationPopover`**: Completely customize the list of citations
@@ -341,15 +352,16 @@ These snippets allow you to:
 
 This Svelte port maintains feature parity with the original [Streamdown](https://streamdown.ai/) while adapting to Svelte's patterns:
 
-| Aspect            | Original (React)         | Svelte Port               |
-| ----------------- | ------------------------ | ------------------------- |
-| **Framework**     | React                    | Svelte 5                  |
-| **Component API** | JSX Components           | Svelte Snippets           |
-| **Styling**       | Tailwind CSS             | Tailwind CSS (compatible) |
-| **Context**       | React Context            | Svelte Context            |
-| **Build System**  | Vite/React               | Vite/SvelteKit            |
-| **TypeScript**    | Full TS support          | Full TS support           |
-| **Engine**        | Remark / Rehype + marked | marked only               |
+| Aspect            | Original (React)         | Svelte Port                              |
+| ----------------- | ------------------------ | ---------------------------------------- |
+| **Framework**     | React                    | Svelte 5                                 |
+| **Component API** | JSX Components           | Svelte Snippets                          |
+| **Styling**       | Tailwind CSS             | Tailwind CSS (compatible)                |
+| **Context**       | React Context            | Svelte Context                           |
+| **Build System**  | Vite/React               | Vite/SvelteKit                           |
+| **TypeScript**    | Full TS support          | Full TS support                          |
+| **Engine**        | Remark / Rehype + marked | marked only                              |
+| **Memoization**   | Memoized `Block` (LRU)   | Svelte reactivity (per-block `$derived`) |
 
 ### Tailwind CSS Setup
 
@@ -364,6 +376,32 @@ This Svelte port maintains feature parity with the original [Streamdown](https:/
 /* Add Streamdown styles to your Tailwind build */
 @source "../node_modules/svelte-streamdown/**/*";
 ```
+
+> [!IMPORTANT]
+> The `@source` path is **relative to the stylesheet file** that contains the directive, so adjust the number of `../` segments to match where your stylesheet lives. The example above assumes `src/app.css`. If your global stylesheet lives one level deeper (e.g. `src/routes/+layout.css`, the default in newer SvelteKit projects), add one more `../` so the glob still resolves to your project's `node_modules`:
+
+```css
+@import 'tailwindcss';
+/* Add Streamdown styles to your Tailwind build (stylesheet inside src/routes) */
+@source "../../node_modules/svelte-streamdown/**/*";
+```
+
+## ⚡ Streaming Performance & Memoization
+
+Like the original [Streamdown](https://streamdown.ai/), `svelte-streamdown` avoids re-parsing the whole document on every streaming update — but it achieves this through Svelte 5's fine-grained reactivity rather than an explicit parse cache.
+
+Here is how it works on each content update:
+
+1. **Block splitting**: the incoming `content` is split into top-level markdown blocks with `parseBlocks`. This is a lightweight lexer pass that only computes each block's raw string.
+2. **Keyed rendering**: blocks are rendered with a keyed `{#each}`, so existing block components are preserved across updates instead of being torn down and recreated.
+3. **Per-block memoized lexing**: each block component derives its tokens from its own raw string (`const tokens = $derived(lex(...))`). A Svelte `$derived` only recomputes when its inputs change, so a block is only re-lexed (the expensive inline tokenization step) when **its own** raw string changes.
+
+During streaming, newly received text almost always only changes the **last** block (and occasionally starts a new one). Every earlier block keeps an identical raw string, so Svelte skips its `lex()` call entirely — this is the equivalent of the memoized `Block` component in the React version. The block-splitting pass itself runs on every update, but it is the cheap pass; the costly inline parsing is what gets reused.
+
+Code highlighting is incremental as well: a code block is only re-highlighted when its text changes, and the Shiki highlighter caches the languages and themes it has already loaded, so a streaming code block does not reload its grammar on every chunk.
+
+> [!NOTE]
+> There is intentionally no separate block-level parse cache (e.g. an LRU keyed by block content). For the common append-only streaming case the reactivity-based approach above already avoids redundant work, and a standalone cache would add memory usage and invalidation complexity without a measurable benefit. If you have a workload where this matters, please [open an issue](https://github.com/beynar/svelte-streamdown/issues) with a repro — we're happy to revisit.
 
 ## 🎭 Animation System
 
@@ -463,6 +501,19 @@ This heading will use a custom component!`;
 />
 ```
 
+Prefixes can also be **protocol-only**, which allows any URL using that protocol. For example, `'https://'` allows every HTTPS link while still blocking insecure `http://` links, and `'mailto:'` / `'tel:'` allow email and phone links:
+
+```svelte
+<Streamdown
+	{content}
+	allowedLinkPrefixes={['https://', 'mailto:']}
+	allowedImagePrefixes={['https://']}
+/>
+```
+
+> [!NOTE]
+> `'*'` allows all `http://` and `https://` URLs. A protocol-only prefix only allows that exact protocol, so list each one you want to permit. Only add a protocol you trust — e.g. do not add `'javascript:'`.
+
 ## 📦 Bundle Optimization
 
 Streamdown is optimized for minimal bundle size by making heavy components **opt-in**. By default, Code blocks, Mermaid diagrams, and Math expressions render as lightweight fallbacks (plain text). To enable full functionality, import and pass the components you need:
@@ -473,24 +524,21 @@ Streamdown is optimized for minimal bundle size by making heavy components **opt
 <script>
 	import { Streamdown } from 'svelte-streamdown';
 	// Import only the components you need
-	import Code from 'svelte-streamdown/code';       // Shiki syntax highlighting
+	import Code from 'svelte-streamdown/code'; // Shiki syntax highlighting
 	import Mermaid from 'svelte-streamdown/mermaid'; // Mermaid diagrams
-	import Math from 'svelte-streamdown/math';       // KaTeX math rendering
+	import Math from 'svelte-streamdown/math'; // KaTeX math rendering
 </script>
 
-<Streamdown
-	{content}
-	components={{ code: Code, mermaid: Mermaid, math: Math }}
-/>
+<Streamdown {content} components={{ code: Code, mermaid: Mermaid, math: Math }} />
 ```
 
 ### Component Dependencies
 
-| Component | Import Path | Dependency | Size Impact |
-|-----------|-------------|------------|-------------|
-| `Code` | `svelte-streamdown/code` | Shiki | ~2MB (languages + themes) |
-| `Mermaid` | `svelte-streamdown/mermaid` | Mermaid.js | ~1.5MB |
-| `Math` | `svelte-streamdown/math` | KaTeX | ~300KB |
+| Component | Import Path                 | Dependency | Size Impact               |
+| --------- | --------------------------- | ---------- | ------------------------- |
+| `Code`    | `svelte-streamdown/code`    | Shiki      | ~2MB (languages + themes) |
+| `Mermaid` | `svelte-streamdown/mermaid` | Mermaid.js | ~1.5MB                    |
+| `Math`    | `svelte-streamdown/math`    | KaTeX      | ~300KB                    |
 
 > [!TIP]
 > Only import the components your application actually uses. If your content doesn't include code blocks, mermaid diagrams, or math expressions, you can skip those imports entirely for a much smaller bundle.
@@ -498,43 +546,111 @@ Streamdown is optimized for minimal bundle size by making heavy components **opt
 ### Fallback Behavior
 
 When a heavy component is not provided:
+
 - **Code blocks**: Render as plain `<pre><code>` without syntax highlighting
 - **Mermaid**: Renders the mermaid source as a code block
 - **Math**: Renders the raw LaTeX/math text
 
+### Shiki Themes
+
+The `Code` component bundles two themes out of the box: **`github-dark`** and **`github-light`**. By default `shikiTheme` follows the active color scheme (`github-dark` in dark mode, `github-light` otherwise), so basic light/dark theming works with no extra configuration.
+
+To use any other Shiki theme (e.g. `vesper`, `github-dark-default`, `github-light-default`), import it from `@shikijs/themes/<name>` and register it via the `shikiThemes` prop. The **key** you register it under is the value you pass to `shikiTheme`:
+
+```svelte
+<script lang="ts">
+	import { Streamdown } from 'svelte-streamdown';
+	import Code from 'svelte-streamdown/code'; // enables Shiki highlighting
+	import vesper from '@shikijs/themes/vesper';
+
+	let { content } = $props();
+</script>
+
+<Streamdown {content} components={{ code: Code }} shikiThemes={{ vesper }} shikiTheme="vesper" />
+```
+
+> [!IMPORTANT]
+> A theme passed to `shikiTheme` must be one of the two built-in themes **or** registered via `shikiThemes`. If it is neither, the code block stays in its loading (skeleton) state and is never highlighted — this is the most common cause of "my theme stopped working".
+
+#### Dynamic (light/dark) theme switching
+
+Register every theme you intend to switch between in `shikiThemes`, then drive `shikiTheme` from your color-scheme store. Switching is fully reactive — code blocks re-highlight when `shikiTheme` changes:
+
+```svelte
+<script lang="ts">
+	import { Streamdown } from 'svelte-streamdown';
+	import Code from 'svelte-streamdown/code';
+	import { mode } from 'mode-watcher';
+	import githubDarkDefault from '@shikijs/themes/github-dark-default';
+	import githubLightDefault from '@shikijs/themes/github-light-default';
+
+	let { content } = $props();
+
+	const shikiTheme = $derived(
+		mode.current === 'dark' ? 'github-dark-default' : 'github-light-default'
+	);
+</script>
+
+<Streamdown
+	{content}
+	components={{ code: Code }}
+	baseTheme="shadcn"
+	shikiThemes={{
+		'github-dark-default': githubDarkDefault,
+		'github-light-default': githubLightDefault
+	}}
+	{shikiTheme}
+/>
+```
+
+> [!NOTE]
+> The built-in `github-dark` / `github-light` themes can be switched dynamically with just `shikiTheme` (no `shikiThemes` registration needed), since both are always loaded.
+
+#### Migrating from v2 (`shikiPreloadThemes`)
+
+The v2 `shikiPreloadThemes` prop has been **removed**. Themes are no longer referenced by bundled name; instead you import the theme objects yourself and register them with `shikiThemes`. Registered themes are loaded together with the highlighter (i.e. effectively preloaded), so there is no separate preload step:
+
+```diff
+- shikiPreloadThemes={['github-dark-default', 'github-light-default']}
++ shikiThemes={{ 'github-dark-default': githubDarkDefault, 'github-light-default': githubLightDefault }}
+```
+
+This also keeps the default bundle small: only the themes you actually import are included.
+
 ## 📋 Props API
 
-| Prop                       | Type                                                                             | Default          | Description                                                                                                                                        |
-| -------------------------- | -------------------------------------------------------------------------------- | ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`                  | `string`                                                                         | -                | **Required.** The markdown content to render                                                                                                       |
-| `sources`                  | `Record<string, any>`                                                            | -                | Citation data object for inline citations                                                                                                          |
-| `class`                    | `string`                                                                         | -                | CSS class names for the wrapper element                                                                                                            |
-| `parseIncompleteMarkdown`  | `boolean`                                                                        | `true`           | Parse and fix incomplete markdown syntax                                                                                                           |
-| `defaultOrigin`            | `string`                                                                         | -                | Default origin for relative URLs                                                                                                                   |
-| `allowedLinkPrefixes`      | `string[]`                                                                       | `['*']`          | Allowed URL prefixes for links                                                                                                                     |
-| `allowedImagePrefixes`     | `string[]`                                                                       | `['*']`          | Allowed URL prefixes for images                                                                                                                    |
-| `skipHtml`                 | `boolean`                                                                        | -                | Skip HTML parsing entirely                                                                                                                         |
-| `unwrapDisallowed`         | `boolean`                                                                        | -                | Unwrap instead of removing disallowed elements                                                                                                     |
-| `urlTransform`             | `UrlTransform \| null`                                                           | -                | Custom URL transformation function                                                                                                                 |
-| `theme`                    | `DeepPartial<Theme>`                                                             | -                | Custom theme overrides                                                                                                                             |
-| `baseTheme`                | `'tailwind' \| 'shadcn'`                                                         | `'tailwind'`     | Base theme to use before applying overrides                                                                                                        |
-| `mergeTheme`               | `boolean`                                                                        | `true`           | Whether to merge theme with base theme                                                                                                             |
-| `shikiTheme`               | `string`                                                                         | `'github-light'` | Code highlighting theme (`github-dark` or `github-light` by default, or custom theme key)                                                          |
-| `shikiThemes`              | `Record<string, ThemeRegistration>`                                              | -                | Additional themes as pre-imported objects (e.g., `{ nord: nordTheme }`)                                                                            |
-| `shikiLanguages`           | `LanguageInfo[]`                                                                 | -                | Additional syntax highlighting languages (merged with defaults)                                                                                    |
-| `mermaidConfig`            | `MermaidConfig`                                                                  | -                | Mermaid diagram configuration                                                                                                                      |
-| `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`                            | -                | KaTeX math rendering options                                                                                                                       |
-| `animation`                | `AnimationConfig`                                                                | -                | Animation configuration for streaming content                                                                                                      |
-| `animation.enabled`        | `boolean`                                                                        | `false`          | Enable/disable animations                                                                                                                          |
-| `animation.type`           | `'fade' \| 'blur' \| 'typewriter' \| 'slideUp' \| 'slideDown'`                   | `'blur'`         | Animation style for text appearance                                                                                                                |
-| `animation.duration`       | `number`                                                                         | `500`            | Animation duration in milliseconds                                                                                                                 |
-| `animation.timingFunction` | `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'`                 | `'ease-in'`      | CSS timing function for animations                                                                                                                 |
-| `animation.tokenize`       | `'word' \| 'char'`                                                               | `'word'`         | Tokenization method for text animations                                                                                                            |
-| `animation.animateOnMount` | `boolean`                                                                        | `false`          | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM |
-| `extensions`               | `Array<Extension>`                                                               | `[]`             | Custom marked tokenizers to render special markdown blocks or inline tokens                                                                        |
-| `mdxComponents`            | `Record<string, Component>`                                                      | `{}`             | Map of MDX component names to Svelte components (e.g., `{ Card, Button }`)                                                                         |
-| `components`               | `{ code?, mermaid?, math? }`                                                     | -                | Optional heavy components for syntax highlighting, diagrams, and math rendering                                                                    |
-| `children`                 | `Snippet<[{token:GenericToken, streamdown: StreamdownContext, children: Snippet` | `undefined`      | Snippet used to render elements not supported by Streamdown, custom extensions, and MDX components                                                 |
+| Prop                       | Type                                                                                                        | Default                | Description                                                                                                                                                                                                                  |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `content`                  | `string`                                                                                                    | -                      | **Required.** The markdown content to render                                                                                                                                                                                 |
+| `sources`                  | `Record<string, any>`                                                                                       | -                      | Citation data object for inline citations                                                                                                                                                                                    |
+| `class`                    | `string`                                                                                                    | -                      | CSS class names for the wrapper element                                                                                                                                                                                      |
+| `parseIncompleteMarkdown`  | `boolean`                                                                                                   | `true`                 | Parse and fix incomplete markdown syntax                                                                                                                                                                                     |
+| `defaultOrigin`            | `string`                                                                                                    | -                      | Default origin for relative URLs                                                                                                                                                                                             |
+| `allowedLinkPrefixes`      | `string[]`                                                                                                  | `['*']`                | Allowed URL prefixes for links                                                                                                                                                                                               |
+| `allowedImagePrefixes`     | `string[]`                                                                                                  | `['*']`                | Allowed URL prefixes for images                                                                                                                                                                                              |
+| `skipHtml`                 | `boolean`                                                                                                   | -                      | Skip HTML parsing entirely                                                                                                                                                                                                   |
+| `unwrapDisallowed`         | `boolean`                                                                                                   | -                      | Unwrap instead of removing disallowed elements                                                                                                                                                                               |
+| `urlTransform`             | `UrlTransform \| null`                                                                                      | -                      | Custom URL transformation function                                                                                                                                                                                           |
+| `theme`                    | `DeepPartial<Theme>`                                                                                        | -                      | Custom theme overrides                                                                                                                                                                                                       |
+| `baseTheme`                | `'tailwind' \| 'shadcn'`                                                                                    | `'tailwind'`           | Base theme to use before applying overrides                                                                                                                                                                                  |
+| `mergeTheme`               | `boolean`                                                                                                   | `true`                 | Whether to merge theme with base theme                                                                                                                                                                                       |
+| `shikiTheme`               | `string`                                                                                                    | auto (dark-mode aware) | Code highlighting theme. Defaults to `github-dark` in dark mode / `github-light` otherwise. Any other value must be a key registered via `shikiThemes`. See [Shiki Themes](#shiki-themes).                                   |
+| `shikiThemes`              | `Record<string, ThemeRegistration>`                                                                         | -                      | Register additional pre-imported themes (e.g. `{ vesper }`) so they can be selected via `shikiTheme`, including dynamic light/dark switching. Replaces the v2 `shikiPreloadThemes` prop.                                     |
+| `shikiLanguages`           | `LanguageInfo[]`                                                                                            | -                      | Additional syntax highlighting languages (merged with defaults)                                                                                                                                                              |
+| `mermaidConfig`            | `MermaidConfig`                                                                                             | -                      | Mermaid diagram configuration                                                                                                                                                                                                |
+| `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`                                                       | -                      | KaTeX math rendering options                                                                                                                                                                                                 |
+| `animation`                | `AnimationConfig`                                                                                           | -                      | Animation configuration for streaming content                                                                                                                                                                                |
+| `animation.enabled`        | `boolean`                                                                                                   | `false`                | Enable/disable animations                                                                                                                                                                                                    |
+| `animation.type`           | `'fade' \| 'blur' \| 'typewriter' \| 'slideUp' \| 'slideDown'`                                              | `'blur'`               | Animation style for text appearance                                                                                                                                                                                          |
+| `animation.duration`       | `number`                                                                                                    | `500`                  | Animation duration in milliseconds                                                                                                                                                                                           |
+| `animation.timingFunction` | `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'`                                            | `'ease-in'`            | CSS timing function for animations                                                                                                                                                                                           |
+| `animation.tokenize`       | `'word' \| 'char'`                                                                                          | `'word'`               | Tokenization method for text animations                                                                                                                                                                                      |
+| `animation.animateOnMount` | `boolean`                                                                                                   | `false`                | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM                                                                           |
+| `extensions`               | `Array<Extension>`                                                                                          | `[]`                   | Custom marked tokenizers to render special markdown blocks or inline tokens                                                                                                                                                  |
+| `mdxComponents`            | `Record<string, Component>`                                                                                 | `{}`                   | Map of MDX component names to Svelte components (e.g., `{ Card, Button }`)                                                                                                                                                   |
+| `components`               | `{ code?, mermaid?, math? }`                                                                                | -                      | Optional heavy components for syntax highlighting, diagrams, and math rendering                                                                                                                                              |
+| `controls`                 | `{ code?: boolean, mermaid?: boolean \| { enabled?: boolean, mouseWheelZoom?: boolean }, table?: boolean }` | all `true`             | Toggle the action toolbars for code blocks, mermaid diagrams, and tables. For mermaid, pass an object to disable only mouse-wheel zoom while keeping pan and the zoom buttons, e.g. `{ mermaid: { mouseWheelZoom: false } }` |
+| `children`                 | `Snippet<[{token:GenericToken, streamdown: StreamdownContext, children: Snippet`                            | `undefined`            | Snippet used to render elements not supported by Streamdown, custom extensions, and MDX components                                                                                                                           |
 
 #### All Available Customizable Elements:
 
@@ -667,9 +783,9 @@ Streamdown supports MDX-style JSX components, allowing you to embed custom Svelt
 
 ```svelte
 <script>
-  import { Streamdown } from 'svelte-streamdown';
-  
-  let content = `
+	import { Streamdown } from 'svelte-streamdown';
+
+	let content = `
 # Using MDX Components
 
 <Card title="Hello" count={42}>
@@ -681,23 +797,23 @@ This is **markdown content** inside a component!
 </script>
 
 <Streamdown {content}>
-  {#snippet mdx({ token, props, children })}
-    {#if token.tagName === 'Card'}
-      <div class="rounded-lg border border-gray-200 p-4 shadow-sm">
-        <h3 class="text-xl font-bold">{props.title}</h3>
-        <p class="text-gray-600">Count: {props.count}</p>
-        <div class="mt-2">
-          {@render children()}
-        </div>
-      </div>
-    {:else if token.tagName === 'Button'}
-      <button class="rounded px-4 py-2 {props.active ? 'bg-blue-500 text-white' : 'bg-gray-200'}">
-        {props.label}
-      </button>
-    {:else}
-      {@render children()}
-    {/if}
-  {/snippet}
+	{#snippet mdx({ token, props, children })}
+		{#if token.tagName === 'Card'}
+			<div class="rounded-lg border border-gray-200 p-4 shadow-sm">
+				<h3 class="text-xl font-bold">{props.title}</h3>
+				<p class="text-gray-600">Count: {props.count}</p>
+				<div class="mt-2">
+					{@render children()}
+				</div>
+			</div>
+		{:else if token.tagName === 'Button'}
+			<button class="rounded px-4 py-2 {props.active ? 'bg-blue-500 text-white' : 'bg-gray-200'}">
+				{props.label}
+			</button>
+		{:else}
+			{@render children()}
+		{/if}
+	{/snippet}
 </Streamdown>
 ```
 
@@ -707,11 +823,11 @@ Instead of using the `mdx` snippet with conditional logic, you can pass Svelte c
 
 ```svelte
 <script>
-  import { Streamdown } from 'svelte-streamdown';
-  import Card from './Card.svelte';
-  import Button from './Button.svelte';
-  
-  let content = `
+	import { Streamdown } from 'svelte-streamdown';
+	import Card from './Card.svelte';
+	import Button from './Button.svelte';
+
+	let content = `
 # Using MDX Components
 
 <Card title="Hello" count={42}>
@@ -730,26 +846,26 @@ This is **markdown content** inside a component!
 ```svelte
 <!-- Card.svelte -->
 <script>
-  let { title, count, children } = $props();
+	let { title, count, children } = $props();
 </script>
 
 <div class="rounded-lg border border-gray-200 p-4 shadow-sm">
-  <h3 class="text-xl font-bold">{title}</h3>
-  <p class="text-gray-600">Count: {count}</p>
-  <div class="mt-2">
-    {@render children()}
-  </div>
+	<h3 class="text-xl font-bold">{title}</h3>
+	<p class="text-gray-600">Count: {count}</p>
+	<div class="mt-2">
+		{@render children()}
+	</div>
 </div>
 ```
 
 ```svelte
 <!-- Button.svelte -->
 <script>
-  let { label, active } = $props();
+	let { label, active } = $props();
 </script>
 
 <button class="rounded px-4 py-2 {active ? 'bg-blue-500 text-white' : 'bg-gray-200'}">
-  {label}
+	{label}
 </button>
 ```
 
@@ -758,11 +874,13 @@ This approach is cleaner when you have standalone component files, while the `md
 ### Supported Syntax
 
 **Self-closing components:**
+
 ```markdown
 <Component attr="value" count={42} enabled={true} />
 ```
 
 **Components with markdown children:**
+
 ```markdown
 <Component title="Hello">
 # This is a heading
@@ -798,31 +916,33 @@ This ensures your UI remains stable even when receiving partial markdown from st
 ### Component Props
 
 The `mdx` snippet receives three parameters:
+
 - `token`: The full MdxToken with `tagName`, `attributes`, `selfClosing`, etc.
 - `props`: Object containing all parsed attributes (e.g., `props.title`, `props.count`)
 - `children`: Snippet containing parsed markdown content
 
 Use `token.tagName` to determine which component is being rendered:
 <Card title="Hello" count={5}>Content</Card>
+
 ```svelte
 <!-- Markdown: <Card title="Hello" count={5}>Content</Card> -->
 <Streamdown {content}>
-  {#snippet mdx({ token, props, children })}
-    {#if token.tagName === 'Card'}
-      <div>
-        <h3>{props.title}</h3>
-        <span>Count: {props.count}</span>
-        {@render children()}
-      </div>
-    {:else if token.tagName === 'Alert'}
-      <div class="alert alert-{props.type}">
-        {@render children()}
-      </div>
-    {:else}
-      <!-- Fallback for unknown components -->
-      {@render children()}
-    {/if}
-  {/snippet}
+	{#snippet mdx({ token, props, children })}
+		{#if token.tagName === 'Card'}
+			<div>
+				<h3>{props.title}</h3>
+				<span>Count: {props.count}</span>
+				{@render children()}
+			</div>
+		{:else if token.tagName === 'Alert'}
+			<div class="alert alert-{props.type}">
+				{@render children()}
+			</div>
+		{:else}
+			<!-- Fallback for unknown components -->
+			{@render children()}
+		{/if}
+	{/snippet}
 </Streamdown>
 ```
 

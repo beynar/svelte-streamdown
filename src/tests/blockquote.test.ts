@@ -56,7 +56,6 @@ describe('tokenization', () => {
 		const paragraphToken = nestedTokens.find((t: any) => t.type === 'paragraph');
 		expect(paragraphToken).toBeDefined();
 
-		console.log({ paragraphToken, nestedTokens });
 		const paragraphTokens = paragraphToken.tokens || [];
 		const strongTokens = paragraphTokens.filter((t: { type: string }) => t.type === 'strong');
 		const emTokens = paragraphTokens.filter((t: { type: string }) => t.type === 'em');
@@ -224,8 +223,9 @@ describe('incomplete markdown', () => {
 		const input = '> Visit [Google';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should complete with incomplete markers at end
-		expect(result).toBe('> Visit [Google](streamdown:incomplete-link)');
+		// A bare trailing "[text" with no other link evidence on the line is
+		// completed as an inline citation (see citations.test.ts), not a link.
+		expect(result).toBe('> Visit [Google]');
 	});
 
 	test('should handle nested blockquotes with incomplete formatting', () => {

@@ -235,7 +235,7 @@ describe('incomplete markdown', () => {
 	});
 
 	test('should handle incomplete link inside alignment block', () => {
-		const input = '[right]\nVisit [Google';
+		const input = '[right]\nVisit [Google](https://goo';
 		const result = parseIncompleteMarkdown(input);
 
 		// Should complete the link inside alignment

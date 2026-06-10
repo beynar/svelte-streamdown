@@ -1,6 +1,15 @@
 {
 	"name": "svelte-streamdown",
-	"version": "3.0.1",
+	"version": "3.1.0",
+	"packageManager": "pnpm@10.32.1",
+	"repository": {
+		"type": "git",
+		"url": "git+https://github.com/beynar/svelte-streamdown.git"
+	},
+	"publishConfig": {
+		"access": "public",
+		"provenance": true
+	},
 	"scripts": {
 		"dev": "vite dev",
 		"build": "vite build && npm run prepack",
@@ -54,6 +63,7 @@
 		"@sveltejs/package": "^2.0.0",
 		"@sveltejs/vite-plugin-svelte": "^6.0.0",
 		"@tailwindcss/vite": "^4.0.0",
+		"@types/node": "^25.9.2",
 		"@vitest/browser": "^3.2.3",
 		"@vitest/ui": "^3.2.4",
 		"playwright": "^1.53.0",

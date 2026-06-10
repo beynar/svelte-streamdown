@@ -218,11 +218,11 @@
 		class="mx-auto mb-48 max-w-4xl border border-t-0 border-dashed border-border px-2 pt-6 sm:px-4 sm:pt-10 [&>h1]:mt-0"
 	>
 		<Streamdown
-			content={`
-$$
-f(x) = \\frac{1}{\\sigma\\sqrt{2\\pi}} e^{-\\frac{1}{2}\\left(\\frac{x-\\mu}{\\sigma}\\right)^2}
-$$
-			`}
+			{content}
+			baseTheme="shadcn"
+			animation={{ enabled: animationEnabled }}
+			{shikiThemes}
+			shikiTheme={theme.resolvedTheme === 'dark' ? 'vitesse-dark' : 'vitesse-light'}
 			components={{
 				code: Code,
 				math: MathComponent,

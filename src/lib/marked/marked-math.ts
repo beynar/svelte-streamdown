@@ -56,23 +56,21 @@ export const markedMath: Extension[] = [
 				const possibleMath = src.substring(currentIndex);
 
 				// Check if this could be math (not currency)
-				if (possibleMath.match(inlineRule)) {
-					const match = possibleMath.match(inlineRule);
-					if (match) {
-						const content = match[2];
-						const dollarCount = match[1]; // '$' or '$$'
+				const match = possibleMath.match(inlineRule);
+				if (match) {
+					const content = match[2];
+					const dollarCount = match[1]; // '$' or '$$'
 
-						// Only apply currency detection to single dollars
-						// Double dollars ($$) indicate explicit math intent
-						if (dollarCount === '$' && isCurrencyPattern(content, src, currentIndex)) {
-							// This looks like currency with single dollars, skip it
-							index += dollarIndex + 1;
-							searchSrc = src.substring(index);
-							continue;
-						}
-
-						return currentIndex;
+					// Only apply currency detection to single dollars
+					// Double dollars ($$) indicate explicit math intent
+					if (dollarCount === '$' && isCurrencyPattern(content, src, currentIndex)) {
+						// This looks like currency with single dollars, skip it
+						index += dollarIndex + 1;
+						searchSrc = src.substring(index);
+						continue;
 					}
+
+					return currentIndex;
 				}
 
 				index += dollarIndex + 1;

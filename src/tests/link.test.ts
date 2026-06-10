@@ -310,8 +310,9 @@ describe('incomplete markdown', () => {
 		const input = 'Visit [GitHub';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should complete incomplete links at end
-		expect(result).toBe('Visit [GitHub](streamdown:incomplete-link)');
+		// A bare trailing "[text" with no other link evidence on the line is
+		// completed as an inline citation (see citations.test.ts), not a link.
+		expect(result).toBe('Visit [GitHub]');
 	});
 
 	test('should handle complete and incomplete links together', () => {

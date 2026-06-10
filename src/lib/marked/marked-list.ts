@@ -36,6 +36,43 @@ export const romanLower = '(?:c|xc|l?x{0,3}(?:ix|iv|v?i{0,3}))';
 export const bulletPattern = `(?:[*+-]|(?:\\d{1,9}|[a-zA-Z]|${romanUpper}|${romanLower})[.)])`;
 export const rule = `^( {0,3}${bulletPattern})([ \\t][^\\n]*|[ \\t])?(?:\\n|$)`;
 
+// --- Precompiled regexes ---------------------------------------------------
+// These were previously rebuilt on every tokenizer call and, for the boundary
+// set, on every item iteration. They are stateless (no `g` flag) so they are
+// safe to share. This is the bulk of the per-chunk list cost.
+const RULE_RE = new RegExp(rule);
+const ROMAN_UPPER_RE = new RegExp(`^${romanUpper}[.)]$`);
+const ROMAN_LOWER_RE = new RegExp(`^${romanLower}[.)]$`);
+const LOWER_ALPHA_RE = /^[a-z][.)]$/;
+const UPPER_ALPHA_RE = /^[A-Z][.)]$/;
+
+// The per-item boundary regexes vary only by the indent clamp (0..3); build the
+// four variants once at module load and index into them.
+function buildBoundaryRegexes(maxIndent: number) {
+	return {
+		nextBullet: new RegExp(
+			`^ {0,${maxIndent}}(?:[*+-]|(?:\\d{1,9}|[a-zA-Z]|${romanUpper}|${romanLower})[.)])((?:[ \t][^\\n]*)?(?:\\n|$))`
+		),
+		hr: new RegExp(`^ {0,${maxIndent}}((?:- *){3,}|(?:_ *){3,}|(?:\\* *){3,})(?:\\n+|$)`),
+		fences: new RegExp(`^ {0,${maxIndent}}(?:\`\`\`|~~~)`),
+		heading: new RegExp(`^ {0,${maxIndent}}#`),
+		html: new RegExp(`^ {0,${maxIndent}}<[a-z].*>`, 'i')
+	};
+}
+const LIST_BOUNDARY_TABLE = [0, 1, 2, 3].map(buildBoundaryRegexes);
+
+// itemRegex depends only on `bull`, which has a small finite set of shapes;
+// cache the compiled instances instead of recompiling per tokenizer call.
+const itemRegexCache = new Map<string, RegExp>();
+function getItemRegex(bull: string): RegExp {
+	let re = itemRegexCache.get(bull);
+	if (!re) {
+		re = new RegExp(`^( {0,3}${bull})([\t ][^\\n]*|[\t ])?(?:\\n|$)`);
+		itemRegexCache.set(bull, re);
+	}
+	return re;
+}
+
 function finalizeList(list: ListToken, lexer: Lexer) {
 	if (list.tokens.length === 0) return;
 
@@ -49,12 +86,23 @@ function finalizeList(list: ListToken, lexer: Lexer) {
 	for (const item of list.tokens) {
 		lexer.state.top = false;
 		item.tokens = lexer.blockTokens(item.text, []);
+
+		// A blank line inside a single item also makes the list loose
+		if (!list.loose) {
+			const spaceTokens = item.tokens.filter((token) => token.type === 'space');
+			if (spaceTokens.length > 0 && spaceTokens.some((token) => /\n.*\n/.test(token.raw))) {
+				list.loose = true;
+			}
+		}
 	}
 
-	// Mark list as loose if needed
+	// Mark list as loose if needed and re-tokenize items as block content so
+	// their text becomes paragraph tokens instead of inline text
 	if (list.loose) {
 		for (const item of list.tokens) {
 			item.loose = true;
+			lexer.state.top = true;
+			item.tokens = lexer.blockTokens(item.text, []);
 		}
 	}
 }
@@ -65,7 +113,7 @@ export const markedList: Extension = {
 	name: 'list',
 	level: 'block',
 	tokenizer(this, src) {
-		let cap = new RegExp(rule).exec(src);
+		let cap = RULE_RE.exec(src);
 
 		if (!cap) return undefined;
 
@@ -77,16 +125,16 @@ export const markedList: Extension = {
 
 		// Detect list type (Roman, alphabetic, numeric)
 		if (isOrdered) {
-			if (bullet.match(new RegExp(`^${romanUpper}[.)]$`))) {
+			if (ROMAN_UPPER_RE.test(bullet)) {
 				type = 'upper-roman';
 				bull = `${romanUpper}\\${bullet.slice(-1)}`;
-			} else if (bullet.match(new RegExp(`^${romanLower}[.)]$`))) {
+			} else if (ROMAN_LOWER_RE.test(bullet)) {
 				type = 'lower-roman';
 				bull = `${romanLower}\\${bullet.slice(-1)}`;
-			} else if (bullet.match(/^[a-z][.)]$/)) {
+			} else if (LOWER_ALPHA_RE.test(bullet)) {
 				type = 'lower-alpha';
 				bull = `[a-z]\\${bullet.slice(-1)}`;
-			} else if (bullet.match(/^[A-Z][.)]$/)) {
+			} else if (UPPER_ALPHA_RE.test(bullet)) {
 				type = 'upper-alpha';
 				bull = `[A-Z]\\${bullet.slice(-1)}`;
 			} else {
@@ -94,7 +142,6 @@ export const markedList: Extension = {
 				bull = `\\d{1,9}\\${bullet.slice(-1)}`;
 			}
 		} else {
-			bull = this.lexer.options.pedantic ? bullet : '[*+-]';
 			bull = this.lexer.options.pedantic ? escapeForRegex(bullet) : '[*+-]';
 		}
 
@@ -110,7 +157,7 @@ export const markedList: Extension = {
 
 		// Get next list item
 		// Updated regex to properly handle empty list items (space after bullet, then newline)
-		const itemRegex = new RegExp(`^( {0,3}${bull})([\t ][^\\n]*|[\t ])?(?:\\n|$)`);
+		const itemRegex = getItemRegex(bull);
 		let endsWithBlankLine = false;
 
 		// Check if current bullet point can start a new List Item
@@ -152,15 +199,8 @@ export const markedList: Extension = {
 			}
 
 			if (!endEarly) {
-				const nextBulletRegex = new RegExp(
-					`^ {0,${Math.min(3, indent - 1)}}(?:[*+-]|(?:\\d{1,9}|[a-zA-Z]|${romanUpper}|${romanLower})[.)])((?:[ \t][^\\n]*)?(?:\\n|$))`
-				);
-				const hrRegex = new RegExp(
-					`^ {0,${Math.min(3, indent - 1)}}((?:- *){3,}|(?:_ *){3,}|(?:\\* *){3,})(?:\\n+|$)`
-				);
-				const fencesBeginRegex = new RegExp(`^ {0,${Math.min(3, indent - 1)}}(?:\`\`\`|~~~)`);
-				const headingBeginRegex = new RegExp(`^ {0,${Math.min(3, indent - 1)}}#`);
-				const htmlBeginRegex = new RegExp(`^ {0,${Math.min(3, indent - 1)}}<[a-z].*>`, 'i');
+				const { nextBullet, hr, fences, heading, html } =
+					LIST_BOUNDARY_TABLE[Math.min(3, indent - 1)];
 
 				// Check if following lines should be included in List Item
 				while (src) {
@@ -168,11 +208,11 @@ export const markedList: Extension = {
 					const nextLineWithoutTabs = rawLine.replace(/\t/g, '    ');
 
 					if (
-						fencesBeginRegex.test(nextLineWithoutTabs) ||
-						headingBeginRegex.test(nextLineWithoutTabs) ||
-						htmlBeginRegex.test(nextLineWithoutTabs) ||
-						nextBulletRegex.test(nextLineWithoutTabs) ||
-						hrRegex.test(nextLineWithoutTabs)
+						fences.test(nextLineWithoutTabs) ||
+						heading.test(nextLineWithoutTabs) ||
+						html.test(nextLineWithoutTabs) ||
+						nextBullet.test(nextLineWithoutTabs) ||
+						hr.test(nextLineWithoutTabs)
 					)
 						break;
 

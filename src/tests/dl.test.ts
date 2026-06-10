@@ -17,7 +17,6 @@ describe('tokenizing', () => {
 
 		expect(listToken).toBeDefined();
 		expect(listItemToken).toBeDefined();
-		console.dir(listItemToken.tokens[0], { depth: null });
 		expect(listItemToken.tokens[0].tokens[0].type).toBe('strong');
 		expect(listItemToken.tokens[0].tokens[1].type).not.toBe('description');
 	});
@@ -117,5 +116,30 @@ describe('description list parsing', () => {
 			const result = parseIncompleteMarkdown(input);
 			expect(result).toBe('```\n: This should not be modified\n```\n: This should be processed:');
 		});
+	});
+});
+
+describe('regression: details containing colons', () => {
+	test('should keep a detail containing a colon instead of dropping the line', () => {
+		const tokens = lex(': Time: 10:30 AM') as any[];
+		const dl = tokens.find((t) => t.type === 'descriptionList');
+
+		expect(dl).toBeDefined();
+		expect(dl.tokens.length).toBe(1);
+
+		const [term, detail] = dl.tokens[0].tokens;
+		expect(term.raw).toBe('Time');
+		expect(detail.raw).toBe('10:30 AM');
+	});
+
+	test('should emit a token for every line the block rule consumes', () => {
+		const tokens = lex(': Term: detail with: extra colon\n: Clean: detail') as any[];
+		const dl = tokens.find((t) => t.type === 'descriptionList');
+
+		expect(dl).toBeDefined();
+		// Both lines must produce a description token (the first used to vanish)
+		expect(dl.tokens.length).toBe(2);
+		expect(dl.tokens[0].tokens[1].raw).toBe('detail with: extra colon');
+		expect(dl.tokens[1].tokens[1].raw).toBe('detail');
 	});
 });

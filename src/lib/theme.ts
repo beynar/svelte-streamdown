@@ -85,7 +85,7 @@ export const theme = {
 		base: 'bg-gray-100/50 border-t border-gray-300'
 	},
 	tr: {
-		base: 'border-gray-200 border-b hover:bg-gray-100/50 transition-colors'
+		base: 'border-gray-200 not-last:border-b hover:bg-gray-100/50 transition-colors'
 	},
 	td: {
 		base: 'px-4 py-3 text-sm min-w-[200px] max-w-[400px] break-words'
@@ -265,7 +265,7 @@ export const shadcnTheme = {
 		base: 'bg-muted/50 border-t border-border'
 	},
 	tr: {
-		base: 'border-border border-b hover:bg-muted/50 transition-colors'
+		base: 'border-border not-last:border-b hover:bg-muted/50 transition-colors'
 	},
 	td: {
 		base: 'px-4 py-3 text-sm text-foreground min-w-[200px] max-w-[400px] break-words'

@@ -1,5 +1,11 @@
 # Changelog
 
+## 3.1.1
+
+### 🐛 Bug Fixes
+
+- **Table last-row border** — removed the doubled bottom border on the final table row (it stacked on the table's own rounded border). Thanks [@ieedan](https://github.com/ieedan) ([#23](https://github.com/beynar/svelte-streamdown/pull/23)).
+
 ## 3.1.0
 
 ### ✨ Features

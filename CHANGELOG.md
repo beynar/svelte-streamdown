@@ -1,5 +1,16 @@
 # Changelog
 
+## 3.1.2
+
+### 🔒 Security
+
+- Bumped `mermaid` to `^11.15.0` to clear 4 moderate advisories (classDef/config injection, Gantt DoS) that surfaced in consumers' `pnpm audit` ([#32](https://github.com/beynar/svelte-streamdown/issues/32), thanks [@polvallverdu](https://github.com/polvallverdu)).
+
+### 🐛 Bug Fixes
+
+- **List no longer absorbs a following paragraph** — a paragraph after a blank line following a list item is now its own block instead of being merged into the item ([#34](https://github.com/beynar/svelte-streamdown/issues/34), thanks [@snayerman](https://github.com/snayerman)).
+- **Inline citations with no matching source now render as plain text** (`[123]`, `[ref] [ref2]`) instead of vanishing ([#31](https://github.com/beynar/svelte-streamdown/issues/31)).
+
 ## 3.1.1
 
 ### 🐛 Bug Fixes

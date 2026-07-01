@@ -1,6 +1,6 @@
 {
 	"name": "svelte-streamdown",
-	"version": "3.1.1",
+	"version": "3.1.2",
 	"packageManager": "pnpm@10.32.1",
 	"repository": {
 		"type": "git",
@@ -99,7 +99,7 @@
 		"clsx": "^2.1.1",
 		"katex": "^0.16.22",
 		"marked": "^16.2.1",
-		"mermaid": "^11.11.0",
+		"mermaid": "^11.15.0",
 		"shiki": "^3.13.0",
 		"tailwind-merge": "^3.3.1"
 	}

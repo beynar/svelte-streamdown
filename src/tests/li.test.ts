@@ -212,6 +212,16 @@ describe('tokenization', () => {
 		expect(firstItemTypes).not.toContain('text');
 	});
 
+	test('should not absorb a paragraph after a blank line into the previous item (#34)', () => {
+		const tokens = lex('- Some List Item\n\nOptional details you can include:\n- Foo\n- Bar');
+
+		expect(tokens.map((t: any) => t.type)).toEqual(['list', 'paragraph', 'list']);
+
+		const firstList = getFirstTokenByType(tokens, 'list');
+		expect(firstList.tokens.length).toBe(1);
+		expect(firstList.tokens[0].text).toBe('Some List Item');
+	});
+
 	test('should parse ordered list item and verify properties', () => {
 		const tokens = lex('1. First ordered item\n2. Second ordered item');
 		const listToken = getFirstTokenByType(tokens, 'list');

@@ -257,4 +257,8 @@
 			{citationWithSources.length > 1 ? ` +${citationWithSources.length - 1}` : ''}
 		</Slot>
 	</button>
+{:else}
+	<!-- No key matched a `sources` entry: render the literal citation text so it
+	     isn't silently dropped (e.g. `[123]`, `[ref] [ref2]`). -->
+	{token.raw ?? `[${token.keys.join(', ')}]`}
 {/if}

@@ -202,10 +202,14 @@ export const markedList: Extension = {
 				const { nextBullet, hr, fences, heading, html } =
 					LIST_BOUNDARY_TABLE[Math.min(3, indent - 1)];
 
+				let sawBlankLine = false;
+
 				// Check if following lines should be included in List Item
 				while (src) {
 					const rawLine = src.split('\n', 1)[0];
 					const nextLineWithoutTabs = rawLine.replace(/\t/g, '    ');
+					const isBlankLine = !nextLineWithoutTabs.trim();
+					const isIndented = nextLineWithoutTabs.search(/[^ ]/) >= indent;
 
 					if (
 						fences.test(nextLineWithoutTabs) ||
@@ -216,12 +220,18 @@ export const markedList: Extension = {
 					)
 						break;
 
-					if (nextLineWithoutTabs.search(/[^ ]/) >= indent || !nextLineWithoutTabs.trim()) {
+					// A blank line followed by a dedented non-bullet line ends the item:
+					// that line starts a new top-level block (a bullet after a blank line
+					// is a loose-list continuation and was already caught by nextBullet).
+					if (sawBlankLine && !isBlankLine && !isIndented) break;
+
+					if (isIndented || isBlankLine) {
 						itemContents += '\n' + nextLineWithoutTabs.slice(indent);
 					} else {
 						itemContents += '\n' + nextLineWithoutTabs;
 					}
 
+					sawBlankLine = isBlankLine;
 					raw += rawLine + '\n';
 					src = src.substring(rawLine.length + 1);
 				}

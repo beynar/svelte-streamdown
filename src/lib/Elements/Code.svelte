@@ -2,11 +2,8 @@
 	import { useStreamdown } from '$lib/context.svelte.js';
 	import { save } from '$lib/utils/save.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
-	import { HighlighterManager, languageExtensionMap } from '$lib/utils/hightlighter.svelte.js';
-	import { bundledLanguagesInfo } from '$lib/utils/bundledLanguages.js';
+	import { highlightLines, languageExtensionMap } from '$lib/utils/hightlighter.svelte.js';
 	import type { Tokens } from 'marked';
-	import { type ThemedToken } from 'shiki';
-	import { untrack } from 'svelte';
 	import { checkIcon, copyIcon, downloadIcon } from './icons.js';
 
 	const {
@@ -18,11 +15,6 @@
 	} = $props();
 
 	const streamdown = useStreamdown();
-	const highlighter = HighlighterManager.create(
-		bundledLanguagesInfo,
-		streamdown.shikiThemes,
-		streamdown.shikiLanguages
-	);
 
 	const copy = useCopy({
 		get content() {
@@ -46,13 +38,7 @@
 		}
 	};
 
-	$effect(() => {
-		const theme = streamdown.shikiTheme;
-		const lang = token.lang;
-		untrack(() => {
-			void highlighter.load(theme, lang);
-		});
-	});
+	const lines = $derived(highlightLines(token.text, token.lang, streamdown.highlightLanguages));
 </script>
 
 <div
@@ -84,39 +70,15 @@
 		{/if}
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
-		{#if highlighter.isReady(streamdown.shikiTheme, token.lang)}
-			<pre class={streamdown.theme.code.pre}><code
-					>{@render Tokens(
-						highlighter.highlightCode(token.text, token.lang, streamdown.shikiTheme)
-					)}</code
-				></pre>
-		{:else}
-			<pre class={streamdown.theme.code.pre}><code>{@render Skeleton(token.text.split('\n'))}</code
-				></pre>
-		{/if}
+		<pre class={streamdown.theme.code.pre}><code
+				>{#each lines as line}<span class={streamdown.theme.code.line}
+						>{#if line.length === 0}&#8203;{/if}{#each line as t}<span
+								class="th-token{t.className ? ` th-${t.className}` : ''}"
+								style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
+								style:color={streamdown.highlightTheme.tokens[t.className ?? 'token']}
+								>{t.value}</span
+							>{/each}</span
+					>{/each}</code
+			></pre>
 	</div>
 </div>
-
-{#snippet Tokens(lines: ThemedToken[][])}
-	{#each lines as tokens}
-		<span class={streamdown.theme.code.line}>
-			{#each tokens as token}
-				<span
-					style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
-					style:color={token.color}
-					style:background-color={token.bgColor}
-				>
-					{token.content}
-				</span>
-			{/each}
-		</span>
-	{/each}
-{/snippet}
-
-{#snippet Skeleton(lines: string[])}
-	{#each lines as line}
-		<span class={streamdown.theme.code.skeleton}>
-			{line.trim().length > 0 ? line : '\u200B'}
-		</span>
-	{/each}
-{/snippet}

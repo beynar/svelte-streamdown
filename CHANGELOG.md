@@ -1,5 +1,29 @@
 # Changelog
 
+## 4.0.0 (unreleased)
+
+### 💥 Breaking: shiki replaced by `@tanstack/highlight`
+
+Code highlighting now uses [`@tanstack/highlight`](https://github.com/TanStack/highlight) instead of shiki. It is synchronous, isomorphic and zero-dependency: all 30 language scanners plus both default themes weigh ~31KB minified / ~11KB gzip together, so highlighting runs during SSR, the skeleton/loading state is gone, and there is no grammar or theme to lazy-load.
+
+**Prop renames:**
+
+```diff
+- shikiTheme="nord"
+- shikiThemes={{ nord }}
+- shikiLanguages={[{ id: 'haskell', name: 'Haskell', import: () => import('@shikijs/langs/haskell') }]}
++ highlightTheme="nord"
++ highlightThemes={{ nord }}
++ highlightLanguages={[myLanguage]}
+```
+
+- `highlightThemes` takes `Record<string, HighlightTheme>` — import theme objects from `@tanstack/highlight/themes/<name>` (`aurora-x`, `dracula`, `github-dark`, `github-light`, `gruvbox-dark`, `gruvbox-light`, `monokai`, `nord`, `one-dark-pro`, `solarized-dark`, `solarized-light`) or write your own object of that shape. `github-dark` / `github-light` stay built in and follow the color scheme by default.
+- `highlightLanguages` takes `LanguageDefinition[]` built with the newly exported `defineLanguage` instead of lazy shiki grammar loaders.
+- **Removed exports**: `bundledLanguagesInfo`, `createLanguageSet`, `LanguageInfo`. **New exports**: `defineLanguage`, `LanguageDefinition`, `HighlightTheme`.
+- **Removed theme key**: `code.skeleton` (no loading state anymore).
+- An unknown `highlightTheme` key now falls back to the built-in themes instead of leaving the block unhighlighted forever.
+- **Language coverage caveat**: `@tanstack/highlight@0.1.0` supports `apache`, `cmake`, `cpp`, `css`, `diff`, `dockerfile`, `ejs`, `env`, `go`, `html`, `http`, `js`, `json`, `jsx`, `markdown`, `mermaid`, `nginx`, `php`, `plaintext`, `python`, `scheme`, `shell`, `sql`, `svelte`, `toml`, `ts`, `tsrx`, `tsx`, `vue`, `yaml` (plus the usual aliases). Languages shiki covered but this does not — `java`, `rust`, `c`, `c#`, `swift`, `kotlin`, `ruby`, `graphql`, … — render as plaintext.
+
 ## 3.1.2
 
 ### 🔒 Security

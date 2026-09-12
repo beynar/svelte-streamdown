@@ -421,7 +421,7 @@ Self-closing or with children - both work!
 			mermaidConfig={{
 				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
 			}}
-			shikiTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
+			highlightTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
 			{content}
 		>
 			{#snippet mdx({ token, props, children })}

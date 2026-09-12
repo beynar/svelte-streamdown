@@ -46,8 +46,6 @@ export const theme = {
 		header: 'flex items-center justify-between bg-gray-100/80 p-2	 text-gray-600 text-xs',
 		buttons: 'flex items-center gap-2',
 		language: 'ml-1 font-mono lowercase',
-		skeleton:
-			'block rounded-md font-mono text-transparent bg-gray-200 scale-y-90 animate-pulse whitespace-nowrap',
 		pre: 'overflow-x-auto font-mono p-0 bg-gray-100/40',
 		line: 'block'
 	},
@@ -225,8 +223,6 @@ export const shadcnTheme = {
 		buttons: 'flex items-center gap-2',
 
 		language: 'ml-1 font-mono lowercase',
-		skeleton:
-			'block rounded-md font-mono text-transparent bg-border/80 scale-y-90 w-fit animate-pulse whitespace-nowrap',
 		pre: 'overflow-x-auto font-mono p-0 bg-muted/40',
 		line: 'block '
 	},

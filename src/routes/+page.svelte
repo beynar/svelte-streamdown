@@ -94,20 +94,12 @@
 
 	const theme = useTheme();
 
-	// const shikiLanguages = [
-	// 	{
-	// 		id: 'liquid',
-	// 		name: 'Liquid',
-	// 		import: () => import('@shikijs/langs/liquid')
-	// 	}
-	// ];
+	import oneDarkPro from '@tanstack/highlight/themes/one-dark-pro';
+	import githubLight from '@tanstack/highlight/themes/github-light';
 
-	import vitesseDark from '@shikijs/themes/vitesse-dark';
-	import vitesseLight from '@shikijs/themes/vitesse-light';
-
-	const shikiThemes = {
-		'vitesse-dark': vitesseDark,
-		'vitesse-light': vitesseLight
+	const highlightThemes = {
+		'one-dark-pro': oneDarkPro,
+		'github-light': githubLight
 	};
 </script>
 
@@ -221,8 +213,8 @@
 			{content}
 			baseTheme="shadcn"
 			animation={{ enabled: animationEnabled }}
-			{shikiThemes}
-			shikiTheme={theme.resolvedTheme === 'dark' ? 'vitesse-dark' : 'vitesse-light'}
+			{highlightThemes}
+			highlightTheme={theme.resolvedTheme === 'dark' ? 'one-dark-pro' : 'github-light'}
 			components={{
 				code: Code,
 				math: MathComponent,

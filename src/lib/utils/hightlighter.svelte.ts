@@ -1,258 +1,45 @@
-import type { ThemedToken, ThemeRegistration } from 'shiki';
-import type { HighlighterCore } from 'shiki/core';
-import { SvelteMap } from 'svelte/reactivity';
 import {
-	supportedLanguages,
-	createLanguageSet,
-	bundledLanguagesInfo,
-	type LanguageInfo
-} from './bundledLanguages.js';
-import { createHighlighterCore } from 'shiki/core';
-import { createJavaScriptRegexEngine } from 'shiki/engine/javascript';
-// Import default themes directly
-import githubDark from '@shikijs/themes/github-dark';
-import githubLight from '@shikijs/themes/github-light';
+	createHighlighter,
+	defaultHighlighter,
+	allLanguages,
+	type Highlighter,
+	type HighlightToken,
+	type LanguageDefinition
+} from '@tanstack/highlight';
 
-export type Highlighter = HighlighterCore;
+const highlighters = new WeakMap<readonly LanguageDefinition[], Highlighter>();
 
-// Default themes that are always loaded
-const DEFAULT_THEMES = {
-	'github-dark': githubDark,
-	'github-light': githubLight
+const getHighlighter = (extra?: LanguageDefinition[]): Highlighter => {
+	if (!extra?.length) return defaultHighlighter;
+	let highlighter = highlighters.get(extra);
+	if (!highlighter) {
+		highlighter = createHighlighter({ languages: [...allLanguages, ...extra] });
+		highlighters.set(extra, highlighter);
+	}
+	return highlighter;
 };
 
-class HighlighterManager {
-	loadedLanguages = new SvelteMap<string, Promise<void> | boolean>();
-	highlighter = $state<Highlighter | Promise<Highlighter> | null>(null);
-	customLanguages: Set<string>;
-	languageLoaders: Map<string, () => Promise<any>>;
-	additionalThemes: Record<string, ThemeRegistration>;
-
-	constructor(
-		languages: LanguageInfo[],
-		additionalThemes?: Record<string, ThemeRegistration>,
-		additionalLanguages?: LanguageInfo[]
-	) {
-		// Store additional themes (will be loaded with highlighter)
-		this.additionalThemes = additionalThemes || {};
-
-		// Merge languages: default + additional
-		const allLanguages = additionalLanguages ? [...languages, ...additionalLanguages] : languages;
-		this.languageLoaders = new Map();
-		allLanguages.forEach((l) => {
-			this.languageLoaders.set(l.id, l.import);
-			if (l.aliases) {
-				l.aliases.forEach((alias) => this.languageLoaders.set(alias, l.import));
-			}
-		});
-
-		// Build custom languages set for validation
-		if (additionalLanguages) {
-			const additionalSet = createLanguageSet(additionalLanguages);
-			this.customLanguages = new Set([...supportedLanguages, ...additionalSet]);
-		} else {
-			this.customLanguages = supportedLanguages;
-		}
-
-		if (typeof window !== 'undefined') {
-			Object.assign(window, {
-				STREAMDOWN_HIGHLIGHTER: this
-			});
+/**
+ * Tokenizes code into lines of tokens. Synchronous and isomorphic: works during SSR.
+ * Unknown languages fall back to plaintext.
+ */
+export function highlightLines(
+	code: string,
+	lang: string | undefined,
+	extra?: LanguageDefinition[]
+): HighlightToken[][] {
+	const tokens = getHighlighter(extra).tokenize(code, { lang }).tokens;
+	const lines: HighlightToken[][] = [[]];
+	for (const token of tokens) {
+		const parts = token.value.split('\n');
+		for (let i = 0; i < parts.length; i++) {
+			if (i > 0) lines.push([]);
+			// ponytail: empty segments carry no text, so skip them instead of emitting empty spans
+			if (parts[i]) lines[lines.length - 1].push({ ...token, value: parts[i] });
 		}
 	}
-
-	private async loadHighlighter(): Promise<Highlighter> {
-		if (this.highlighter instanceof Promise) {
-			return this.highlighter;
-		} else if (!this.highlighter) {
-			this.highlighter = new Promise<Highlighter>(async (resolve, reject) => {
-				try {
-					const engine = createJavaScriptRegexEngine({ forgiving: true });
-					// Load default themes + any additional themes immediately
-					const allThemes = [
-						...Object.values(DEFAULT_THEMES),
-						...Object.values(this.additionalThemes)
-					];
-					const highlighter = await createHighlighterCore({
-						themes: allThemes,
-						langs: [],
-						engine
-					});
-
-					this.highlighter = highlighter;
-					resolve(highlighter);
-				} catch (error) {
-					reject(error);
-				}
-			});
-
-			return this.highlighter;
-		} else {
-			return this.highlighter;
-		}
-	}
-	private isThemeAvailable(theme: string): boolean {
-		return theme in DEFAULT_THEMES || theme in this.additionalThemes;
-	}
-
-	private async loadLanguage(language: string, highlighter: Highlighter): Promise<void> {
-		// Skip loading if language is not supported
-		if (!this.isLanguageSupported(language)) {
-			return;
-		}
-		const languageLoader = this.loadedLanguages.get(language);
-		if (languageLoader instanceof Promise) {
-			await languageLoader;
-		} else if (!languageLoader) {
-			const loader = this.languageLoaders.get(language);
-			if (!loader) {
-				// Language not available, mark as failed
-				this.loadedLanguages.set(language, false);
-				return;
-			}
-			const languageLoaderPromise = loader()
-				.then((langModule) => {
-					const langObj = langModule.default || langModule;
-					return highlighter.loadLanguage(langObj);
-				})
-				.then(() => {
-					this.loadedLanguages.set(language, true);
-				})
-				.catch((err) => {
-					this.loadedLanguages.set(language, false);
-					throw err;
-				});
-			this.loadedLanguages.set(language, languageLoaderPromise);
-			await languageLoaderPromise;
-		}
-	}
-
-	private isLanguageSupported = (language: string): boolean => {
-		return this.customLanguages.has(language);
-	};
-
-	isReady(theme: string, language: string | undefined): boolean {
-		// Check if theme is available
-		if (!this.isThemeAvailable(theme)) {
-			return false;
-		}
-
-		// For unsupported languages, we don't need to load anything (will use plaintext)
-		if (!language || !this.isLanguageSupported(language)) {
-			return !!this.highlighter && !(this.highlighter instanceof Promise);
-		}
-
-		return (
-			!!this.highlighter &&
-			!(this.highlighter instanceof Promise) &&
-			this.loadedLanguages.get(language) === true
-		);
-	}
-
-	/**
-	 * Ensures the highlighter is ready for the given theme and language.
-	 */
-	async load(theme: string, language: string | undefined): Promise<void> {
-		// For unsupported languages, only need to load highlighter (themes are pre-loaded)
-		if (!language || !this.isLanguageSupported(language)) {
-			if (this.highlighter !== null && !(this.highlighter instanceof Promise)) {
-				return;
-			}
-			await this.loadHighlighter();
-			return;
-		}
-
-		const languageLoader = this.loadedLanguages.get(language);
-		if (
-			this.highlighter !== null &&
-			!(this.highlighter instanceof Promise) &&
-			languageLoader === true
-		) {
-			return;
-		}
-		const highlighter = await this.loadHighlighter();
-		await this.loadLanguage(language, highlighter);
-	}
-
-	/**
-	 * Highlights code synchronously. Must call isReady() first.
-	 * Returns plaintext tokens for unsupported languages.
-	 */
-	highlightCode(code: string, language: string | undefined, theme: string): ThemedToken[][] {
-		try {
-			const highlighter = this.highlighter;
-			if (!highlighter || highlighter instanceof Promise) {
-				// Return plaintext tokens when highlighter is not ready
-				return code.split('\n').map((line) => [
-					{
-						content: line,
-						color: undefined,
-						bgColor: undefined
-					} as ThemedToken
-				]);
-			}
-
-			// For unsupported languages, return plaintext tokens
-			if (!language || !this.isLanguageSupported(language)) {
-				return code.split('\n').map((line) => [
-					{
-						content: line,
-						color: undefined,
-						bgColor: undefined
-					} as ThemedToken
-				]);
-			}
-
-			const tokens = highlighter.codeToTokensBase(code, {
-				lang: language,
-				theme
-			});
-			return tokens;
-		} catch (error) {
-			// Return plaintext tokens on error
-			return code.split('\n').map((line) => [
-				{
-					content: line,
-					color: undefined,
-					bgColor: undefined
-				} as ThemedToken
-			]);
-		}
-	}
-
-	static create(
-		languages: LanguageInfo[] = bundledLanguagesInfo,
-		additionalThemes?: Record<string, ThemeRegistration>,
-		additionalLanguages?: LanguageInfo[]
-	): HighlighterManager {
-		if (typeof window !== 'undefined' && 'STREAMDOWN_HIGHLIGHTER' in window) {
-			const previousHighlighter = window.STREAMDOWN_HIGHLIGHTER as HighlighterManager;
-			// Merge additional themes
-			if (additionalThemes) {
-				Object.assign(previousHighlighter.additionalThemes, additionalThemes);
-			}
-			// Merge additional languages with existing set
-			if (additionalLanguages) {
-				additionalLanguages.forEach((lang) => {
-					previousHighlighter.languageLoaders.set(lang.id, lang.import);
-					if (lang.aliases) {
-						lang.aliases.forEach((alias) =>
-							previousHighlighter.languageLoaders.set(alias, lang.import)
-						);
-					}
-				});
-				const additionalSet = createLanguageSet(additionalLanguages);
-				additionalSet.forEach((lang) => previousHighlighter.customLanguages.add(lang));
-			}
-			return previousHighlighter;
-		}
-
-		return new HighlighterManager(languages, additionalThemes, additionalLanguages);
-	}
+	return lines;
 }
-
-// Export the class for those who want to create their own instances
-export { HighlighterManager };
 
 export const languageExtensionMap: Record<string, string> = {
 	'1c': '1c',

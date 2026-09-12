@@ -8,8 +8,5 @@ export {
 	type Plugin,
 	IncompleteMarkdownParser
 } from './utils/parse-incomplete-markdown.js';
-export {
-	bundledLanguagesInfo,
-	createLanguageSet,
-	type LanguageInfo
-} from './utils/bundledLanguages.js';
+export { defineLanguage, type LanguageDefinition } from '@tanstack/highlight';
+export type { HighlightTheme } from '@tanstack/highlight/theme';

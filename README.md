@@ -75,9 +75,9 @@ Full support for
 
 ### 💻 Interactive Code Blocks
 
-- Syntax highlighting powered by Shiki
+- Syntax highlighting powered by [@tanstack/highlight](https://github.com/TanStack/highlight) (synchronous, SSR-friendly, ~31KB min / ~11KB gzip for every language)
 - Copy-to-clipboard functionality
-- Support any Shiki themes
+- Support any `@tanstack/highlight` theme, or your own
 
 ### 🔢 Mathematical Expressions
 
@@ -398,7 +398,7 @@ Here is how it works on each content update:
 
 During streaming, newly received text almost always only changes the **last** block (and occasionally starts a new one). Every earlier block keeps an identical raw string, so Svelte skips its `lex()` call entirely — this is the equivalent of the memoized `Block` component in the React version. The block-splitting pass itself runs on every update, but it is the cheap pass; the costly inline parsing is what gets reused.
 
-Code highlighting is incremental as well: a code block is only re-highlighted when its text changes, and the Shiki highlighter caches the languages and themes it has already loaded, so a streaming code block does not reload its grammar on every chunk.
+Code highlighting is incremental as well: a code block is only re-highlighted when its text changes. Highlighting itself is synchronous and runs during SSR, so there is no grammar to load, no loading state and no hydration flash.
 
 > [!NOTE]
 > There is intentionally no separate block-level parse cache (e.g. an LRU keyed by block content). For the common append-only streaming case the reactivity-based approach above already avoids redundant work, and a standalone cache would add memory usage and invalidation complexity without a measurable benefit. If you have a workload where this matters, please [open an issue](https://github.com/beynar/svelte-streamdown/issues) with a repro — we're happy to revisit.
@@ -524,7 +524,7 @@ Streamdown is optimized for minimal bundle size by making heavy components **opt
 <script>
 	import { Streamdown } from 'svelte-streamdown';
 	// Import only the components you need
-	import Code from 'svelte-streamdown/code'; // Shiki syntax highlighting
+	import Code from 'svelte-streamdown/code'; // syntax highlighting
 	import Mermaid from 'svelte-streamdown/mermaid'; // Mermaid diagrams
 	import Math from 'svelte-streamdown/math'; // KaTeX math rendering
 </script>
@@ -534,11 +534,11 @@ Streamdown is optimized for minimal bundle size by making heavy components **opt
 
 ### Component Dependencies
 
-| Component | Import Path                 | Dependency | Size Impact               |
-| --------- | --------------------------- | ---------- | ------------------------- |
-| `Code`    | `svelte-streamdown/code`    | Shiki      | ~2MB (languages + themes) |
-| `Mermaid` | `svelte-streamdown/mermaid` | Mermaid.js | ~1.5MB                    |
-| `Math`    | `svelte-streamdown/math`    | KaTeX      | ~300KB                    |
+| Component | Import Path                 | Dependency            | Size Impact                                          |
+| --------- | --------------------------- | --------------------- | ---------------------------------------------------- |
+| `Code`    | `svelte-streamdown/code`    | `@tanstack/highlight` | ~31KB min / ~11KB gzip (all 30 languages + 2 themes) |
+| `Mermaid` | `svelte-streamdown/mermaid` | Mermaid.js            | ~1.5MB                                               |
+| `Math`    | `svelte-streamdown/math`    | KaTeX                 | ~300KB                                               |
 
 > [!TIP]
 > Only import the components your application actually uses. If your content doesn't include code blocks, mermaid diagrams, or math expressions, you can skip those imports entirely for a much smaller bundle.
@@ -551,71 +551,140 @@ When a heavy component is not provided:
 - **Mermaid**: Renders the mermaid source as a code block
 - **Math**: Renders the raw LaTeX/math text
 
-### Shiki Themes
+### Highlight themes
 
-The `Code` component bundles two themes out of the box: **`github-dark`** and **`github-light`**. By default `shikiTheme` follows the active color scheme (`github-dark` in dark mode, `github-light` otherwise), so basic light/dark theming works with no extra configuration.
+The `Code` component bundles two themes out of the box: **`github-dark`** and **`github-light`**. By default `highlightTheme` follows the active color scheme (`github-dark` in dark mode, `github-light` otherwise), so basic light/dark theming works with no extra configuration.
 
-To use any other Shiki theme (e.g. `vesper`, `github-dark-default`, `github-light-default`), import it from `@shikijs/themes/<name>` and register it via the `shikiThemes` prop. The **key** you register it under is the value you pass to `shikiTheme`:
+To use any other theme (`aurora-x`, `dracula`, `gruvbox-dark`, `gruvbox-light`, `monokai`, `nord`, `one-dark-pro`, `solarized-dark`, `solarized-light`), import it from `@tanstack/highlight/themes/<name>` and register it via the `highlightThemes` prop. The **key** you register it under is the value you pass to `highlightTheme`:
 
 ```svelte
 <script lang="ts">
 	import { Streamdown } from 'svelte-streamdown';
-	import Code from 'svelte-streamdown/code'; // enables Shiki highlighting
-	import vesper from '@shikijs/themes/vesper';
+	import Code from 'svelte-streamdown/code'; // enables highlighting
+	import dracula from '@tanstack/highlight/themes/dracula';
 
 	let { content } = $props();
 </script>
 
-<Streamdown {content} components={{ code: Code }} shikiThemes={{ vesper }} shikiTheme="vesper" />
+<Streamdown
+	{content}
+	components={{ code: Code }}
+	highlightThemes={{ dracula }}
+	highlightTheme="dracula"
+/>
 ```
 
-> [!IMPORTANT]
-> A theme passed to `shikiTheme` must be one of the two built-in themes **or** registered via `shikiThemes`. If it is neither, the code block stays in its loading (skeleton) state and is never highlighted — this is the most common cause of "my theme stopped working".
+> [!NOTE]
+> An unknown `highlightTheme` key falls back to the built-in `github-dark` / `github-light` (following the color scheme) instead of leaving the code block unhighlighted.
+
+A custom theme is just an object of the `HighlightTheme` shape (exported from `svelte-streamdown`) — a `name`, `type`, `background`, `foreground` and a color per token class:
+
+```svelte
+<script lang="ts">
+	import { Streamdown, type HighlightTheme } from 'svelte-streamdown';
+	import Code from 'svelte-streamdown/code';
+	import githubDark from '@tanstack/highlight/themes/github-dark';
+
+	const myTheme: HighlightTheme = {
+		...githubDark,
+		name: 'my-theme',
+		tokens: { ...githubDark.tokens, keyword: '#ff0088', comment: '#5a5a5a' }
+	};
+</script>
+
+<Streamdown
+	{content}
+	components={{ code: Code }}
+	highlightThemes={{ 'my-theme': myTheme }}
+	highlightTheme="my-theme"
+/>
+```
 
 #### Dynamic (light/dark) theme switching
 
-Register every theme you intend to switch between in `shikiThemes`, then drive `shikiTheme` from your color-scheme store. Switching is fully reactive — code blocks re-highlight when `shikiTheme` changes:
+Register every theme you intend to switch between in `highlightThemes`, then drive `highlightTheme` from your color-scheme store. Switching is fully reactive:
 
 ```svelte
 <script lang="ts">
 	import { Streamdown } from 'svelte-streamdown';
 	import Code from 'svelte-streamdown/code';
 	import { mode } from 'mode-watcher';
-	import githubDarkDefault from '@shikijs/themes/github-dark-default';
-	import githubLightDefault from '@shikijs/themes/github-light-default';
+	import oneDarkPro from '@tanstack/highlight/themes/one-dark-pro';
+	import solarizedLight from '@tanstack/highlight/themes/solarized-light';
 
 	let { content } = $props();
 
-	const shikiTheme = $derived(
-		mode.current === 'dark' ? 'github-dark-default' : 'github-light-default'
-	);
+	const highlightTheme = $derived(mode.current === 'dark' ? 'one-dark-pro' : 'solarized-light');
 </script>
 
 <Streamdown
 	{content}
 	components={{ code: Code }}
 	baseTheme="shadcn"
-	shikiThemes={{
-		'github-dark-default': githubDarkDefault,
-		'github-light-default': githubLightDefault
+	highlightThemes={{
+		'one-dark-pro': oneDarkPro,
+		'solarized-light': solarizedLight
 	}}
-	{shikiTheme}
+	{highlightTheme}
 />
 ```
 
 > [!NOTE]
-> The built-in `github-dark` / `github-light` themes can be switched dynamically with just `shikiTheme` (no `shikiThemes` registration needed), since both are always loaded.
+> The built-in `github-dark` / `github-light` themes can be switched dynamically with just `highlightTheme` (no `highlightThemes` registration needed).
 
-#### Migrating from v2 (`shikiPreloadThemes`)
+### Supported languages
 
-The v2 `shikiPreloadThemes` prop has been **removed**. Themes are no longer referenced by bundled name; instead you import the theme objects yourself and register them with `shikiThemes`. Registered themes are loaded together with the highlighter (i.e. effectively preloaded), so there is no separate preload step:
+All 30 scanners ship in the same ~31KB bundle, so there is nothing to lazy-load:
 
-```diff
-- shikiPreloadThemes={['github-dark-default', 'github-light-default']}
-+ shikiThemes={{ 'github-dark-default': githubDarkDefault, 'github-light-default': githubLightDefault }}
+`apache`, `cmake`, `cpp`, `css`, `diff`, `dockerfile`, `ejs`, `env`, `go`, `html`, `http`, `js`, `json`, `jsx`, `markdown`, `mermaid`, `nginx`, `php`, `plaintext`, `python`, `scheme`, `shell`, `sql`, `svelte`, `toml`, `ts`, `tsrx`, `tsx`, `vue`, `yaml`.
+
+Common aliases are normalized (`javascript` → `js`, `typescript` → `ts`, `bash`/`sh`/`zsh` → `shell`, `py` → `python`, `jsonc`/`json5` → `json`, `xml`/`htm` → `html`, `md` → `markdown`, `yml` → `yaml`, `docker` → `dockerfile`).
+
+> [!IMPORTANT]
+> Any other language — including `java`, `rust`, `c`, `c#`, `swift`, `kotlin`, `ruby` and `graphql` — is **not** highlighted as of `@tanstack/highlight@0.1.0`: the code block still renders (and keeps its copy/download UI), but as plaintext.
+
+You can add your own language with `defineLanguage` and the `highlightLanguages` prop. A language is a tokenizer returning `{ className, start, end }` ranges:
+
+```svelte
+<script lang="ts">
+	import { Streamdown, defineLanguage } from 'svelte-streamdown';
+	import Code from 'svelte-streamdown/code';
+
+	const brainfuck = defineLanguage({
+		name: 'brainfuck',
+		tokenize: (code) =>
+			[...code.matchAll(/[+\-<>]+/g)].map((match) => ({
+				className: 'operator' as const,
+				start: match.index,
+				end: match.index + match[0].length
+			}))
+	});
+</script>
+
+<Streamdown {content} components={{ code: Code }} highlightLanguages={[brainfuck]} />
 ```
 
-This also keeps the default bundle small: only the themes you actually import are included.
+> [!NOTE]
+> Keep the array passed to `highlightLanguages` referentially stable (define it outside the template): a new array builds a new highlighter.
+
+### Migrating from v3 (shiki)
+
+v4 replaces shiki with `@tanstack/highlight`. Highlighting is now synchronous, renders during SSR and no longer has a skeleton/loading state. Remove `shiki` / `@shikijs/*` from your dependencies and rename the props:
+
+```diff
+- shikiTheme="nord"
+- shikiThemes={{ nord }}
+- shikiLanguages={[{ id: 'haskell', name: 'Haskell', import: () => import('@shikijs/langs/haskell') }]}
++ highlightTheme="nord"
++ highlightThemes={{ nord }}
++ highlightLanguages={[myLanguage]}
+```
+
+- Theme objects come from `@tanstack/highlight/themes/<name>` instead of `@shikijs/themes/<name>`, and follow the `HighlightTheme` shape (not shiki's `ThemeRegistration`).
+- `highlightLanguages` takes `LanguageDefinition`s built with `defineLanguage`, not lazy shiki grammar loaders.
+- `bundledLanguagesInfo`, `createLanguageSet` and `LanguageInfo` are gone; `defineLanguage`, `LanguageDefinition` and `HighlightTheme` are exported instead.
+- The `code.skeleton` theme key is gone (there is no loading state anymore).
+- Languages shiki covered but `@tanstack/highlight@0.1.0` does not (`java`, `rust`, `c`, `c#`, `swift`, `kotlin`, `ruby`, `graphql`, …) now render as plaintext.
 
 ## 📋 Props API
 
@@ -634,9 +703,9 @@ This also keeps the default bundle small: only the themes you actually import ar
 | `theme`                    | `DeepPartial<Theme>`                                                                                        | -                      | Custom theme overrides                                                                                                                                                                                                       |
 | `baseTheme`                | `'tailwind' \| 'shadcn'`                                                                                    | `'tailwind'`           | Base theme to use before applying overrides                                                                                                                                                                                  |
 | `mergeTheme`               | `boolean`                                                                                                   | `true`                 | Whether to merge theme with base theme                                                                                                                                                                                       |
-| `shikiTheme`               | `string`                                                                                                    | auto (dark-mode aware) | Code highlighting theme. Defaults to `github-dark` in dark mode / `github-light` otherwise. Any other value must be a key registered via `shikiThemes`. See [Shiki Themes](#shiki-themes).                                   |
-| `shikiThemes`              | `Record<string, ThemeRegistration>`                                                                         | -                      | Register additional pre-imported themes (e.g. `{ vesper }`) so they can be selected via `shikiTheme`, including dynamic light/dark switching. Replaces the v2 `shikiPreloadThemes` prop.                                     |
-| `shikiLanguages`           | `LanguageInfo[]`                                                                                            | -                      | Additional syntax highlighting languages (merged with defaults)                                                                                                                                                              |
+| `highlightTheme`           | `string`                                                                                                    | auto (dark-mode aware) | Code highlighting theme. Defaults to `github-dark` in dark mode / `github-light` otherwise. Any other value must be a key registered via `highlightThemes`. See [Highlight themes](#highlight-themes).                       |
+| `highlightThemes`          | `Record<string, HighlightTheme>`                                                                            | -                      | Register additional pre-imported themes (e.g. `{ dracula }`) so they can be selected via `highlightTheme`, including dynamic light/dark switching.                                                                           |
+| `highlightLanguages`       | `LanguageDefinition[]`                                                                                      | -                      | Additional languages built with `defineLanguage` (merged with the 30 built-in ones)                                                                                                                                          |
 | `mermaidConfig`            | `MermaidConfig`                                                                                             | -                      | Mermaid diagram configuration                                                                                                                                                                                                |
 | `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`                                                       | -                      | KaTeX math rendering options                                                                                                                                                                                                 |
 | `animation`                | `AnimationConfig`                                                                                           | -                      | Animation configuration for streaming content                                                                                                                                                                                |
@@ -753,7 +822,7 @@ Each component supports multiple themeable parts:
 
 **Links (`a`)**: `base`, `blocked` (for blocked/unsafe links)
 
-**Code (`code`)**: `base`, `container`, `header`, `button`, `language`, `skeleton`, `pre`
+**Code (`code`)**: `base`, `container`, `header`, `buttons`, `language`, `line`, `pre`
 
 **Inline Code (`inlineCode`)**: `base`
 

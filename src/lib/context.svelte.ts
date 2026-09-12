@@ -3,16 +3,16 @@ import type { DeepPartialTheme, Theme } from './theme.js';
 import type { MermaidConfig } from 'mermaid';
 import type { KatexOptions } from 'katex';
 import { getContext, onMount, setContext } from 'svelte';
-import type { LanguageInfo } from './utils/bundledLanguages.js';
-import type { ThemeRegistration } from 'shiki';
+import type { HighlightTheme } from '@tanstack/highlight/theme';
+import type { LanguageDefinition } from '@tanstack/highlight';
 
 export interface StreamdownContext
 	extends Omit<
 		StreamdownProps,
-		keyof Snippets | 'class' | 'theme' | 'shikiTheme' | 'inlineCitationsMode'
+		keyof Snippets | 'class' | 'theme' | 'highlightTheme' | 'inlineCitationsMode'
 	> {
 	snippets: Snippets;
-	shikiTheme: string;
+	highlightTheme: HighlightTheme;
 	theme: Theme;
 	controls: {
 		code: boolean;
@@ -61,7 +61,10 @@ animation-fill-mode: forwards;`
 	}
 
 	constructor(
-		props: Omit<StreamdownProps, keyof Snippets | 'class'> & { snippets: Snippets<Source> }
+		props: Omit<StreamdownProps, keyof Snippets | 'class' | 'highlightTheme'> & {
+			snippets: Snippets<Source>;
+			highlightTheme: HighlightTheme;
+		}
 	) {
 		bind(this, props);
 		setContext('streamdown', this);
@@ -196,9 +199,9 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	theme?: DeepPartialTheme;
 	baseTheme?: 'tailwind' | 'shadcn';
 	mergeTheme?: boolean;
-	shikiTheme?: string;
-	shikiLanguages?: LanguageInfo[];
-	shikiThemes?: Record<string, ThemeRegistration>;
+	highlightTheme?: string;
+	highlightLanguages?: LanguageDefinition[];
+	highlightThemes?: Record<string, HighlightTheme>;
 	mermaidConfig?: MermaidConfig;
 	katexConfig?: KatexOptions | ((inline: boolean) => KatexOptions);
 	translations?: {

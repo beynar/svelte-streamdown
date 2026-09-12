@@ -55,7 +55,7 @@
 				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
 			}}
 			allowedLinkPrefixes={['*']}
-			shikiTheme="vitesse-dark"
+			highlightTheme="github-dark"
 			content={`
 When choosing between the Garmin HRM 600 and the Garmin HRM-Pro Plus, consider the following:
 

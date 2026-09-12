@@ -3,7 +3,8 @@
  *
  * Models what the component does per streamed chunk (see _perf-harness.ts).
  * Measures only the PARSING layer (what a custom parser would replace);
- * Shiki highlighting and Svelte reconciliation are separate, browser-side costs.
+ * Highlighting is synchronous and runs inline with render (SSR included); Svelte
+ * reconciliation is a separate, browser-side cost.
  *
  *   npm run test:unit -- src/tests/streaming-perf.spec.ts --run
  */
@@ -24,7 +25,7 @@ Here are the key points to keep in mind:
 
 - Blocks are parsed independently so only the **last** one re-renders.
 - The incomplete-markdown pass closes dangling emphasis, code spans and links.
-- Code blocks are highlighted lazily with Shiki.
+- Code blocks are highlighted synchronously with @tanstack/highlight.
 
 \`\`\`ts
 import { Streamdown } from 'svelte-streamdown';

@@ -147,11 +147,11 @@ While a token is mid-stream you'll see things like \`**bold\` with no closing ma
 
 ## Highlighting code
 
-Code blocks are highlighted lazily with Shiki. A quick comparison of the options:
+Code blocks are highlighted synchronously with @tanstack/highlight. A quick comparison of the options:
 
 | Highlighter | Bundle | Accuracy | Streaming-friendly |
 | ----------- | ------ | -------- | ------------------ |
-| Shiki       | Large  | Best     | Yes (incremental)  |
+| tanstack    | Small  | Good     | Yes (synchronous)  |
 | Prism       | Small  | Good     | Partial            |
 | hljs        | Medium | Good     | No                 |
 

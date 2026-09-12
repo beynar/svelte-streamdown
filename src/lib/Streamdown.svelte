@@ -7,9 +7,9 @@
 	let {
 		content = '',
 		class: className,
-		shikiTheme,
-		shikiLanguages,
-		shikiThemes,
+		highlightTheme,
+		highlightLanguages,
+		highlightThemes,
 		parseIncompleteMarkdown,
 		defaultOrigin,
 		allowedLinkPrefixes = ['*'],
@@ -36,15 +36,12 @@
 		...snippets
 	}: StreamdownProps<Source> = $props();
 	import { useDarkMode } from '$lib/utils/darkMode.svelte.js';
+	import { resolveHighlightTheme } from '$lib/utils/highlightThemes.js';
 
 	const darkMode = useDarkMode();
 
-	const shikiThemedTheme = $derived(
-		shikiThemes
-			? Object.keys(shikiThemes)[0] || 'github-light'
-			: darkMode.current
-				? 'github-dark'
-				: 'github-light'
+	const resolvedHighlightTheme = $derived(
+		resolveHighlightTheme(highlightTheme, highlightThemes, darkMode.current)
 	);
 
 	const mermaidThemedTheme = $derived(
@@ -70,8 +67,8 @@
 		get allowedImagePrefixes() {
 			return allowedImagePrefixes;
 		},
-		get shikiTheme() {
-			return shikiTheme || shikiThemedTheme;
+		get highlightTheme() {
+			return resolvedHighlightTheme;
 		},
 		get snippets() {
 			return snippets;
@@ -99,11 +96,11 @@
 		get translations() {
 			return translations;
 		},
-		get shikiLanguages() {
-			return shikiLanguages;
+		get highlightLanguages() {
+			return highlightLanguages;
 		},
-		get shikiThemes() {
-			return shikiThemes;
+		get highlightThemes() {
+			return highlightThemes;
 		},
 		get sources() {
 			return sources;

@@ -38,6 +38,10 @@ Profiling the per-chunk path showed the cost was not the parser: 93% of `parseBl
 
 Measured on a 100 KB document streamed in 20-character chunks: stream total 901 ms → 74 ms, per-chunk median 0.178 ms → 0.014 ms, growth exponent N^1.27 → N^1.02; full parse 37 ms → 10 ms. Cost: +278 bytes gzip. `marked` is now pinned to an exact version because the splitter relies on two of its internals (guarded by `src/tests/split-lexer-equivalence.test.ts`).
 
+### 📦 Dependencies
+
+- `marked` bumped from 16.2.1 to 18.0.12 (two majors; both breaking changes concern the built-in list and blank-line handling that svelte-streamdown's own list and table plugins replace, so no behaviour change here). Picks up marked's fix for O(n²) reference-link scanning on long documents. Pinned exactly, see above.
+
 ## 3.1.2
 
 ### 🔒 Security

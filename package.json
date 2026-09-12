@@ -97,7 +97,7 @@
 		"@tanstack/highlight": "^0.1.0",
 		"clsx": "^2.1.1",
 		"katex": "^0.16.22",
-		"marked": "^16.2.1",
+		"marked": "16.2.1",
 		"mermaid": "^11.15.0",
 		"tailwind-merge": "^3.3.1"
 	}

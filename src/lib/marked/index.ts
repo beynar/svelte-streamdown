@@ -204,19 +204,34 @@ export const lex = (markdown: string, extensions: Extension[] = []): StreamdownT
  * instance (or per simulated stream) and pass it on every call: append-only
  * content updates then re-lex only the last couple of blocks instead of the
  * whole document. Any non-append update falls back to a full parse.
+ *
+ * Everything here is sized so the append path costs O(live tail), never
+ * O(document): `offsets`/`keptBefore` are prefix sums so the seal point is an
+ * array lookup, and `blocks` is a persistent array whose tail is truncated and
+ * re-pushed instead of being rebuilt with a `filter` callback every chunk.
  */
 export type ParseBlocksCache = {
+	/** the content the cache describes (held by reference, never copied); '' = cold */
 	content: string;
 	/** every block token's raw (including space/footnote tokens) in document order */
 	raws: string[];
 	/** parallel to raws: whether the token is part of the rendered block list */
 	keep: boolean[];
+	/** prefix sums: offsets[i] = start index of raws[i]; offsets[raws.length] = content.length */
+	offsets: number[];
+	/** prefix sums: keptBefore[i] = number of kept tokens among raws[0..i) */
+	keptBefore: number[];
+	/** persistent list of kept raws; only its tail is rewritten on append */
+	blocks: string[];
 };
 
 export const createParseBlocksCache = (): ParseBlocksCache => ({
 	content: '',
 	raws: [],
-	keep: []
+	keep: [],
+	offsets: [0],
+	keptBefore: [0],
+	blocks: []
 });
 
 // Number of trailing rendered blocks that stay "live" (re-lexed every chunk).
@@ -224,68 +239,150 @@ export const createParseBlocksCache = (): ParseBlocksCache => ({
 // line becoming a table once its delimiter row arrives, or a setext heading.
 const SEAL_SLACK = 2;
 
+// Spot checks over the sealed prefix per append (see `appendable`). The sealed
+// region was compared byte-for-byte while it was live, so this only has to catch
+// a caller that swapped in a different, longer document.
+const SEAL_PROBES = 16;
+
+/**
+ * A Lexer used only to slice a document into top-level block raws.
+ *
+ * `Tokenizer.list()` recurses into every list item's text purely to decide
+ * whether the list is loose — `raw` is already final by then — and it marks that
+ * recursion by setting `state.top = false` first. `Tokenizer.blockquote()` also
+ * recurses, but its `raw` genuinely depends on the result (continuation lines are
+ * folded into a nested list/blockquote token), and it sets `state.top = true`.
+ * So dropping every nested call made with `top === false` removes the whole
+ * list-item subtree parse without changing a single raw.
+ */
+class SplitLexer extends Lexer {
+	override blockTokens(src: string, tokens: any = [], lastParagraphClipped = false): any {
+		if (!this.state.top) {
+			// Lexer.blockTokens() sets state.top = true on exit; the skip must too.
+			this.state.top = true;
+			return tokens;
+		}
+		return super.blockTokens(src, tokens, lastParagraphClipped);
+	}
+	/** Extensions (dl, table) tokenize cell/term text inline; raws never depend on it. */
+	override inlineTokens(src: string, tokens: any = []): any {
+		return tokens;
+	}
+}
+
 const blockTokensOf = (markdown: string, extensions: Extension[]) =>
-	new Lexer(getBlockOptions(extensions)).blockTokens(markdown, []);
+	new SplitLexer(getBlockOptions(extensions)).blockTokens(markdown, []);
+
+/**
+ * Is `markdown` an append to `cache.content`?
+ *
+ * The live region [offset, cache.content.length) is compared exactly — that is
+ * the only region whose segmentation can still change. The sealed prefix gets
+ * SEAL_PROBES sampled character comparisons instead of a full scan: a complete
+ * `markdown.startsWith(cache.content)` was 93% of parseBlocks' streaming cost
+ * (676 ms of 727 ms over a 100 KB / 5028-chunk stream) and is the single reason
+ * the append path was O(N) per chunk rather than O(tail).
+ *
+ * Note this compares source against source, not source against `raws`: marked's
+ * tokenizers normalize (e.g. the list tokenizer rewrites a trailing space as a
+ * newline), so raws are not always literal slices of the input.
+ */
+const appendable = (markdown: string, content: string, offset: number): boolean => {
+	for (let i = offset; i < content.length; i++) {
+		if (markdown.charCodeAt(i) !== content.charCodeAt(i)) return false;
+	}
+	if (offset === 0) return true;
+	const step = offset > SEAL_PROBES ? offset / SEAL_PROBES : 1;
+	for (let f = 0; f < offset; f += step) {
+		const i = f | 0;
+		if (markdown.charCodeAt(i) !== content.charCodeAt(i)) return false;
+	}
+	return markdown.charCodeAt(offset - 1) === content.charCodeAt(offset - 1);
+};
 
 export const parseBlocks = (
 	markdown: string,
 	extensions: Extension[] = [],
 	cache?: ParseBlocksCache
 ): string[] => {
-	if (
-		cache &&
-		cache.content.length > 0 &&
-		markdown.length > cache.content.length &&
-		markdown.startsWith(cache.content)
-	) {
+	if (cache && cache.content.length > 0 && markdown.length > cache.content.length) {
 		// Append-only update: seal everything except the last SEAL_SLACK rendered
-		// blocks and re-lex only the tail. cache.raws concatenates exactly to
-		// cache.content (verified by length below), so summed lengths are offsets.
+		// blocks and re-lex only the tail. offsets[] are prefix sums over raws, so
+		// the seal point costs one array read instead of a running sum.
 		let cut = cache.raws.length;
 		let liveBlocks = 0;
 		while (cut > 0 && liveBlocks < SEAL_SLACK) {
 			cut--;
 			if (cache.keep[cut]) liveBlocks++;
 		}
-		let offset = 0;
-		for (let i = 0; i < cut; i++) offset += cache.raws[i].length;
+		const offset = cache.offsets[cut];
 
-		const tailTokens = blockTokensOf(markdown.slice(offset), extensions);
-		let tailLength = 0;
-		for (const token of tailTokens) tailLength += token.raw.length;
+		if (appendable(markdown, cache.content, offset)) {
+			const tailTokens = blockTokensOf(markdown.slice(offset), extensions);
+			let tailLength = 0;
+			for (const token of tailTokens) tailLength += token.raw.length;
 
-		// Contiguity guard: if the lexer normalized the tail (so raws no longer
-		// reconstruct the input), the offsets cannot be trusted — full reparse.
-		if (offset + tailLength === markdown.length) {
-			cache.raws.length = cut;
-			cache.keep.length = cut;
-			for (const token of tailTokens) {
-				cache.raws.push(token.raw);
-				cache.keep.push(token.type !== 'space' && token.type !== 'footnote');
+			// Contiguity guard: if the lexer normalized the tail (so raws no longer
+			// reconstruct the input), the offsets cannot be trusted — full reparse.
+			if (offset + tailLength === markdown.length) {
+				const keptAtCut = cache.keptBefore[cut];
+				cache.raws.length = cut;
+				cache.keep.length = cut;
+				cache.offsets.length = cut + 1;
+				cache.keptBefore.length = cut + 1;
+				cache.blocks.length = keptAtCut;
+				let pos = offset;
+				let kept = keptAtCut;
+				for (const token of tailTokens) {
+					const raw = token.raw;
+					const keep = token.type !== 'space' && token.type !== 'footnote';
+					cache.raws.push(raw);
+					cache.keep.push(keep);
+					pos += raw.length;
+					cache.offsets.push(pos);
+					if (keep) {
+						cache.blocks.push(raw);
+						kept++;
+					}
+					cache.keptBefore.push(kept);
+				}
+				cache.content = markdown;
+				// Copy out: callers (Svelte `$derived`, the perf harness) diff block
+				// lists by identity, so handing back the persistent array would read as
+				// "nothing changed". slice() is a memcpy with no per-element callback.
+				return cache.blocks.slice();
 			}
-			cache.content = markdown;
-			return cache.raws.filter((_, i) => cache.keep[i]);
 		}
 	}
 
 	// Full parse (first call, non-append update, or contiguity fallback).
 	const tokens = blockTokensOf(markdown, extensions);
-	const blocks: string[] = [];
 	if (cache) {
-		cache.raws = [];
-		cache.keep = [];
-		let total = 0;
+		cache.raws.length = 0;
+		cache.keep.length = 0;
+		cache.offsets.length = 1;
+		cache.keptBefore.length = 1;
+		cache.blocks.length = 0;
+		let pos = 0;
+		let kept = 0;
 		for (const token of tokens) {
+			const raw = token.raw;
 			const keep = token.type !== 'space' && token.type !== 'footnote';
-			cache.raws.push(token.raw);
+			cache.raws.push(raw);
 			cache.keep.push(keep);
-			total += token.raw.length;
-			if (keep) blocks.push(token.raw);
+			pos += raw.length;
+			cache.offsets.push(pos);
+			if (keep) {
+				cache.blocks.push(raw);
+				kept++;
+			}
+			cache.keptBefore.push(kept);
 		}
 		// Only trust the cache for future appends if raws reconstruct the input.
-		cache.content = total === markdown.length ? markdown : '';
-		return blocks;
+		cache.content = pos === markdown.length ? markdown : '';
+		return cache.blocks.slice();
 	}
+	const blocks: string[] = [];
 	for (const token of tokens) {
 		if (token.type !== 'space' && token.type !== 'footnote') blocks.push(token.raw);
 	}

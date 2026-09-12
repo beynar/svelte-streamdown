@@ -21,7 +21,7 @@ importers:
         specifier: ^0.16.22
         version: 0.16.22
       marked:
-        specifier: ^16.2.1
+        specifier: 16.2.1
         version: 16.2.1
       mermaid:
         specifier: ^11.15.0

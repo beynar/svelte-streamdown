@@ -11,6 +11,11 @@ export const markedSub: Extension = {
 		return i === -1 ? undefined : i;
 	},
 	tokenizer(this, src) {
+		// marked dispatches every inline extension at every scan position; `start`
+		// only clips the text rule, it does not gate the tokenizer. This rule is
+		// anchored on a single literal character, so one charCodeAt rejects the
+		// ~3.6k non-matching dispatches per 100 KB before the regex engine runs.
+		if (src.charCodeAt(0) !== 126 /* ~ */) return;
 		const match = src.match(subRule);
 		if (match) {
 			return {
@@ -31,6 +36,7 @@ export const markedSup: Extension = {
 		return i === -1 ? undefined : i;
 	},
 	tokenizer(this, src) {
+		if (src.charCodeAt(0) !== 94 /* ^ */) return;
 		const match = src.match(supRule);
 		if (match) {
 			return {

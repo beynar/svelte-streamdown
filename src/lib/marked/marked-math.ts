@@ -24,6 +24,7 @@ export const markedMath: Extension[] = [
 		name: 'math',
 		level: 'block',
 		tokenizer(this, src) {
+			if (src.charCodeAt(0) !== 36 /* $ */) return;
 			const match = src.match(blockRule);
 
 			if (match) {
@@ -78,6 +79,8 @@ export const markedMath: Extension[] = [
 			}
 		},
 		tokenizer(this, src) {
+			// inlineRule is anchored on `$`; skip the regex otherwise (see marked-br.ts).
+			if (src.charCodeAt(0) !== 36 /* $ */) return;
 			const match = src.match(inlineRule);
 			if (match) {
 				const content = match[2];

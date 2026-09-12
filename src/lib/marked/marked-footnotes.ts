@@ -40,10 +40,15 @@ export function markedFootnote(): Extension[] {
 			name: 'footnote',
 			level: 'block',
 			tokenizer(this, src) {
-				const maps = ensureMaps(this);
+				// Match FIRST. ensureMaps() calls Svelte's getContext(), which throws
+				// (and is caught) whenever tokenizing happens outside component init —
+				// 3.3 us per call. Running it before the regex charged that to every
+				// block token in the document: 8.3 ms of the 13.0 ms it took to split a
+				// 100 KB document into blocks.
 				const match = footnoteRegex.exec(src);
 
 				if (match) {
+					const maps = ensureMaps(this);
 					const [raw, label, text = ''] = match;
 					let content = text.split('\n').reduce((acc, curr) => {
 						return acc + '\n' + curr.replace(/^[ \t]+/, '');
@@ -79,10 +84,14 @@ export function markedFootnote(): Extension[] {
 			name: 'footnoteRef',
 			level: 'inline',
 			tokenizer(this, src) {
-				const maps = ensureMaps(this);
+				// Same ordering rule as the block tokenizer above: this one is an inline
+				// extension, so it is dispatched at every inline scan position — so it also
+				// gets a single-character guard before the regex.
+				if (src.charCodeAt(0) !== 91 /* [ */) return;
 				const match = footnoteRefRegex.exec(src);
 
 				if (match) {
+					const maps = ensureMaps(this);
 					const [raw, label] = match;
 
 					const footnote = maps.footnotes.get(label);

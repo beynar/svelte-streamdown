@@ -24,6 +24,18 @@ Code highlighting now uses [`@tanstack/highlight`](https://github.com/TanStack/h
 - An unknown `highlightTheme` key now falls back to the built-in themes instead of leaving the block unhighlighted forever.
 - **Language coverage caveat**: `@tanstack/highlight@0.1.0` supports `apache`, `cmake`, `cpp`, `css`, `diff`, `dockerfile`, `ejs`, `env`, `go`, `html`, `http`, `js`, `json`, `jsx`, `markdown`, `mermaid`, `nginx`, `php`, `plaintext`, `python`, `scheme`, `shell`, `sql`, `svelte`, `toml`, `ts`, `tsrx`, `tsx`, `vue`, `yaml` (plus the usual aliases). Languages shiki covered but this does not — `java`, `rust`, `c`, `c#`, `swift`, `kotlin`, `ruby`, `graphql`, … — render as plaintext.
 
+### ⚡ Performance: streaming parse is ~10x faster on long documents
+
+Profiling the per-chunk path showed the cost was not the parser: 93% of `parseBlocks` time on a 100 KB stream was an O(N) `startsWith` comparison of the whole sealed prefix on every chunk, plus a few hot-path mistakes in the plugins. All fixed, no behaviour change (735 tests, including a new 10k-document equivalence test for the block splitter):
+
+- `parseBlocks` append path is now O(live tail): exact compare of the live region only, prefix-sum offsets, and a persistent block array whose tail is rewritten instead of a per-chunk `filter`.
+- Footnote plugin matches its regex before touching Svelte context (`getContext()` throws outside component init and was called on every block token).
+- Table plugin no longer rebuilds a ~1 KB `RegExp` per token.
+- Block splitting uses a `Lexer` subclass that skips the nested parse marked's list tokenizer does only to compute `loose`; proven identical over 10,510 documents and streaming prefixes.
+- Six inline plugins now check their trigger character before running their regex.
+
+Measured on a 100 KB document streamed in 20-character chunks: stream total 901 ms → 74 ms, per-chunk median 0.178 ms → 0.014 ms, growth exponent N^1.27 → N^1.02; full parse 37 ms → 10 ms. Cost: +278 bytes gzip. `marked` is now pinned to an exact version because the splitter relies on two of its internals (guarded by `src/tests/split-lexer-equivalence.test.ts`).
+
 ## 3.1.2
 
 ### 🔒 Security

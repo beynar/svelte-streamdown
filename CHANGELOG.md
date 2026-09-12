@@ -1,6 +1,6 @@
 # Changelog
 
-## 4.0.0 (unreleased)
+## 4.0.0
 
 ### 💥 Breaking: shiki replaced by `@tanstack/highlight`
 
@@ -22,11 +22,13 @@ Code highlighting now uses [`@tanstack/highlight`](https://github.com/TanStack/h
 - **Removed exports**: `bundledLanguagesInfo`, `createLanguageSet`, `LanguageInfo`. **New exports**: `defineLanguage`, `LanguageDefinition`, `HighlightTheme`.
 - **Removed theme key**: `code.skeleton` (no loading state anymore).
 - An unknown `highlightTheme` key now falls back to the built-in themes instead of leaving the block unhighlighted forever.
+- Every highlighted token now carries `th-token th-<class>` CSS classes (`th-keyword`, `th-string`, `th-comment`, …) in addition to its inline color, so tokens can be restyled or overridden from CSS.
+- `useStreamdown().shikiTheme` (a theme key) is now `useStreamdown().highlightTheme` and holds the resolved `HighlightTheme` object.
 - **Language coverage caveat**: `@tanstack/highlight@0.1.0` supports `apache`, `cmake`, `cpp`, `css`, `diff`, `dockerfile`, `ejs`, `env`, `go`, `html`, `http`, `js`, `json`, `jsx`, `markdown`, `mermaid`, `nginx`, `php`, `plaintext`, `python`, `scheme`, `shell`, `sql`, `svelte`, `toml`, `ts`, `tsrx`, `tsx`, `vue`, `yaml` (plus the usual aliases). Languages shiki covered but this does not — `java`, `rust`, `c`, `c#`, `swift`, `kotlin`, `ruby`, `graphql`, … — render as plaintext.
 
 ### ⚡ Performance: streaming parse is ~10x faster on long documents
 
-Profiling the per-chunk path showed the cost was not the parser: 93% of `parseBlocks` time on a 100 KB stream was an O(N) `startsWith` comparison of the whole sealed prefix on every chunk, plus a few hot-path mistakes in the plugins. All fixed, no behaviour change (735 tests, including a new 10k-document equivalence test for the block splitter):
+Profiling the per-chunk path showed the cost was not the parser: 93% of `parseBlocks` time on a 100 KB stream was an O(N) `startsWith` comparison of the whole sealed prefix on every chunk, plus a few hot-path mistakes in the plugins. All fixed, no behaviour change (734 tests, including a new 10k-document equivalence test for the block splitter):
 
 - `parseBlocks` append path is now O(live tail): exact compare of the live region only, prefix-sum offsets, and a persistent block array whose tail is rewritten instead of a per-chunk `filter`.
 - Footnote plugin matches its regex before touching Svelte context (`getContext()` throws outside component init and was called on every block token).

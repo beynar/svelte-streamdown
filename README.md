@@ -632,6 +632,16 @@ Register every theme you intend to switch between in `highlightThemes`, then dri
 > [!NOTE]
 > The built-in `github-dark` / `github-light` themes can be switched dynamically with just `highlightTheme` (no `highlightThemes` registration needed).
 
+#### Styling tokens with CSS
+
+Every token span carries `th-token` plus a `th-<class>` class (`th-keyword`, `th-string`, `th-comment`, `th-function`, `th-number`, `th-operator`, `th-tag`, `th-attr`, …) alongside its inline color from the active theme, so you can tweak or override token styles from CSS:
+
+```css
+[data-streamdown-code] .th-comment {
+	font-style: italic;
+}
+```
+
 ### Supported languages
 
 All 30 scanners ship in the same ~31KB bundle, so there is nothing to lazy-load:

@@ -37,7 +37,7 @@ import {
 } from './marked-dl.js';
 import { markedAlign, type AlignToken } from './marked-align.js';
 import { markedCitations, type CitationToken } from './marked-citations.js';
-import { markedMdx, type MdxToken } from './marked-mdx.js';
+import { markedMdx, DEFAULT_TAGS, type MdxToken, type TagMatchers } from './marked-mdx.js';
 
 export type GenericToken = {
 	type: string;
@@ -93,12 +93,13 @@ export type StreamdownToken =
 // Re-export table types from marked-table
 export type { TableToken, THead, TBody, TFoot, THeadRow, TRow, TH, TD } from './marked-table.js';
 
-// Default plugin sets, in registration order. Hoisted so the options object
-// (and the regexes/closures inside each plugin) is built once, not per chunk.
-// The tokenizers are stateless at creation time — per-document state lives on
-// the Lexer instance (e.g. footnotes maps, reference-link defs), so a fresh
-// Lexer per call keeps documents isolated while the options are shared.
-const DEFAULT_LEX_EXTENSIONS: Extension[] = [
+// Default plugin sets, in registration order. Built behind the options cache
+// below, so the options object (and the regexes/closures inside each plugin) is
+// built once per allowlist, not per chunk. The tokenizers are stateless at
+// creation time — per-document state lives on the Lexer instance (e.g. footnotes
+// maps, reference-link defs), so a fresh Lexer per call keeps documents isolated
+// while the options are shared.
+const defaultLexExtensions = (tags: TagMatchers): Extension[] => [
 	markedHr,
 	markedTable,
 	...markedFootnote(),
@@ -111,16 +112,16 @@ const DEFAULT_LEX_EXTENSIONS: Extension[] = [
 	markedDl,
 	markedAlign,
 	markedCitations,
-	markedMdx
+	markedMdx(tags)
 ];
 
-const DEFAULT_BLOCK_EXTENSIONS: Extension[] = [
+const defaultBlockExtensions = (tags: TagMatchers): Extension[] => [
 	markedHr,
 	...markedFootnote(),
 	markedDl,
 	markedTable,
 	markedAlign,
-	markedMdx
+	markedMdx(tags)
 ];
 
 class StreamdownTokenizer extends Tokenizer {
@@ -203,44 +204,56 @@ const parseExtensions = (...extensions: Extension[]) => {
 
 type LexerOptions = ReturnType<typeof parseExtensions>;
 
-// Options objects are reusable across Lexer instances; cache them per
-// user-extension array (props are referentially stable across chunks) so the hot
-// path skips rebuilding ~20 tokenizer registrations on every streamed chunk. The
-// cached object carries one shared Tokenizer whose `lexer` back-pointer marked
-// re-stamps per Lexer construction — safe only because lexing is synchronous and
-// never re-entrant across documents.
-const DEFAULT_LEX_OPTIONS = parseExtensions(...DEFAULT_LEX_EXTENSIONS);
-const DEFAULT_BLOCK_OPTIONS = parseExtensions(...DEFAULT_BLOCK_EXTENSIONS);
-const lexOptionsCache = new WeakMap<Extension[], LexerOptions>();
-const blockOptionsCache = new WeakMap<Extension[], LexerOptions>();
+// Options objects are reusable across Lexer instances; cache them per (tag
+// allowlist, user-extension array) — both referentially stable across chunks —
+// so the hot path skips rebuilding ~20 tokenizer registrations and the mdx tag
+// regexes on every streamed chunk. The cached object carries one shared
+// Tokenizer whose `lexer` back-pointer marked re-stamps per Lexer construction —
+// safe only because lexing is synchronous and never re-entrant across documents.
+type OptionsCache = WeakMap<TagMatchers, WeakMap<Extension[], LexerOptions>>;
 
-const getLexOptions = (extensions: Extension[]): LexerOptions => {
-	if (extensions.length === 0) return DEFAULT_LEX_OPTIONS;
-	let options = lexOptionsCache.get(extensions);
-	if (!options) {
-		options = parseExtensions(...DEFAULT_LEX_EXTENSIONS, ...extensions);
-		lexOptionsCache.set(extensions, options);
-	}
+// Stand-in key for "no user extensions" so both cache levels stay WeakMaps —
+// the `extensions = []` default allocates a fresh array on every call.
+const NO_EXTENSIONS: Extension[] = [];
+
+const cached = (
+	cache: OptionsCache,
+	tags: TagMatchers,
+	extensions: Extension[],
+	build: () => LexerOptions
+): LexerOptions => {
+	let byExtensions = cache.get(tags);
+	if (!byExtensions) cache.set(tags, (byExtensions = new WeakMap()));
+	const key = extensions.length === 0 ? NO_EXTENSIONS : extensions;
+	let options = byExtensions.get(key);
+	if (!options) byExtensions.set(key, (options = build()));
 	return options;
 };
 
-const getBlockOptions = (extensions: Extension[]): LexerOptions => {
-	if (extensions.length === 0) return DEFAULT_BLOCK_OPTIONS;
-	let options = blockOptionsCache.get(extensions);
-	if (!options) {
-		options = parseExtensions(
-			...DEFAULT_BLOCK_EXTENSIONS,
+const lexOptionsCache: OptionsCache = new WeakMap();
+const blockOptionsCache: OptionsCache = new WeakMap();
+
+const getLexOptions = (extensions: Extension[], tags: TagMatchers): LexerOptions =>
+	cached(lexOptionsCache, tags, extensions, () =>
+		parseExtensions(...defaultLexExtensions(tags), ...extensions)
+	);
+
+const getBlockOptions = (extensions: Extension[], tags: TagMatchers): LexerOptions =>
+	cached(blockOptionsCache, tags, extensions, () =>
+		parseExtensions(
+			...defaultBlockExtensions(tags),
 			...extensions.filter(
 				({ level, applyInBlockParsing }) => level === 'block' && applyInBlockParsing
 			)
-		);
-		blockOptionsCache.set(extensions, options);
-	}
-	return options;
-};
+		)
+	);
 
-export const lex = (markdown: string, extensions: Extension[] = []): StreamdownToken[] => {
-	return new Lexer(getLexOptions(extensions))
+export const lex = (
+	markdown: string,
+	extensions: Extension[] = [],
+	tags: TagMatchers = DEFAULT_TAGS
+): StreamdownToken[] => {
+	return new Lexer(getLexOptions(extensions, tags))
 		.lex(markdown)
 		.filter((token) => token.type !== 'space' && token.type !== 'footnote') as StreamdownToken[];
 };
@@ -324,8 +337,8 @@ class SplitLexer extends Lexer {
 	}
 }
 
-const blockTokensOf = (markdown: string, extensions: Extension[]) =>
-	new SplitLexer(getBlockOptions(extensions)).blockTokens(markdown, []);
+const blockTokensOf = (markdown: string, extensions: Extension[], tags: TagMatchers) =>
+	new SplitLexer(getBlockOptions(extensions, tags)).blockTokens(markdown, []);
 
 /**
  * Is `markdown` an append to `cache.content`?
@@ -391,7 +404,8 @@ const updateKind = (
 export const parseBlocks = (
 	markdown: string,
 	extensions: Extension[] = [],
-	cache?: ParseBlocksCache
+	cache?: ParseBlocksCache,
+	tags: TagMatchers = DEFAULT_TAGS
 ): string[] => {
 	// Whether this call extends the content the cache already described — decided
 	// by the same probe the fast path uses, so the contiguity fallback below still
@@ -412,7 +426,7 @@ export const parseBlocks = (
 
 		if (appendable(markdown, cache, cut, offset)) {
 			isAppend = true;
-			const tailTokens = blockTokensOf(markdown.slice(offset), extensions);
+			const tailTokens = blockTokensOf(markdown.slice(offset), extensions, tags);
 			let tailLength = 0;
 			for (const token of tailTokens) tailLength += token.raw.length;
 
@@ -451,7 +465,7 @@ export const parseBlocks = (
 	}
 
 	// Full parse (first call, non-append update, or contiguity fallback).
-	const tokens = blockTokensOf(markdown, extensions);
+	const tokens = blockTokensOf(markdown, extensions, tags);
 	if (cache) {
 		cache.raws.length = 0;
 		cache.keep.length = 0;
@@ -485,7 +499,10 @@ export const parseBlocks = (
 	return blocks;
 };
 
+export { compileTags, DEFAULT_TAGS } from './marked-mdx.js';
+
 export type {
+	TagMatchers,
 	MathToken,
 	AlertToken,
 	FootnoteToken,

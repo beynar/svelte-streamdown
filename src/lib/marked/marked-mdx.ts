@@ -12,6 +12,56 @@ export type MdxToken = {
 	text?: string;
 };
 
+/**
+ * The tag vocabulary the mdx tokenizer and the streaming completer share,
+ * compiled once per allowlist (upstream fb9f97c/b392fbe). PascalCase is always
+ * in it; lowercase/hyphenated names only ever come from `customTags` /
+ * `mdxComponents`, so this can never swallow a real HTML tag the way a blanket
+ * `/^<([a-zA-Z][\w-]*)/` would.
+ */
+export type TagMatchers = {
+	/** `<Tag …/>` */
+	selfClosing: RegExp;
+	/** `<Tag …>` */
+	openTag: RegExp;
+	/** `</Tag>` */
+	closeTag: RegExp;
+	/** `<Tag …>…</Tag>`, both ends on one line */
+	complete: RegExp;
+	/** a bare allowed tag name, anchored */
+	name: RegExp;
+	/** the non-PascalCase names, kept as strings so a half-typed one can be prefix-matched */
+	names: string[];
+	/** tags whose children are emitted as one literal text token */
+	literal: Set<string>;
+};
+
+const escapeName = (name: string) => name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+
+// Attribute names take hyphens (`data-id`), not just word characters.
+const ATTRS = '((?:\\s+[\\w-]+=(?:"[^"]*"|{[^}]*}))*)';
+
+export const compileTags = (customTags?: string[], literalTagContent?: string[]): TagMatchers => {
+	// A tag whose content is literal is a custom tag by definition: listing it
+	// once in `literalTagContent` must be enough, without repeating it in
+	// `customTags`.
+	const allowed = [...new Set([...(customTags ?? []), ...(literalTagContent ?? [])])];
+	const names = ['[A-Z][a-zA-Z0-9]*', ...allowed.map(escapeName)].join('|');
+	const tag = `(${names})`;
+	return {
+		selfClosing: new RegExp(`^<${tag}${ATTRS}\\s*/>`),
+		openTag: new RegExp(`^<${tag}${ATTRS}\\s*>`),
+		closeTag: new RegExp(`^</${tag}>`),
+		complete: new RegExp(`^<${tag}${ATTRS}\\s*>.*?</\\1>`),
+		name: new RegExp(`^(?:${names})$`),
+		names: allowed,
+		literal: new Set(literalTagContent ?? [])
+	};
+};
+
+/** PascalCase only — what every call that passes no allowlist gets. */
+export const DEFAULT_TAGS = compileTags();
+
 const defaultLexer = new Lexer({ gfm: true });
 const defaultTokenizer = defaultLexer.options.tokenizer!;
 
@@ -23,7 +73,7 @@ function parseAttributes(attributeString: string): Record<string, any> {
 	const attributes: Record<string, any> = {};
 
 	// Pattern: attr="value" or attr={value}
-	const attrPattern = /(\w+)=(?:"([^"]*)"|{([^}]*)})/g;
+	const attrPattern = /([\w-]+)=(?:"([^"]*)"|{([^}]*)})/g;
 	let match;
 
 	while ((match = attrPattern.exec(attributeString)) !== null) {
@@ -56,19 +106,18 @@ function parseAttributes(attributeString: string): Record<string, any> {
 	return attributes;
 }
 
-export const markedMdx: Extension = {
+export const markedMdx = (tags: TagMatchers = DEFAULT_TAGS): Extension => ({
 	name: 'mdx',
 	level: 'block',
 	applyInBlockParsing: true,
 	tokenizer(this, src) {
-		// Match MDX component tags (must start with capital letter)
+		// Match a tag from the allowlist (PascalCase plus anything `customTags` /
+		// `mdxComponents` added).
 		// Self-closing: <Component attr="value" />
 		// With children: <Component attr="value">content</Component>
 
 		// First try self-closing tag
-		const selfClosingMatch = src.match(
-			/^<([A-Z][a-zA-Z0-9]*)((?:\s+\w+=(?:"[^"]*"|{[^}]*}))*)\s*\/>/
-		);
+		const selfClosingMatch = src.match(tags.selfClosing);
 
 		if (selfClosingMatch) {
 			const [raw, tagName, attributeString] = selfClosingMatch;
@@ -84,7 +133,7 @@ export const markedMdx: Extension = {
 		}
 
 		// Try paired tag with children
-		const openTagMatch = src.match(/^<([A-Z][a-zA-Z0-9]*)((?:\s+\w+=(?:"[^"]*"|{[^}]*}))*)\s*>/);
+		const openTagMatch = src.match(tags.openTag);
 
 		if (openTagMatch) {
 			const [openTag, tagName, attributeString] = openTagMatch;
@@ -140,8 +189,14 @@ export const markedMdx: Extension = {
 				const content = src.substring(contentStart, closingIndex);
 				const raw = src.substring(0, closingIndex + closingTag.length);
 
-				// Parse children as markdown
-				const tokens = content.trim() ? this.lexer.blockTokens(content.trim(), []) : [];
+				// Parse children as markdown — unless the tag is in `literalTagContent`,
+				// where the inner text is data, not Markdown (upstream b392fbe): one
+				// text token, nothing escaped, `**` and `_` left alone.
+				const tokens = tags.literal.has(tagName)
+					? [{ type: 'text', raw: content, text: content } as Token]
+					: content.trim()
+						? this.lexer.blockTokens(content.trim(), [])
+						: [];
 
 				return {
 					type: 'mdx',
@@ -157,4 +212,4 @@ export const markedMdx: Extension = {
 
 		return undefined;
 	}
-};
+});

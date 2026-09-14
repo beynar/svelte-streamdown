@@ -1,5 +1,75 @@
 # Changelog
 
+## 4.2.0
+
+Feature release, all five items from the September upstream audit that were judged worth porting: HTML that streams without flashing, an opt-in allowlist that turns `<ai-thinking>` into a component, a fullscreen toggle for wide tables, and line numbers with `startLine`. Every new prop defaults to off, so the only 4.1.1 renders that change are the two below: the table toolbar grows a third button, and the completer strips a half-typed HTML tag from the end of the block still streaming. 908 node tests, 63 browser tests.
+
+### ⚠️ Behaviour changes
+
+- **The table toolbar has a third action, so turning copy and download off no longer removes it.** 4.1.0 made an empty toolbar disappear; `controls={{ table: { copy: false, download: false } }}` now leaves the expand button behind. Add `fullscreen: false` — or keep using `{ table: false }` — to get rid of the bar.
+- **The exported `parseIncompleteMarkdown` strips a half-typed HTML tag by default.** `'Hello <div cla'` returned unchanged in 4.1.1 and returns `'Hello '` now; `'<div>content</di'` returns `'<div>content'`. The option that decides this is `live`, and it defaults to `true` because that is what 4.1.1 did for components — pass `{ live: false }` for text you know is finished. `Streamdown` passes it for you: only the last block is live, and only its last line is ever cut.
+- **A sealed block no longer strips an incomplete PascalCase tag either.** 4.1.1's mdx plugin cut one on every block; the live guard means only the streaming one is touched. So `Some text <Component attr` in the middle of a finished document keeps its tail now, and a multi-line component whose attributes wrap — `<Card`, newline, `	title="x"`, newline, `>` — survives intact instead of losing its first line. Seven of the 240 blocks of this repo's README render differently for this reason, all of them closer to the source.
+- **`markedMdx` is a factory**, `markedMdx(tags?)`, not a plain extension object. It is not re-exported from the package root; only a deep import into `marked/marked-mdx.js` is affected.
+
+### 🧩 Custom tags and literal content
+
+`<ai-thinking>**bold**</ai-thinking>` used to lex as one raw HTML block, asterisks and all, because the MDX tokenizer only ever matched PascalCase. Lowercase and hyphenated names are now accepted — but only ones you list, never by relaxing the regex, so nothing you write today changes meaning.
+
+```svelte
+<Streamdown {content} customTags={['ai-thinking']} />
+```
+
+- The effective allowlist is PascalCase (always) ∪ `customTags` ∪ the keys of `mdxComponents`, so registering a component is enough on its own.
+- `literalTagContent` lists tags whose children are emitted as a single text token: `<mention user_id="1">@_name_</mention>` renders `@_name_`, not `@name` with an italic run.
+- Attribute names may contain hyphens (`<mention data-id="7">`), in the tokenizer and in the parsed attributes.
+- The allowlist is compiled once per identity by `compileTags` and shared by the lexer and the completer, so the two can never disagree about what counts as a tag and a streamed chunk rebuilds no regex. `compileTags` and `TagMatchers` are exported.
+
+Ported from vercel/streamdown b392fbe and fb9f97c.
+
+### 🏷️ Half-typed tags no longer flash while streaming
+
+`Hello <div cla` rendered as text on every chunk until the `>` arrived, and `<div>content</di` showed its own markup before snapping into place. Streaming an answer one character at a time through the mounted component produced 56 frames of visible tag source; it now produces none.
+
+Upstream strips `/<[a-zA-Z/][^>]*$/` at end of line unconditionally. We do not — our completer runs on every block, so a finished paragraph would lose its tail forever. Two guards:
+
+- **Only the live block's last line.** Sealed blocks are never touched, and inside the live one only the streaming tail is, so `3 < 5`, `value <1`, `` `<div` `` and a fenced `<div` survive everywhere — as does a finished sentence like `Use the <div element to wrap it.`, which happens to sit in the last block.
+- **Only a plausible name, followed only by attributes.** The partial name has to be a prefix of a common HTML element, of a PascalCase component, or of a `customTags` entry, and everything after it has to parse as an attribute list whose last entry may be half-typed. `<custom` stays put until you list it, and `if a <b then c` stays put because `then c` is prose, not attributes.
+
+The MDX plugin's own incomplete-tag branch is gone, so one plugin handles components and HTML alike.
+
+Ported from vercel/streamdown 3e6a77d, with the two guards added.
+
+### 📐 `normalizeHtmlIndentation`
+
+Four leading spaces after a blank line is an indented code block, tag or not, so a pretty-printed `<div class="wrapper">` with an indented inner `<div>` lexed as html / code / html and rendered half of itself in a code box. The new opt-in prop dedents tag lines before parsing and leaves `<pre>` and `<code>` bodies byte-for-byte; content that is not HTML, or already flat, comes back as the same string object, so the derived does not churn. Off by default, because dedenting is lossy. Also exported as a plain function for anyone who would rather pre-process. The trap only arises where blocks are not trimmed — `static`, `parseIncompleteMarkdown={false}`, or the exported function on raw text — since the default streaming path trims each block and so strips the leading four spaces before the lexer sees them.
+
+Ported from vercel/streamdown 7f9127b.
+
+### 🔳 Table fullscreen
+
+Wide tables get an expand toggle next to copy and download. It lifts the wrapper out of the flow (`position: fixed`, the whole viewport) and repositions the toolbar to the top right, so copy and download stay usable; `Escape` or the same button — now a close icon — collapses it and puts focus back where it was. While expanded the wrapper is a labelled `role="dialog"` carrying `data-expanded="true"` and the new `theme.table.expanded` classes. It is not `aria-modal`, because the toolbar is the wrapper's sibling rather than its child and marking the subtree modal would make those buttons inert for assistive tech.
+
+- New: `controls.table.fullscreen` (on by default), `icons.close`, and the `tableFullscreen` / `exitTableFullscreen` / `table` translation keys.
+- The `[data-expanded='true']` rule moved out of `Mermaid.svelte` into `Streamdown.svelte`'s global block, so it exists on pages that never render a diagram. Mermaid's own behaviour is unchanged.
+- No open/close animation, and no focus trap — `aria-modal` lands with one.
+
+Ported from vercel/streamdown fb76275.
+
+### 🔢 Code line numbers
+
+`lineNumbers` numbers every code block. Upstream defaults them on; ours default off, because turning them on would change every existing render.
+
+- It is a CSS counter on the line span that is already rendered — no extra element per line, and numbering a 10 000-line block adds zero DOM nodes and zero JS. The numbers are pseudo-content, so copy, download and text selection still give you only the code.
+- Three words in the fence's info string override the prop for one block: `lineNumbers`, `noLineNumbers`, and `startLine=N` (non-numeric is ignored).
+- The gutter's width and colour are theme data (`theme.code.lineNumber`); the counter machinery itself is a global rule, so the numbers appear whether or not the consumer's Tailwind scanned this package.
+- Both code renderers behave identically — the highlighted `Code` component and the default fallback.
+
+Ported from vercel/streamdown d6666b6 and 57cd3b5.
+
+### Sizes
+
+`pnpm test:size`, against 4.1.1: root 194 196 → 199 811 min and 59 526 → 61 697 gzip; code 43 201 → 43 893 min and 15 540 → 15 731 gzip; parser 76 080 → 77 182 min and 23 870 → 24 452 gzip. Every entry is still inside the budgets set in 4.1.0, root gzip with about 500 bytes to spare — the next feature that touches the root entry will have to re-baseline it deliberately.
+
 ## 4.1.1
 
 ### 🐛 Bug Fixes

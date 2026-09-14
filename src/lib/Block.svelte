@@ -9,12 +9,15 @@
 	let {
 		block,
 		static: isStatic = false,
-		incomplete = false
+		incomplete = false,
+		live = false
 	}: {
 		block: string;
 		static?: boolean;
 		/** This block ends inside an unfinished code fence (streaming only). */
 		incomplete?: boolean;
+		/** This is the block still being streamed into — the only one whose tail may be cut. */
+		live?: boolean;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -22,7 +25,11 @@
 	// is aliased so the context flag and the helper cannot be confused.
 	const complete = $derived(!isStatic && streamdown.parseIncompleteMarkdown !== false);
 	const view = $derived.by(() => {
-		const tokens = lex(complete ? completeMarkdown(block.trim()) : block, streamdown.extensions);
+		const tokens = lex(
+			complete ? completeMarkdown(block.trim(), { tags: streamdown.tags, live }) : block,
+			streamdown.extensions,
+			streamdown.tags
+		);
 		// Decided when this block's text changes and deliberately not tracked: a
 		// bulk update renders plain, and the next streamed chunk must not
 		// retroactively animate the blocks it left untouched.

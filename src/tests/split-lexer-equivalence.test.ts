@@ -19,7 +19,14 @@ import { markedMdx } from '../lib/marked/marked-mdx.js';
  * The corpus is every markdown-looking template literal in the test suite plus
  * the repo's own long-form markdown files.
  */
-const exts: any[] = [markedHr, ...markedFootnote(), markedDl, markedTable, markedAlign, markedMdx];
+const exts: any[] = [
+	markedHr,
+	...markedFootnote(),
+	markedDl,
+	markedTable,
+	markedAlign,
+	markedMdx()
+];
 
 function options() {
 	const o: any = {

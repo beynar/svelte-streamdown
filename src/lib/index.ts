@@ -24,13 +24,17 @@ export {
 	type CodeToken,
 	type Extension,
 	type StreamdownToken,
+	type TagMatchers,
+	compileTags,
 	lex,
 	parseBlocks
 } from './marked/index.js';
+export { normalizeHtmlIndentation } from './utils/normalize-html-indentation.js';
 
 export {
 	parseIncompleteMarkdown,
 	type Plugin,
+	type CompleterOptions,
 	IncompleteMarkdownParser
 } from './utils/parse-incomplete-markdown.js';
 export { defineLanguage, type LanguageDefinition } from '@tanstack/highlight';

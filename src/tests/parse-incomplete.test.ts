@@ -1,6 +1,6 @@
 import { expect, describe, test } from 'vitest';
 import { parseIncompleteMarkdown } from '../lib/utils/parse-incomplete-markdown.js';
-import { lex } from '../lib/marked/index.js';
+import { lex, compileTags } from '../lib/marked/index.js';
 
 // Direct unit tests for parseIncompleteMarkdown plugin branches that have no
 // dedicated coverage in the element test files. Every expectation locks in
@@ -366,5 +366,151 @@ describe('fences inside list items', () => {
 			'no stray top-level code block'
 		).toBe(false);
 		expect(codeTokens(tokens).length, 'exactly one code block, inside the item').toBe(1);
+	});
+});
+
+// 3e6a77d, ported case by case from upstream's remend html-tags suite with OUR
+// expectations. Two rules make ours narrower than theirs, both deliberate:
+//   - only the block still streaming (`live`) may lose its tail, because our
+//     completer runs on every block and a sealed `if a <b then` must survive;
+//   - only a name that could still grow into a known HTML element, a PascalCase
+//     component, or a `customTags` entry. Upstream strips any `<letters`, so
+//     their `Hello <custom` cases are unchanged here until `custom` is listed.
+describe('incomplete HTML tags (live block only)', () => {
+	const listed = compileTags(['casecard', 'custom']);
+	const strip = (input: string, expected: string) => {
+		expect(parseIncompleteMarkdown(input, { live: true })).toBe(expected);
+		expect(parseIncompleteMarkdown(input, { live: false })).toBe(input);
+	};
+	const keep = (input: string) => {
+		expect(parseIncompleteMarkdown(input, { live: true })).toBe(input);
+		expect(parseIncompleteMarkdown(input, { live: false })).toBe(input);
+	};
+
+	describe('strips an incomplete opening tag', () => {
+		test('bare name', () => strip('Hello <div', 'Hello '));
+		test('PascalCase component', () => strip('Text <MyComponent', 'Text '));
+		test('at the start of the text', () => strip('<div', ''));
+		test('cut mid-name', () => strip('Hello <di', 'Hello '));
+		test('after a complete tag', () => strip('<div>Hello</div> <span', '<div>Hello</div> '));
+		test('after a heading', () => strip('# Heading\n\nParagraph <span', '# Heading\n\nParagraph '));
+	});
+
+	describe('strips an incomplete closing tag', () => {
+		test('bare name', () => strip('Hello </div', 'Hello '));
+		test('cut mid-name after its own content', () => strip('<div>content</di', '<div>content'));
+		test('at the start of the text', () => strip('</div', ''));
+		test('before the name is typed at all', () => strip('Hello world</', 'Hello world'));
+		test('but not a bare < with no name', () => keep('if a <'));
+	});
+
+	describe('strips an incomplete attribute list', () => {
+		test('unclosed quote', () => strip('Hello <div class="foo', 'Hello '));
+		test('empty value', () => strip('Hello <div class=', 'Hello '));
+		test('unclosed url', () => strip('Hello <a href="https://example.com', 'Hello '));
+		test('a complete attribute then the next one', () =>
+			strip('Hello <div class="a" id', 'Hello '));
+		test('but not a sentence that only looks like attributes', () =>
+			keep('Use the <div element to wrap it.'));
+	});
+
+	describe('leaves complete tags alone', () => {
+		test('opening tag', () => keep('Hello <div>'));
+		test('paired tag', () => keep('<div>content</div>'));
+		test('void tag', () => keep('<br/>'));
+		test('single-quoted attribute', () => keep("<img src='test'>"));
+	});
+
+	describe('leaves a < that is not a tag alone', () => {
+		test('spaced comparison', () => keep('3 < 5'));
+		test('spaced identifiers', () => keep('x < y'));
+		test('nothing after the <', () => keep('if a <'));
+		test('digit after the <', () => keep('value <1'));
+	});
+
+	describe('leaves code alone', () => {
+		test('closed fence', () => keep('```\n<div\n```'));
+		test('open fence is closed, not stripped', () => {
+			expect(parseIncompleteMarkdown('```html\n<custom', { live: true })).toBe(
+				'```html\n<custom\n```'
+			);
+		});
+		test('complete inline code span', () => keep('`<div`'));
+	});
+
+	describe('an unknown name needs the allowlist', () => {
+		test('unlisted is left alone', () => keep('Hello <custom'));
+		test('unlisted is left alone mid-document', () => keep('Some text here\n\n<casecard'));
+		test('listed is stripped on the live block', () => {
+			expect(parseIncompleteMarkdown('Hello <custom', { live: true, tags: listed })).toBe('Hello ');
+			expect(
+				parseIncompleteMarkdown('Some text here\n\n<casecard', { live: true, tags: listed })
+			).toBe('Some text here\n\n');
+			expect(parseIncompleteMarkdown('<custom data-id', { live: true, tags: listed })).toBe('');
+		});
+		test('listed is still left alone on a sealed block', () => {
+			expect(parseIncompleteMarkdown('Hello <custom', { live: false, tags: listed })).toBe(
+				'Hello <custom'
+			);
+		});
+	});
+
+	// The tag itself survives; the trailing '_' is the pre-existing
+	// singleUnderscoreItalic bug on `_blank`, not this plugin's doing.
+	test('does not touch a complete tag with underscores in its attributes', () => {
+		expect(parseIncompleteMarkdown('<a target="_blank">link</a>', { live: true })).toContain(
+			'<a target="_blank">link</a>'
+		);
+	});
+
+	test('defaults to live so a direct caller keeps 4.1.1 behaviour', () => {
+		expect(parseIncompleteMarkdown('Some text <Component attr')).toBe('Some text ');
+	});
+
+	// `live` only means "the last block", which the last block of a FINISHED
+	// document also is. Only the streaming tail may be cut, so anything before
+	// the end of the text is prose that has already been written.
+	describe('only the very end of the live block', () => {
+		test('prose that continues after the < is untouched', () => {
+			keep('Use the <div element to wrap it.');
+			keep('if a <b then c');
+		});
+		test('an earlier line that can never complete is untouched', () => {
+			keep('foo <div\nbar baz');
+			keep('<div class="x\nstill typing');
+		});
+		test('the tail is still stripped when earlier lines have their own <', () => {
+			strip('foo <div\nbar <span', 'foo <div\nbar ');
+		});
+		test('a listed tag mid-line is untouched too', () => {
+			expect(
+				parseIncompleteMarkdown('Use the <custom element to wrap it.', { live: true, tags: listed })
+			).toBe('Use the <custom element to wrap it.');
+		});
+	});
+});
+
+describe('single-letter tag names are prose until an attribute starts', () => {
+	// `live` only means "last block", and a finished document's last block is
+	// still last, so a one-letter element (a, b, i, p, q, s, u) must not be
+	// mistaken for prose that happens to end in `<b` (4.2.0 review blocker).
+	test('leaves `if a <b then` and `x <b y` alone even on the live tail', () => {
+		for (const input of ['if a <b then', 'x <b y', 'Hello <i']) {
+			expect(parseIncompleteMarkdown(input, { live: true })).toBe(input);
+		}
+	});
+
+	test('still strips a one-letter tag once its attribute has started', () => {
+		expect(parseIncompleteMarkdown('Hello <a href="https://x', { live: true })).toBe('Hello ');
+		expect(parseIncompleteMarkdown('Hello <a href="https://x', { live: false })).toBe(
+			'Hello <a href="https://x'
+		);
+	});
+
+	test('two-letter and longer names, and a one-letter component prefix, strip as before', () => {
+		expect(parseIncompleteMarkdown('Hello <div cla', { live: true })).toBe('Hello ');
+		expect(parseIncompleteMarkdown('Hello <em', { live: true })).toBe('Hello ');
+		// Uppercase is a PascalCase component prefix, never prose.
+		expect(parseIncompleteMarkdown('<C', { live: true })).toBe('');
 	});
 });

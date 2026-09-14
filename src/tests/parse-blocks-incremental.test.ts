@@ -1,5 +1,6 @@
 import { expect, describe, test } from 'vitest';
-import { parseBlocks, createParseBlocksCache } from '../lib/marked/index.js';
+import { parseBlocks, createParseBlocksCache, compileTags, lex } from '../lib/marked/index.js';
+import { normalizeHtmlIndentation } from '../lib/utils/normalize-html-indentation.js';
 
 // Property: streaming a document through parseBlocks with an incremental cache
 // must yield exactly the same block list as a fresh full parse, at EVERY chunk.
@@ -91,6 +92,16 @@ Some inner content.
 
 Outro paragraph.`,
 
+	// 7f9127b: the normalized document is what Streamdown feeds the cache, so the
+	// dedented shape has to stream through it as cleanly as the raw one.
+	'normalized indented html': normalizeHtmlIndentation(`<div class="wrapper">
+
+    <div class="inner">
+        <h2>Title Two</h2>
+    </div>
+
+</div>`),
+
 	'hr between paragraphs': `First paragraph.
 
 ---
@@ -134,6 +145,30 @@ describe('parseBlocks incremental cache equivalence', () => {
 		// And growing again from the shrunk state stays consistent.
 		const regrown = parseBlocks('First par\n\nnew tail', [], cache);
 		expect(regrown).toEqual(parseBlocks('First par\n\nnew tail'));
+	});
+
+	// fb9f97c: a lowercase custom tag is a block boundary only when it is listed,
+	// so the cache has to segment the same document two different ways.
+	test('splits a custom tag as one block only when it is allowlisted', () => {
+		const doc = 'Intro.\n\n<ai-thinking>\n**bold**\n</ai-thinking>\n\nOutro.';
+		const tags = compileTags(['ai-thinking']);
+		const cache = createParseBlocksCache();
+		for (let end = 5; ; end += 5) {
+			const content = doc.slice(0, Math.min(end, doc.length));
+			expect(parseBlocks(content, [], cache, tags)).toEqual(
+				parseBlocks(content, [], undefined, tags)
+			);
+			if (end >= doc.length) break;
+		}
+		// The tag is one block either way (marked's html rule ends at the blank
+		// line); the allowlist changes what that block lexes as, not where it ends.
+		expect(parseBlocks(doc, [], undefined, tags)).toEqual([
+			'Intro.',
+			'<ai-thinking>\n**bold**\n</ai-thinking>',
+			'Outro.'
+		]);
+		expect(lex(parseBlocks(doc, [], undefined, tags)[1], [], tags)[0].type).toBe('mdx');
+		expect(lex(parseBlocks(doc)[1])[0].type).toBe('html');
 	});
 
 	test('documents with tabs fall back safely (lexer normalizes raws)', () => {

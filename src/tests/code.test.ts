@@ -2,6 +2,7 @@ import { expect, describe, test } from 'vitest';
 import { lex } from '../lib/marked/index.js';
 import { parseIncompleteMarkdown } from '../lib/utils/parse-incomplete-markdown.js';
 import { closingFence, hasUnclosedFence } from '../lib/utils/fence.js';
+import { resolveLineNumbers } from '../lib/utils/line-numbers.js';
 
 // Helper functions
 function getTokensByType(tokens: any[], type: string) {
@@ -340,5 +341,33 @@ describe('closingFence', () => {
 		expect(closingFence({ char: '~', length: 4, prefix: '10. ' })).toBe('    ~~~~');
 		expect(closingFence({ char: '`', length: 3, prefix: '  - ' })).toBe('    ```');
 		expect(closingFence({ char: '`', length: 3, prefix: '> ' })).toBe('> ```');
+	});
+});
+
+describe('line numbers from the fence meta', () => {
+	// `lang` is the first word and `meta` the rest since 4.0.1, so this is what
+	// ```ts startLine=10 hands the component.
+	const meta = (info: string) =>
+		(lex('```' + info + '\nconst a = 1;\n```')[0] as { meta?: string }).meta;
+
+	test('startLine is read from the meta, and only when it is a number', () => {
+		expect(meta('ts startLine=10')).toBe('startLine=10');
+		expect(resolveLineNumbers(meta('ts startLine=10'), true).start).toBe(10);
+		expect(resolveLineNumbers(meta('ts'), true).start).toBe(1);
+		expect(resolveLineNumbers(undefined, true).start).toBe(1);
+		expect(resolveLineNumbers(meta('ts startLine=abc'), true).start).toBe(1);
+		expect(resolveLineNumbers(meta('ts startLine='), true).start).toBe(1);
+	});
+
+	test('the meta flags flip the prop either way', () => {
+		expect(resolveLineNumbers(undefined, false).enabled).toBe(false);
+		expect(resolveLineNumbers(meta('ts lineNumbers'), false).enabled).toBe(true);
+		expect(resolveLineNumbers(meta('ts noLineNumbers'), true).enabled).toBe(false);
+		// `noLineNumbers` must not read as the positive flag.
+		expect(resolveLineNumbers(meta('ts noLineNumbers'), false).enabled).toBe(false);
+		expect(resolveLineNumbers(meta('ts startLine=3 lineNumbers'), false)).toEqual({
+			enabled: true,
+			start: 3
+		});
 	});
 });

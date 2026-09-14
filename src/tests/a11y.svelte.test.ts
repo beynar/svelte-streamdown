@@ -42,8 +42,26 @@ describe('accessible names', () => {
 		const { container } = render(Streamdown, { content: table });
 		expect(names(container, '[data-streamdown-table-download] button')).toEqual([
 			defaultTranslations.controls.downloadTable,
-			defaultTranslations.controls.copyTable
+			defaultTranslations.controls.copyTable,
+			defaultTranslations.controls.tableFullscreen
 		]);
+	});
+
+	test('the fullscreen toggle renames itself once the table is expanded', () => {
+		const { container } = render(Streamdown, { content: table });
+		const toggle = container.querySelector<HTMLButtonElement>(
+			'[data-streamdown-table-download] button[aria-pressed]'
+		)!;
+		expect(toggle.getAttribute('aria-pressed')).toBe('false');
+
+		toggle.click();
+		flushSync();
+
+		expect(toggle.getAttribute('aria-pressed')).toBe('true');
+		expect(toggle.getAttribute('aria-label')).toBe(
+			defaultTranslations.controls.exitTableFullscreen
+		);
+		expect(toggle.getAttribute('title')).toBe(defaultTranslations.controls.exitTableFullscreen);
 	});
 
 	test('icons are hidden from the accessibility tree', () => {

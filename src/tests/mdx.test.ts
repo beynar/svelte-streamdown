@@ -1,5 +1,5 @@
 import { expect, describe, test } from 'vitest';
-import { lex } from '../lib/marked/index.js';
+import { lex, compileTags } from '../lib/marked/index.js';
 import { parseIncompleteMarkdown } from '../lib/utils/parse-incomplete-markdown.js';
 
 // Helper functions
@@ -527,5 +527,112 @@ describe('regression: nested same-name components', () => {
 
 		expect(result.endsWith('</B>\n</A>')).toBe(true);
 		expect(result.endsWith('</A>\n</B>')).toBe(false);
+	});
+});
+
+// fb9f97c/b392fbe: lowercase and hyphenated tags are opt-in. PascalCase keeps
+// working with no props at all — every test above this block passes `lex(src)`
+// with no allowlist and is unchanged from 4.1.1.
+describe('custom tag allowlist', () => {
+	const tags = compileTags(['ai-thinking', 'mention'], ['mention']);
+
+	test('should lex a listed lowercase tag as a component with parsed children', () => {
+		const token = getFirstTokenByType(
+			lex('<ai-thinking>\n**bold**\n</ai-thinking>', [], tags),
+			'mdx'
+		);
+
+		expect(token.tagName).toBe('ai-thinking');
+		expect(token.selfClosing).toBe(false);
+		expect(token.tokens[0].type).toBe('paragraph');
+		expect(token.tokens[0].tokens[0].type).toBe('strong');
+	});
+
+	test('should leave the same tag as an html block when it is not listed', () => {
+		const tokens = lex('<ai-thinking>\n**bold**\n</ai-thinking>');
+
+		expect(getTokensByType(tokens, 'mdx')).toHaveLength(0);
+		expect(getFirstTokenByType(tokens, 'html')).toBeDefined();
+	});
+
+	test('should keep PascalCase working when an allowlist is supplied', () => {
+		const token = getFirstTokenByType(lex('<Card title="x" />', [], tags), 'mdx');
+
+		expect(token.tagName).toBe('Card');
+		expect(token.attributes).toEqual({ title: 'x' });
+	});
+
+	test('should read hyphenated attributes', () => {
+		const token = getFirstTokenByType(lex('<mention data-id="7">x</mention>', [], tags), 'mdx');
+
+		expect(token.attributes).toEqual({ 'data-id': '7' });
+	});
+
+	test('should not let a listed name leak into plain HTML tags', () => {
+		expect(getTokensByType(lex('<section>\nhi\n</section>', [], tags), 'mdx')).toHaveLength(0);
+	});
+
+	test('literalTagContent should emit one text token with the markup intact', () => {
+		const token = getFirstTokenByType(
+			lex('<mention user_id="1">@_name_ **x**</mention>', [], tags),
+			'mdx'
+		);
+
+		expect(token.tokens).toHaveLength(1);
+		expect(token.tokens[0].type).toBe('text');
+		expect(token.tokens[0].text).toBe('@_name_ **x**');
+	});
+
+	test('a tag that is not in literalTagContent still parses its children', () => {
+		const token = getFirstTokenByType(lex('<ai-thinking>@_name_</ai-thinking>', [], tags), 'mdx');
+
+		expect(token.tokens[0].type).toBe('paragraph');
+		expect(token.tokens[0].tokens.some((t: any) => t.type === 'em')).toBe(true);
+	});
+
+	test('should escape regex metacharacters in a custom tag name', () => {
+		const odd = compileTags(['a.b']);
+
+		expect(getFirstTokenByType(lex('<a.b>x</a.b>', [], odd), 'mdx').tagName).toBe('a.b');
+		expect(getTokensByType(lex('<axb>x</axb>', [], odd), 'mdx')).toHaveLength(0);
+	});
+
+	test('should compile once per allowlist identity', () => {
+		const a = compileTags(['mention']);
+
+		expect(compileTags(['mention'])).not.toBe(a);
+		expect(a.selfClosing).toBe(a.selfClosing);
+	});
+
+	describe('streaming a listed tag', () => {
+		test('should strip a half-typed listed tag and close what is open', () => {
+			expect(parseIncompleteMarkdown('Hello <ai-think', { tags, live: true })).toBe('Hello ');
+		});
+
+		test('should complete the tag and the emphasis inside it', () => {
+			expect(parseIncompleteMarkdown('<ai-thinking>\n**bo', { tags, live: true })).toBe(
+				'<ai-thinking>\n**bo**\n</ai-thinking>'
+			);
+		});
+
+		test('should not touch an unlisted lowercase tag it does not own', () => {
+			expect(parseIncompleteMarkdown('<ai-thinking>\nhi', { live: true })).toBe(
+				'<ai-thinking>\nhi'
+			);
+		});
+	});
+});
+
+describe('literalTagContent allows the tag on its own', () => {
+	test('a tag listed only in literalTagContent is a component with literal children', () => {
+		const tags = compileTags(undefined, ['mention']);
+		const tokens = lex('<mention user_id="1">@_name_ **x**</mention>', [], tags);
+		const mdx = tokens.flatMap((t: any) =>
+			t.type === 'mdx' ? [t] : (t.tokens ?? []).filter((c: any) => c.type === 'mdx')
+		);
+		expect(mdx.length, 'the tag is a component without being in customTags').toBe(1);
+		expect(mdx[0].tokens.length).toBe(1);
+		expect(mdx[0].tokens[0].type).toBe('text');
+		expect(mdx[0].tokens[0].text).toBe('@_name_ **x**');
 	});
 });

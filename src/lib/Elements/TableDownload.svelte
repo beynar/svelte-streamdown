@@ -1,10 +1,11 @@
 <script lang="ts">
 	import { useStreamdown } from '$lib/context.svelte.js';
 	import { scale } from 'svelte/transition';
-	import { checkIcon, copyIcon, downloadIcon } from './icons.js';
+	import { checkIcon, closeIcon, copyIcon, downloadIcon, fullscreenIcon } from './icons.js';
 	import { Popover } from './popover.svelte.js';
 	import { useClickOutside } from '$lib/utils/useClickOutside.svelte.js';
 	import { useKeyDown } from '$lib/utils/useKeyDown.svelte.js';
+	import { useExpand } from '$lib/utils/expand.svelte.js';
 	import type { TableToken } from '$lib/marked/marked-table.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
 	import { save } from '$lib/utils/save.js';
@@ -15,10 +16,13 @@
 
 	let {
 		token,
-		id
+		id,
+		expanded = $bindable(false)
 	}: {
 		token: TableToken;
 		id: string;
+		/** Owned by the caller: the wrapper it renders is what expands. */
+		expanded?: boolean;
 	} = $props();
 	const streamdown = useStreamdown();
 	const popover = new Popover();
@@ -76,7 +80,22 @@
 		}
 	};
 
-	const tableElement = () => document.querySelector(`[data-streamdown-table="${id}"]`);
+	const tableElement = () => document.querySelector<HTMLElement>(`[data-streamdown-table="${id}"]`);
+
+	const expand = useExpand({
+		get expanded() {
+			return expanded;
+		},
+		set expanded(value: boolean) {
+			expanded = value;
+		},
+		getTarget: tableElement
+	});
+	const expandLabel = $derived(
+		expanded
+			? streamdown.translations.controls.exitTableFullscreen
+			: streamdown.translations.controls.tableFullscreen
+	);
 
 	const copyOrDownload = (type: Format) => {
 		if (type === 'Markdown') {
@@ -145,9 +164,15 @@
 	</dialog>
 {/if}
 
+<!-- The wrapper this toolbar controls becomes `position: fixed` when expanded,
+     so the buttons have to leave the flow with it or they end up underneath. -->
 <div
 	data-streamdown-table-download
 	class=" right-0 ml-auto flex items-center justify-end gap-2 p-1"
+	style:position={expanded ? 'fixed' : undefined}
+	style:top={expanded ? '24px' : undefined}
+	style:right={expanded ? '32px' : undefined}
+	style:z-index={expanded ? 2147483647 : undefined}
 >
 	{#each modes as mode (mode)}
 		<button
@@ -186,6 +211,22 @@
 			{/if}
 		</button>
 	{/each}
+	{#if streamdown.controls.tableFullscreen}
+		<button
+			class={streamdown.theme.components.button}
+			onclick={(e) => expand.toggle(e.currentTarget)}
+			type="button"
+			title={expandLabel}
+			aria-label={expandLabel}
+			aria-pressed={expanded}
+		>
+			{#if expanded}
+				{@render (streamdown.icons?.close || closeIcon)()}
+			{:else}
+				{@render (streamdown.icons?.fullscreen || fullscreenIcon)()}
+			{/if}
+		</button>
+	{/if}
 	<span aria-live="polite" style={srOnly}
 		>{copy.isCopied ? streamdown.translations.controls.copiedTable : ''}</span
 	>

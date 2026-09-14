@@ -34,6 +34,13 @@
 	const style = $derived(animate && streamdown.isMounted ? streamdown.animationBlockStyle : '');
 	const id = $props.id();
 
+	// Owned here because the table wrapper below is what goes fullscreen, while
+	// TableDownload holds the toggle.
+	let tableExpanded = $state(false);
+	// One below the global [data-expanded='true'] rule, so the download toolbar —
+	// which precedes this wrapper in the DOM — can still paint over the overlay.
+	const expandedZIndex = 2147483646;
+
 	// Only ever attached to the table wrapper, which is the element that already
 	// owns the horizontal scroll.
 	const tableScroll = usePinnedScroll({
@@ -149,17 +156,25 @@
 	</Slot>
 {:else if token.type === 'table'}
 	<Slot props={{ token, children }} render={streamdown.snippets.table}>
-		{#if streamdown.controls.tableCopy || streamdown.controls.tableDownload}
-			<TableDownload {id} {token} />
+		<!-- The toolbar stays a sibling of the wrapper and is only repositioned
+		     while expanded, so the wrapper is a `role="dialog"` but deliberately
+		     NOT `aria-modal`: that would mark the toolbar's own buttons inert for
+		     any AT that honours it. Add it together with a focus trap. -->
+		{#if streamdown.controls.tableCopy || streamdown.controls.tableDownload || streamdown.controls.tableFullscreen}
+			<TableDownload {id} {token} bind:expanded={tableExpanded} />
 		{/if}
 		<div
 			data-streamdown-table={id}
 			{style}
-			class={`${streamdown.theme.table.base} group`}
+			class={`${streamdown.theme.table.base} group ${tableExpanded ? streamdown.theme.table.expanded : ''}`}
 			style:overscroll-behavior-x="none"
-			style:max-height={streamdown.tableMaxHeight}
-			style:overflow-y={streamdown.tableMaxHeight ? 'auto' : undefined}
+			style:max-height={tableExpanded ? undefined : streamdown.tableMaxHeight}
+			style:overflow-y={streamdown.tableMaxHeight && !tableExpanded ? 'auto' : undefined}
+			style:z-index={tableExpanded ? expandedZIndex : undefined}
 			{@attach tableScroll}
+			tabindex="-1"
+			role={tableExpanded ? 'dialog' : undefined}
+			aria-label={tableExpanded ? streamdown.translations.controls.table : undefined}
 		>
 			<table class={streamdown.theme.table.table}>
 				{@render children()}

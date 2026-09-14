@@ -1,4 +1,17 @@
 import { closingFence, trackFence, type OpenFence } from './fence.js';
+import { DEFAULT_TAGS, type TagMatchers } from '../marked/marked-mdx.js';
+
+/** Per-call knobs `Block.svelte` threads down from the Streamdown context. */
+export type CompleterOptions = {
+	/** The tag allowlist the lexer uses, so the completer never disagrees with it. */
+	tags?: TagMatchers;
+	/**
+	 * Is this the block still being streamed into? Only there may a half-typed
+	 * HTML tag be stripped — a sealed paragraph reading `if a <b then` must keep
+	 * its tail forever (upstream 3e6a77d strips unconditionally; we do not).
+	 */
+	live?: boolean;
+};
 
 // Simplified interface that merges Plugin and PatternRule
 export interface Plugin {
@@ -25,6 +38,8 @@ interface HandlerPayload {
 
 interface ParseState {
 	currentLine: number;
+	/** How many lines the text has, so a plugin can tell the last one. */
+	lineCount: number;
 	context: 'normal' | 'list' | 'blockquote' | 'descriptionList';
 	blockingContexts: Set<'code' | 'math' | 'center' | 'right'>;
 	/** Delimiter that closes the open math block: '$$' or '\]'. */
@@ -33,16 +48,22 @@ interface ParseState {
 	openFence?: OpenFence;
 	lineContexts?: Array<{ code: boolean; math: boolean; center: boolean; right: boolean }>;
 	mdxUnclosedTags?: Array<{ tagName: string; lineIndex: number }>;
-	mdxLineStates?: Array<{ inMdx: boolean; incompletePositions: number[] }>;
+	/** Tag allowlist for this call (see CompleterOptions). */
+	tags: TagMatchers;
+	/** Is this the block still streaming (see CompleterOptions)? */
+	live: boolean;
 }
 
 export class IncompleteMarkdownParser {
 	private plugins: Plugin[] = [];
 	private state: ParseState = {
 		currentLine: 0,
+		lineCount: 0,
 		context: 'normal',
 		blockingContexts: new Set(),
-		lineContexts: []
+		lineContexts: [],
+		tags: DEFAULT_TAGS,
+		live: true
 	};
 
 	setState = (state: Partial<ParseState>) => {
@@ -54,16 +75,19 @@ export class IncompleteMarkdownParser {
 	}
 
 	// Main parsing methods
-	parse(text: string): string {
+	parse(text: string, options?: CompleterOptions): string {
 		if (!text || typeof text !== 'string') {
 			return text;
 		}
 
 		this.state = {
 			currentLine: 0,
+			lineCount: 0,
 			context: 'normal',
 			blockingContexts: new Set(),
-			lineContexts: []
+			lineContexts: [],
+			tags: options?.tags ?? DEFAULT_TAGS,
+			live: options?.live ?? true
 		};
 
 		let result = text;
@@ -92,6 +116,7 @@ export class IncompleteMarkdownParser {
 		// Split into lines for processing
 		const lines = result.split('\n');
 		const processedLines = [...lines];
+		this.state.lineCount = processedLines.length;
 
 		// Process each line with each plugin
 		for (let i = 0; i < processedLines.length; i++) {
@@ -150,7 +175,54 @@ export class IncompleteMarkdownParser {
 	static createDefaultPlugins(): Plugin[] {
 		return [
 			{
-				// Runs first: in a list item a '>' before a number is a comparison
+				// `Hello <div cla` and `<div>content</di` render as literal source on
+				// every chunk until the `>` lands (upstream 3e6a77d). Strip that tail —
+				// but only on the block still being streamed and only when the name is
+				// really a tag. Upstream strips `/<[a-zA-Z\/][^>]*$/` unconditionally,
+				// which on our per-block completer would eat the tail of a sealed
+				// paragraph reading `if a <b then` for good.
+				// Registered first so the mdx plugin below never sees a half-typed tag.
+				name: 'incompleteHtmlTag',
+				// Cheap gate: a line with no '<' can never match.
+				pattern: /</,
+				skipInBlockTypes: ['code', 'math'],
+				handler: ({ line, state }) => {
+					// Only the streaming tail: the live block's LAST line. An unfinished
+					// tag on an earlier line can never complete, and `live` is merely
+					// "last block", so `Use the <div element to wrap it.` in a finished
+					// document must keep its text. The patterns below are `$`-anchored,
+					// so matching on the last line means matching at the end of the text.
+					if (!state.live || state.currentLine !== state.lineCount - 1) return line;
+					// The incomplete tag is the last '<' with no '>' after it, so anchor
+					// there instead of letting `[^>]*$` backtrack from every '<' on the
+					// line (that is quadratic on a line full of complete tags).
+					const start = line.lastIndexOf('<');
+					if (start === -1) return line;
+					// `</` with the name not yet typed is unambiguous — no prose ends a
+					// line that way — and it is the one frame a name check cannot catch.
+					if (start === line.length - 2 && line[start + 1] === '/') {
+						return isWithinCompleteInlineCode(line, start) ? line : line.slice(0, start);
+					}
+					const match = incompleteHtmlTag.exec(line.slice(start));
+					if (!match) return line;
+					const name = match[1];
+					if (!isTagPrefix(name, state.tags)) return line;
+					// One-letter lowercase elements (a, b, i, p, q, s, u) are also how prose
+					// looks: `if a <b then` on the last line of a finished document must keep
+					// its text, and `live` cannot tell finished from streaming. Such a letter
+					// only counts as a tag once an attribute has started (`<a href="`). An
+					// uppercase letter (`<C`) can only be a component prefix, never prose.
+					if (name.length === 1 && name === name.toLowerCase() && !match[0].includes('='))
+						return line;
+					// A '<' inside a closed code span is content, not a tag (a725579).
+					if (isWithinCompleteInlineCode(line, start)) return line;
+					// No trimEnd (upstream does): 4.1.1 cut PascalCase tags at exactly
+					// this offset, so `Some text <Comp` keeps rendering as `Some text `.
+					return line.slice(0, start);
+				}
+			},
+			{
+				// In a list item a '>' before a number is a comparison
 				// ('- > 25: rich'), but marked reads it as a nested blockquote. Escaping it
 				// keeps the text, and the escape renders as a plain '>' (4fffb9f).
 				// `pattern` is only a cheap gate — a line whose first non-space character is
@@ -893,26 +965,23 @@ export class IncompleteMarkdownParser {
 				skipInBlockTypes: ['code', 'math', 'center', 'right'],
 				preprocess: ({ text, state }) => {
 					// Track MDX component states across the entire text
+					const tags = state.tags;
 					const lines = text.split('\n');
 					const openTags: Array<{ tagName: string; lineIndex: number }> = [];
-					let mdxLineStates: Array<{ inMdx: boolean; incompletePositions: number[] }> = [];
 
 					for (let i = 0; i < lines.length; i++) {
 						// Lines inside code fences or math blocks are opaque content: MDX-looking
 						// tags there must not open/close/track components.
 						const lineCtx = state.lineContexts?.[i];
 						if (lineCtx?.code || lineCtx?.math) {
-							mdxLineStates[i] = { inMdx: false, incompletePositions: [] };
 							continue;
 						}
 						const line = lines[i];
-						let inMdx = false;
-						let incompletePositions: number[] = [];
 
 						// Find all MDX tags in the line
 						let searchPos = 0;
 						while (searchPos < line.length) {
-							// Look for opening bracket with capital letter (MDX component)
+							// Look for an opening bracket that starts an allowlisted tag
 							const tagStart = line.indexOf('<', searchPos);
 							if (tagStart === -1 || tagStart >= line.length - 1) break;
 
@@ -921,7 +990,7 @@ export class IncompleteMarkdownParser {
 							// Closing tag for a component opened on an earlier line. Handled
 							// inside the scan so a close that is part of a same-line complete
 							// pair (consumed below) is never double-counted against the stack.
-							const closeTagMatch = line.substring(tagStart).match(/^<\/([A-Z][a-zA-Z0-9]*)>/);
+							const closeTagMatch = line.substring(tagStart).match(tags.closeTag);
 							if (closeTagMatch) {
 								const tagName = closeTagMatch[1];
 								// Pop the innermost same-name open (LIFO) so the auto-appended
@@ -936,92 +1005,43 @@ export class IncompleteMarkdownParser {
 								continue;
 							}
 
-							// Only match if starts with capital letter (MDX component)
-							if (!/[A-Z]/.test(nextChar)) {
+							// Every allowlisted name starts with a letter; cheap gate.
+							if (!/[a-zA-Z]/.test(nextChar)) {
 								searchPos = tagStart + 1;
 								continue;
 							}
 
 							// Try to match complete self-closing tag
-							const selfClosingMatch = line
-								.substring(tagStart)
-								.match(/^<([A-Z][a-zA-Z0-9]*)((?:\s+\w+=(?:"[^"]*"|{[^}]*}))*)\s*\/>/);
+							const selfClosingMatch = line.substring(tagStart).match(tags.selfClosing);
 							if (selfClosingMatch) {
 								searchPos = tagStart + selfClosingMatch[0].length;
 								continue;
 							}
 
 							// Try to match complete opening tag with immediate closing
-							const completeMatch = line
-								.substring(tagStart)
-								.match(/^<([A-Z][a-zA-Z0-9]*)((?:\s+\w+=(?:"[^"]*"|{[^}]*}))*)\s*>.*?<\/\1>/);
+							const completeMatch = line.substring(tagStart).match(tags.complete);
 							if (completeMatch) {
 								searchPos = tagStart + completeMatch[0].length;
 								continue;
 							}
 
 							// Try to match opening tag
-							const openTagMatch = line
-								.substring(tagStart)
-								.match(/^<([A-Z][a-zA-Z0-9]*)((?:\s+\w+=(?:"[^"]*"|{[^}]*}))*)\s*>/);
+							const openTagMatch = line.substring(tagStart).match(tags.openTag);
 							if (openTagMatch) {
 								const tagName = openTagMatch[1];
 								openTags.push({ tagName, lineIndex: i });
-								inMdx = true;
 								searchPos = tagStart + openTagMatch[0].length;
 								continue;
 							}
 
-							// Check for incomplete self-closing (e.g., <Component /)
-							const incompleteSelfClosing = line
-								.substring(tagStart)
-								.match(/^<([A-Z][a-zA-Z0-9]*)[^>]*\/$/);
-							if (incompleteSelfClosing) {
-								incompletePositions.push(tagStart);
-								break; // This is at the end of the line
-							}
-
-							// Check for incomplete tag (no closing >) - only at end of line
-							const incompleteTag = line
-								.substring(tagStart)
-								.match(/^<([A-Z][a-zA-Z0-9]*)(?:\s+[^>]*)?$/);
-							if (incompleteTag) {
-								incompletePositions.push(tagStart);
-								break; // This is at the end of the line
-							}
-
+							// A tag cut off before its `>` is the last thing on the line (the
+							// incompleteHtmlTag plugin, which ran first, strips it); scanning on
+							// from the next character finds nothing and ends the loop.
 							searchPos = tagStart + 1;
 						}
-
-						mdxLineStates[i] = { inMdx, incompletePositions };
 					}
 
-					return {
-						text,
-						state: {
-							mdxUnclosedTags: openTags,
-							mdxLineStates
-						}
-					};
-				},
-				handler: ({ line, state }) => {
-					// Remove incomplete MDX syntax (don't render it)
-					const lineStates = state.mdxLineStates || [];
-					const currentState = lineStates[state.currentLine];
-
-					if (currentState?.incompletePositions && currentState.incompletePositions.length > 0) {
-						// Process incomplete positions from right to left to preserve indices
-						let result = line;
-						for (let i = currentState.incompletePositions.length - 1; i >= 0; i--) {
-							const pos = currentState.incompletePositions[i];
-							const before = result.substring(0, pos);
-							// Simply remove the incomplete MDX tag
-							result = before;
-						}
-						return result;
-					}
-
-					return line;
+					return { text, state: { mdxUnclosedTags: openTags } };
 				},
 				postprocess: ({ text, state }) => {
 					// Complete unclosed MDX components at the end
@@ -1045,17 +1065,111 @@ export class IncompleteMarkdownParser {
 const defaultPlugins = IncompleteMarkdownParser.createDefaultPlugins();
 const defaultParser = new IncompleteMarkdownParser(defaultPlugins);
 
-export const parseIncompleteMarkdown = (text: string): string => {
+export const parseIncompleteMarkdown = (text: string, options?: CompleterOptions): string => {
 	if (!text || typeof text !== 'string') {
 		return text;
 	}
-	return defaultParser.parse(text);
+	return defaultParser.parse(text, options);
 };
 
 // Utility functions
 
 // Full test for the comparisonOperator plugin, whose `pattern` only gates it.
 const listItemComparison = /^(\s*(?:[-*+]|\d+[.)]) +)>(?==?\s*\$?\d)/;
+
+// An opening or closing tag that never got its '>', anchored at the line's last
+// '<': the name (hyphens allowed, so `</ai-thinking` is caught too), then any
+// number of COMPLETE attributes, then at most one still being typed. Upstream
+// accepts any `[^>]*` tail, which also swallows ordinary prose — `if a <b then
+// c` and `Use the <div element to wrap it.` both end in a `<name` with no '>'
+// after it. Requiring every attribute but the last to carry a quoted value is
+// what tells a half-typed tag from a sentence.
+const incompleteHtmlTag =
+	/^<\/?([a-zA-Z][a-zA-Z0-9-]*)(?:\s+[\w-]+=(?:"[^"]*"|'[^']*'|\{[^}]*\}))*(?:\s+[\w-]*(?:=(?:"[^"]*|'[^']*|\{[^}]*)?)?)?\s*\/?$/;
+
+/**
+ * The HTML element names a half-typed tag may be stripped for. Deliberately a
+ * short list of what an LLM actually emits rather than the full HTML vocabulary:
+ * every name here is one the user will never mean literally at the end of a
+ * streamed line, which is what makes the strip safe. Anything else must come in
+ * through `customTags` / `mdxComponents`.
+ */
+const htmlElements = [
+	'a',
+	'abbr',
+	'b',
+	'blockquote',
+	'br',
+	'button',
+	'code',
+	'col',
+	'colgroup',
+	'dd',
+	'del',
+	'details',
+	'div',
+	'dl',
+	'dt',
+	'em',
+	'figcaption',
+	'figure',
+	'h1',
+	'h2',
+	'h3',
+	'h4',
+	'h5',
+	'h6',
+	'hr',
+	'i',
+	'iframe',
+	'img',
+	'input',
+	'ins',
+	'kbd',
+	'label',
+	'li',
+	'mark',
+	'ol',
+	'p',
+	'picture',
+	'pre',
+	'q',
+	's',
+	'samp',
+	'section',
+	'small',
+	'source',
+	'span',
+	'strong',
+	'sub',
+	'summary',
+	'sup',
+	'table',
+	'tbody',
+	'td',
+	'tfoot',
+	'th',
+	'thead',
+	'tr',
+	'u',
+	'ul',
+	'video'
+];
+
+// A tag arrives one character at a time, so `<d`, `<di` and `<div` must all be
+// recognised or the raw text flashes for a chunk or two anyway. Every prefix of
+// every name above, precomputed — ~250 entries, one Set lookup per probe.
+const htmlPrefixes = new Set<string>();
+for (const element of htmlElements) {
+	for (let i = 1; i <= element.length; i++) htmlPrefixes.add(element.slice(0, i));
+}
+
+/** Could `name` still grow into a tag we are allowed to strip? */
+const isTagPrefix = (name: string, tags: TagMatchers): boolean =>
+	htmlPrefixes.has(name.toLowerCase()) ||
+	// PascalCase is prefix-closed by construction, so this covers `<MyComp` too.
+	tags.name.test(name) ||
+	tags.names.some((tag) => tag.startsWith(name));
 
 // Emphasis/code markers, as a set so inlineCitation can scan a cell for them
 // without building a substring per bracket.

@@ -30,6 +30,9 @@ export type Translations = {
 		tableFormatHtml: string;
 		tableFormatCsv: string;
 		tableFormatTsv: string;
+		tableFullscreen: string;
+		exitTableFullscreen: string;
+		table: string;
 		downloadDiagram: string;
 		downloadDiagramPng: string;
 		downloadDiagramSvg: string;
@@ -69,6 +72,9 @@ export const defaultTranslations: Translations = {
 		tableFormatHtml: 'HTML',
 		tableFormatCsv: 'CSV',
 		tableFormatTsv: 'TSV',
+		tableFullscreen: 'Expand table',
+		exitTableFullscreen: 'Collapse table',
+		table: 'Table',
 		downloadDiagram: 'Download diagram',
 		downloadDiagramPng: 'PNG',
 		downloadDiagramSvg: 'SVG',
@@ -93,6 +99,8 @@ export interface StreamdownContext
 		StreamdownProps,
 		keyof Snippets | 'class' | 'theme' | 'highlightTheme' | 'inlineCitationsMode'
 	> {
+	/** `customTags` + `mdxComponents` keys compiled once; lexer and completer share it. */
+	tags: TagMatchers;
 	snippets: Snippets;
 	highlightTheme: HighlightTheme;
 	/** False while rendering a bulk update (a replacement or a paste-sized append); Block captures it per update. */
@@ -145,6 +153,7 @@ animation-fill-mode: forwards;`
 			snippets: Snippets<Source>;
 			highlightTheme: HighlightTheme;
 			animateUpdate: boolean;
+			tags: TagMatchers;
 		}
 	) {
 		bind(this, props);
@@ -184,7 +193,8 @@ import type {
 	Extension,
 	GenericToken,
 	CitationToken,
-	MdxToken
+	MdxToken,
+	TagMatchers
 } from './marked/index.js';
 import type { Tokens } from 'marked';
 import type { CsvSeparator } from './utils/table-export.js';
@@ -279,6 +289,7 @@ export type TableControls =
 			enabled?: boolean;
 			copy?: boolean;
 			download?: DownloadControl<TableToken>;
+			fullscreen?: boolean;
 			csvSeparator?: CsvSeparator;
 	  };
 
@@ -300,6 +311,7 @@ export type ResolvedControls = {
 	tableCopy: boolean;
 	tableDownload: boolean;
 	tableDownloadFilename: string | ((token: TableToken) => string);
+	tableFullscreen: boolean;
 	tableCsvSeparator: CsvSeparator;
 	mermaid: boolean;
 	mermaidDownload: boolean;
@@ -336,6 +348,13 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	/** Partial overrides; unset keys fall back to `defaultTranslations`. */
 	translations?: { [K in keyof Translations]?: Partial<Translations[K]> };
 	controls?: Controls;
+	/**
+	 * Number the lines of every code block. Default false — upstream defaults it on,
+	 * but turning it on here would change every existing render. A fence can flip it
+	 * either way with a `lineNumbers` / `noLineNumbers` meta word, and start at N with
+	 * `startLine=N`.
+	 */
+	lineNumbers?: boolean;
 	// CSS lengths (e.g. '24rem'). Undefined leaves the element unbounded, as before.
 	codeBlockMaxHeight?: string;
 	tableMaxHeight?: string;
@@ -353,6 +372,7 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 		copy?: Snippet;
 		download?: Snippet;
 		fullscreen?: Snippet;
+		close?: Snippet;
 		zoomIn?: Snippet;
 		zoomOut?: Snippet;
 		fitView?: Snippet;
@@ -366,6 +386,21 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 		check?: Snippet;
 	};
 	extensions?: Extension[];
+	/**
+	 * Extra tag names the MDX tokenizer accepts on top of PascalCase, so
+	 * `<ai-thinking>**bold**</ai-thinking>` becomes a component with parsed
+	 * children instead of a literal html block. Keys of `mdxComponents` are
+	 * allowed automatically; nothing else lowercase is, so real HTML is untouched.
+	 */
+	customTags?: string[];
+	/** Tags whose children render verbatim — no Markdown, `**` and `_` left alone. */
+	literalTagContent?: string[];
+	/**
+	 * Dedent pretty-printed HTML before parsing, so a nested `<div>` indented four
+	 * spaces after a blank line is not read as an indented code block. Off by
+	 * default: dedenting is lossy, and `<pre>`/`<code>` bodies are never touched.
+	 */
+	normalizeHtmlIndentation?: boolean;
 	children?: Snippet<[{ streamdown: StreamdownContext; token: GenericToken; children: Snippet }]>;
 	mdxComponents?: Record<
 		string,

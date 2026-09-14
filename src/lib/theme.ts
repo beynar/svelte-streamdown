@@ -47,7 +47,11 @@ export const theme = {
 		buttons: 'flex items-center gap-2',
 		language: 'ml-1 font-mono lowercase',
 		pre: 'overflow-x-auto font-mono p-0 bg-gray-100/40',
-		line: 'block'
+		line: 'block',
+		// Gutter appearance only; the counter itself is a global rule in
+		// Streamdown.svelte (see the comment there) so numbers work without Tailwind.
+		lineNumber:
+			'before:inline-block before:w-8 before:pr-3 before:text-right before:text-gray-400 before:select-none'
 	},
 	codespan: {
 		base: 'bg-gray-100 rounded px-1.5 py-0.5 font-mono text-[0.9em]'
@@ -71,7 +75,10 @@ export const theme = {
 	},
 	table: {
 		base: 'overflow-x-auto max-w-full my-4 border border-gray-200 rounded-lg',
-		table: 'w-full border-collapse min-w-full'
+		table: 'w-full border-collapse min-w-full',
+		// Added to `base` while fullscreen; the fixed positioning itself comes from
+		// the global [data-expanded='true'] rule.
+		expanded: 'overflow-auto bg-white p-2 pt-10 shadow-2xl'
 	},
 	thead: {
 		base: 'bg-gray-200/80'
@@ -225,7 +232,9 @@ export const shadcnTheme = {
 
 		language: 'ml-1 font-mono lowercase',
 		pre: 'overflow-x-auto font-mono p-0 bg-muted/40',
-		line: 'block '
+		line: 'block ',
+		lineNumber:
+			'before:inline-block before:w-8 before:pr-3 before:text-right before:text-muted-foreground before:select-none'
 	},
 	codespan: {
 		base: 'bg-muted rounded px-1.5 py-0.5 font-mono text-foreground text-[0.9em]'
@@ -250,7 +259,8 @@ export const shadcnTheme = {
 	},
 	table: {
 		base: 'overflow-x-auto max-w-full my-4 rounded-lg border border-border',
-		table: 'w-full border-collapse min-w-full'
+		table: 'w-full border-collapse min-w-full',
+		expanded: 'overflow-auto bg-background p-2 pt-10 shadow-2xl'
 	},
 	thead: {
 		base: 'bg-muted/80'

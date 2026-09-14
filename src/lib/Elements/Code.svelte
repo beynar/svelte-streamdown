@@ -5,6 +5,7 @@
 	import { highlightLines, languageExtensionMap } from '$lib/utils/hightlighter.svelte.js';
 	import type { CodeToken } from '$lib/marked/index.js';
 	import { usePinnedScroll } from '$lib/utils/usePinnedScroll.svelte.js';
+	import { resolveLineNumbers } from '$lib/utils/line-numbers.js';
 	import { checkIcon, copyIcon, downloadIcon } from './icons.js';
 	import { srOnly } from './srOnly.js';
 
@@ -53,6 +54,8 @@
 	};
 
 	const lines = $derived(highlightLines(code, token.lang, streamdown.highlightLanguages));
+
+	const lineNumbers = $derived(resolveLineNumbers(token.meta, streamdown.lineNumbers ?? false));
 
 	// `pre` is already the horizontal scroll container, so capping it there keeps
 	// one scrollable box for both axes (and the horizontal scrollbar visible).
@@ -112,10 +115,15 @@
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
 		<pre
 			class={streamdown.theme.code.pre}
+			data-line-numbers={lineNumbers.enabled || undefined}
+			style:counter-reset={lineNumbers.enabled ? `sd-line ${lineNumbers.start - 1}` : undefined}
 			style:max-height={streamdown.codeBlockMaxHeight}
 			style:overflow-y={streamdown.codeBlockMaxHeight ? 'auto' : undefined}
 			{@attach pinnedScroll}><code
-				>{#each lines as line}<span class={streamdown.theme.code.line}
+				>{#each lines as line}<span
+						class="{streamdown.theme.code.line}{lineNumbers.enabled
+							? ` ${streamdown.theme.code.lineNumber}`
+							: ''}"
 						>{#if line.length === 0}&#8203;{/if}{#each line as t}<span
 								class="th-token{t.className ? ` th-${t.className}` : ''}"
 								style={animate && streamdown.isMounted ? streamdown.animationTextStyle : ''}

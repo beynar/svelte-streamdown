@@ -39,9 +39,9 @@ const captureDownload = async (act: () => void) => {
 };
 
 const openPopover = (container: HTMLElement, index = 0) => {
-	// Two buttons per table (download, copy); the download one opens the popover.
-	const buttons = container.querySelectorAll('[data-streamdown-table-download] button');
-	(buttons[index * 2] as HTMLButtonElement).click();
+	// One toolbar per table; its first button (download) opens the popover.
+	const bars = container.querySelectorAll('[data-streamdown-table-download]');
+	(bars[index].querySelector('button') as HTMLButtonElement).click();
 	flushSync();
 	// A popover closed by this click is still in the DOM for its outro, so take
 	// the last one: tables render in document order.
@@ -110,7 +110,8 @@ describe('table download', () => {
 			controls: { table: { copy: false } }
 		});
 
-		expect(container.querySelectorAll('[data-streamdown-table-download] button').length).toBe(1);
+		// download + fullscreen; only copy went away.
+		expect(container.querySelectorAll('[data-streamdown-table-download] button').length).toBe(2);
 	});
 
 	test('controls={false} drops the table toolbar entirely', () => {

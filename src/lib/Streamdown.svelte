@@ -6,7 +6,13 @@
 		type StreamdownProps
 	} from './context.svelte.js';
 	import { mergeTheme, shadcnTheme } from './theme.js';
-	import { parseBlocks, createParseBlocksCache } from './marked/index.js';
+	import {
+		parseBlocks,
+		createParseBlocksCache,
+		compileTags,
+		DEFAULT_TAGS
+	} from './marked/index.js';
+	import { normalizeHtmlIndentation as dedentHtml } from './utils/normalize-html-indentation.js';
 	import { hasUnclosedFence } from './utils/fence.js';
 
 	let {
@@ -30,6 +36,7 @@
 		controls,
 		codeBlockMaxHeight,
 		tableMaxHeight,
+		lineNumbers = false,
 		animation,
 		element = $bindable(),
 		icons,
@@ -38,6 +45,9 @@
 		sources,
 		inlineCitationsMode = 'carousel',
 		mdxComponents,
+		customTags,
+		literalTagContent,
+		normalizeHtmlIndentation = false,
 		components,
 		static: isStatic,
 		...snippets
@@ -58,6 +68,20 @@
 	// Per-instance incremental state: append-only content updates re-lex only
 	// the last couple of blocks instead of the whole document.
 	const blocksCache = createParseBlocksCache();
+
+	// One compile per allowlist identity, shared by the lexer and the streaming
+	// completer so the two can never disagree about what counts as a tag.
+	const tags = $derived.by(() => {
+		const names = [...(customTags ?? []), ...Object.keys(mdxComponents ?? {})];
+		// With nothing to compile, share DEFAULT_TAGS: the lexer options cache is
+		// keyed on this object, so a private copy per instance would rebuild and
+		// retain its own ~20 tokenizer registrations for no reason.
+		return names.length === 0 && !literalTagContent?.length
+			? DEFAULT_TAGS
+			: compileTags(names, literalTagContent);
+	});
+
+	const source = $derived(normalizeHtmlIndentation ? dedentHtml(content) : content);
 
 	streamdown = new StreamdownContext({
 		get element() {
@@ -176,6 +200,7 @@
 				tableCopy: table.copy,
 				tableDownload: table.download,
 				tableDownloadFilename: table.filename ?? 'table',
+				tableFullscreen: table.enabled && tableSection.fullscreen !== false,
 				tableCsvSeparator: tableSection.csvSeparator ?? ',',
 				mermaid: mermaid.enabled,
 				mermaidDownload: mermaid.download,
@@ -187,6 +212,9 @@
 		},
 		get codeBlockMaxHeight() {
 			return codeBlockMaxHeight;
+		},
+		get lineNumbers() {
+			return lineNumbers;
 		},
 		get tableMaxHeight() {
 			return tableMaxHeight;
@@ -203,6 +231,9 @@
 		get mdxComponents() {
 			return mdxComponents;
 		},
+		get tags() {
+			return tags;
+		},
 		get components() {
 			return components;
 		}
@@ -211,7 +242,7 @@
 	const id = $props.id();
 
 	const blocks = $derived(
-		isStatic ? content : parseBlocks(content, streamdown.extensions, blocksCache)
+		isStatic ? source : parseBlocks(source, streamdown.extensions, blocksCache, tags)
 	);
 
 	// Only the tail of a live stream can be mid-fence — a static render is finished
@@ -223,12 +254,13 @@
 
 <div bind:this={element} class={className}>
 	{#if isStatic}
-		<Block static={isStatic} block={content} />
+		<Block static={isStatic} block={source} />
 	{:else}
 		{#each blocks as block, index (`${id}-block-${index}`)}
 			<Block
 				static={isStatic}
 				{block}
+				live={index === blocks.length - 1}
 				incomplete={lastBlockIncomplete && index === blocks.length - 1}
 			/>
 		{/each}
@@ -237,6 +269,29 @@
 
 <style global>
 	:global {
+		/* Line numbers: a counter on the line span that already exists (why it is
+		   here and not in the theme: see resolveLineNumbers). CSS ships as a string
+		   at runtime, so keep this short. */
+		[data-streamdown-code] pre[data-line-numbers] > code > span {
+			counter-increment: sd-line;
+		}
+
+		[data-streamdown-code] pre[data-line-numbers] > code > span::before {
+			content: counter(sd-line);
+		}
+
+		/* Lives here, not in Mermaid.svelte: the table overlay needs it on pages
+		   that never render a diagram. */
+		[data-expanded='true'] {
+			position: fixed;
+			top: 16px;
+			left: 16px;
+			width: calc(100vw - 32px);
+			height: calc(100vh - 32px);
+			z-index: 2147483647;
+			margin: 0px;
+		}
+
 		@keyframes sd-fade {
 			from {
 				opacity: 0;

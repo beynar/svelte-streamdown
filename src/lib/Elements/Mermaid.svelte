@@ -323,15 +323,7 @@
 </div>
 
 <style>
-	:global([data-expanded='true']) {
-		position: fixed;
-		top: 16px;
-		left: 16px;
-		width: calc(100vw - 32px);
-		height: calc(100vh - 32px);
-		z-index: 2147483647;
-		margin: 0px;
-	}
+	/* [data-expanded='true'] now lives in Streamdown.svelte's global block. */
 
 	/* Hide Mermaid's temporary rendering containers */
 	:global(div[id^='dmermaid-']) {

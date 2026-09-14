@@ -196,3 +196,37 @@ describe('parseBlocks incremental cache equivalence', () => {
 		}
 	});
 });
+
+describe('lastUpdate', () => {
+	// Rendering skips the streaming animation on a bulk update; it needs the
+	// cache to say which kind of update it just served.
+	test('is first, then stream on small appends, then bulk on a replacement', () => {
+		const cache = createParseBlocksCache();
+		expect(cache.lastUpdate).toBe('first');
+		parseBlocks('Hello world.', [], cache);
+		expect(cache.lastUpdate).toBe('first');
+		parseBlocks('Hello world. More text.', [], cache);
+		expect(cache.lastUpdate).toBe('stream');
+		parseBlocks('A different document entirely.', [], cache);
+		expect(cache.lastUpdate).toBe('bulk');
+		parseBlocks('A different document entirely. And a streamed chunk.', [], cache);
+		expect(cache.lastUpdate).toBe('stream');
+	});
+
+	test('a paste-sized append is bulk even though it is an append', () => {
+		// The demo's "Show All": a short prefix followed by the whole document,
+		// which starts with that prefix — an append of tens of kilobytes at once.
+		const doc = 'Intro paragraph.\n\n' + 'A line of prose that repeats.\n'.repeat(200);
+		const cache = createParseBlocksCache();
+		parseBlocks(doc.slice(0, 40), [], cache);
+		parseBlocks(doc, [], cache);
+		expect(cache.lastUpdate).toBe('bulk');
+	});
+
+	test('a jump back to a shorter prefix is bulk', () => {
+		const cache = createParseBlocksCache();
+		parseBlocks('Paragraph one.\n\nParagraph two.', [], cache);
+		parseBlocks('Paragraph one.', [], cache);
+		expect(cache.lastUpdate).toBe('bulk');
+	});
+});

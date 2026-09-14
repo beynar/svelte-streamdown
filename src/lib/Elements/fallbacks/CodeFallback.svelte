@@ -6,12 +6,14 @@
 	const {
 		token,
 		id,
-		incomplete = false
+		incomplete = false,
+		animate = true
 	}: {
 		token: Tokens.Code;
 		id: string;
 		/** The fence is still being streamed; nothing below it is final yet. */
 		incomplete?: boolean;
+		animate?: boolean;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -36,7 +38,7 @@
 <div
 	data-streamdown-code={id}
 	data-incomplete={incomplete || undefined}
-	style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+	style={animate && streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 	class={streamdown.theme.code.base}
 >
 	<div class={streamdown.theme.code.header}>
@@ -49,7 +51,7 @@
 			style:overflow-y={streamdown.codeBlockMaxHeight ? 'auto' : undefined}
 			{@attach pinnedScroll}><code
 				>{#each code.split('\n') as line}<span class={streamdown.theme.code.line}
-						><span style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
+						><span style={animate && streamdown.isMounted ? streamdown.animationTextStyle : ''}
 							>{line.trim().length > 0 ? line : '\u200B'}</span
 						></span
 					>{/each}</code

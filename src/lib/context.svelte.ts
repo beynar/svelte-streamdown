@@ -95,6 +95,8 @@ export interface StreamdownContext
 	> {
 	snippets: Snippets;
 	highlightTheme: HighlightTheme;
+	/** False while rendering a bulk update (a replacement or a paste-sized append); Block captures it per update. */
+	animateUpdate: boolean;
 	theme: Theme;
 	translations: Translations;
 	controls: ResolvedControls;
@@ -142,6 +144,7 @@ animation-fill-mode: forwards;`
 		props: Omit<StreamdownProps, keyof Snippets | 'class' | 'highlightTheme'> & {
 			snippets: Snippets<Source>;
 			highlightTheme: HighlightTheme;
+			animateUpdate: boolean;
 		}
 	) {
 		bind(this, props);
@@ -377,8 +380,16 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 		>
 	>;
 	components?: {
-		code?: Component<{ token: Tokens.Code; id: string; incomplete: boolean }, any, any>;
-		mermaid?: Component<{ token: Tokens.Code; id: string; incomplete: boolean }, any, any>;
+		code?: Component<
+			{ token: Tokens.Code; id: string; incomplete: boolean; animate: boolean },
+			any,
+			any
+		>;
+		mermaid?: Component<
+			{ token: Tokens.Code; id: string; incomplete: boolean; animate: boolean },
+			any,
+			any
+		>;
 		math?: Component<{ token: MathToken; id: string }, any, any>;
 	};
 } & Partial<Snippets<Source>>;

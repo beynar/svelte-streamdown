@@ -119,3 +119,39 @@ describe('streaming fence signal', () => {
 		expect(incompleteAttr(container)).toBe('true');
 	});
 });
+
+describe('streaming animation', () => {
+	const animated = (container: Element) =>
+		container.querySelectorAll('[style*="animation-name"]').length;
+
+	test('animates streamed appends but not a replacement or a paste-sized append', async () => {
+		const { container, rerender } = render(Streamdown, {
+			content: 'Hello',
+			animation: { enabled: true, animateOnMount: true }
+		});
+		expect(animated(container), 'first render animates with animateOnMount').toBeGreaterThan(0);
+
+		await rerender({ content: 'Hello world again' });
+		expect(animated(container), 'a streamed append animates').toBeGreaterThan(0);
+
+		await rerender({ content: 'A completely different document.' });
+		expect(animated(container), 'a replacement renders plain').toBe(0);
+
+		await rerender({ content: 'A completely different document. Streaming on.' });
+		expect(animated(container), 'the next streamed append animates again').toBeGreaterThan(0);
+
+		// Show All in the demo: a prefix followed by the whole document at once. It
+		// is an append, but one that used to start ~10k CSS animations in a frame.
+		// The untouched first paragraph is not re-rendered, so it keeps the spans
+		// it already had; what must be plain is the block the bulk append added.
+		const before = animated(container);
+		const bulk =
+			'A completely different document. Streaming on.\n\n' + 'More prose here.\n'.repeat(300);
+		await rerender({ content: bulk });
+		const paragraphs = container.querySelectorAll('[data-streamdown-paragraph]');
+		const added = paragraphs[paragraphs.length - 1];
+		expect(added.textContent, 'the bulk block rendered').toContain('More prose here.');
+		expect(animated(added), 'a paste-sized append renders plain').toBe(0);
+		expect(animated(container), 'no new animated spans anywhere').toBeLessThanOrEqual(before);
+	});
+});

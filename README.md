@@ -467,6 +467,9 @@ The animation system works by:
 2. **Sequential Animation**: Each token animates as it is received
 3. **Block-level Animation**: Entire blocks (paragraphs, headings, code blocks) animate as units
 
+> [!NOTE]
+> Only text that arrives in **streamed-sized appends** to `content` is animated. A bulk update — `content` replaced by a different document, a jump back to an earlier prefix, or a single append of more than ~2 KB such as pasting a whole answer or a "show all" — renders without animation, and the next streamed append animates again. Animating a whole document at once would start thousands of CSS animations in a single frame and stall the page.
+
 ### Animation Types
 
 Choose from 4 distinct animation styles:

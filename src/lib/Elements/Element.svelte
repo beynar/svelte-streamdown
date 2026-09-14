@@ -15,8 +15,14 @@
 	let {
 		token,
 		children,
-		incomplete = false
-	}: { token: StreamdownToken; children: Snippet; incomplete?: boolean } = $props();
+		incomplete = false,
+		animate = true
+	}: {
+		token: StreamdownToken;
+		children: Snippet;
+		incomplete?: boolean;
+		animate?: boolean;
+	} = $props();
 	const streamdown = useStreamdown();
 
 	// Use provided components or fallback to lightweight versions
@@ -25,7 +31,7 @@
 	const MathComponent = $derived(streamdown.components?.math ?? MathFallback);
 
 	// Only apply animation on block level elements. Leaves text elements to be animated by their text children.
-	const style = $derived(streamdown.isMounted ? streamdown.animationBlockStyle : '');
+	const style = $derived(animate && streamdown.isMounted ? streamdown.animationBlockStyle : '');
 	const id = $props.id();
 
 	// Only ever attached to the table wrapper, which is the element that already
@@ -91,11 +97,11 @@
 		props={{ children, token, incomplete }}
 		render={streamdown.snippets.mermaid ?? streamdown.snippets.code}
 	>
-		<MermaidComponent {id} {token} {incomplete} />
+		<MermaidComponent {id} {token} {incomplete} {animate} />
 	</Slot>
 {:else if token.type === 'code'}
 	<Slot props={{ children, token, incomplete }} render={streamdown.snippets.code}>
-		<CodeComponent {id} {token} {incomplete} />
+		<CodeComponent {id} {token} {incomplete} {animate} />
 	</Slot>
 {:else if token.type === 'codespan'}
 	<Slot props={{ children, token }} render={streamdown.snippets.codespan}>
@@ -284,7 +290,7 @@
 	<Slot props={{ children, token }} render={streamdown.snippets.descriptionList}>
 		<dl
 			data-streamdown-description-list={id}
-			style={streamdown.animationBlockStyle}
+			style={animate ? streamdown.animationBlockStyle : ''}
 			class={streamdown.theme.descriptionList.base}
 		>
 			{@render children()}

@@ -11,12 +11,15 @@
 	const {
 		token,
 		id,
-		incomplete = false
+		incomplete = false,
+		animate = true
 	}: {
 		token: CodeToken;
 		id: string;
 		/** The fence is still being streamed; nothing below it is final yet. */
 		incomplete?: boolean;
+		/** False for the render of a bulk update — a replacement or a paste-sized append (see Block). */
+		animate?: boolean;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -66,7 +69,7 @@
 <div
 	data-streamdown-code={id}
 	data-incomplete={incomplete || undefined}
-	style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+	style={animate && streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 	class={streamdown.theme.code.base}
 >
 	<div class={streamdown.theme.code.header}>
@@ -115,7 +118,7 @@
 				>{#each lines as line}<span class={streamdown.theme.code.line}
 						>{#if line.length === 0}&#8203;{/if}{#each line as t}<span
 								class="th-token{t.className ? ` th-${t.className}` : ''}"
-								style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
+								style={animate && streamdown.isMounted ? streamdown.animationTextStyle : ''}
 								style:color={streamdown.highlightTheme.tokens[t.className ?? 'token']}
 								>{t.value}</span
 							>{/each}</span

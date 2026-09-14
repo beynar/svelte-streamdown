@@ -269,6 +269,12 @@ export type ParseBlocksCache = {
 	keptBefore: number[];
 	/** persistent list of kept raws; only its tail is rewritten on append */
 	blocks: string[];
+	/**
+	 * What kind of update the last call was. Rendering skips the streaming
+	 * animation on a `bulk` one — a replacement, or an append far larger than any
+	 * streamed chunk — where ~10k spans would otherwise all animate in one frame.
+	 */
+	lastUpdate: 'first' | 'stream' | 'bulk';
 };
 
 export const createParseBlocksCache = (): ParseBlocksCache => ({
@@ -277,7 +283,8 @@ export const createParseBlocksCache = (): ParseBlocksCache => ({
 	keep: [],
 	offsets: [0],
 	keptBefore: [0],
-	blocks: []
+	blocks: [],
+	lastUpdate: 'first'
 });
 
 // Number of trailing rendered blocks that stay "live" (re-lexed every chunk).
@@ -365,11 +372,32 @@ const appendable = (
 	return markdown.charCodeAt(offset - 1) === content.charCodeAt(offset - 1);
 };
 
+// An append this large in a single update is a paste or a "show all", not a
+// streamed chunk. Real streams arrive in tens of characters, and even a client
+// that batches renders to one frame at ~1000 tokens/s adds a few hundred; the
+// harm — thousands of spans starting a CSS animation in the same frame — only
+// begins well past this. ponytail: heuristic; a prop if anyone needs to tune it.
+const BULK_APPEND_CHARS = 2048;
+
+const updateKind = (
+	isAppend: boolean,
+	previousLength: number,
+	length: number
+): ParseBlocksCache['lastUpdate'] => {
+	if (!isAppend) return previousLength === 0 ? 'first' : 'bulk';
+	return length - previousLength > BULK_APPEND_CHARS ? 'bulk' : 'stream';
+};
+
 export const parseBlocks = (
 	markdown: string,
 	extensions: Extension[] = [],
 	cache?: ParseBlocksCache
 ): string[] => {
+	// Whether this call extends the content the cache already described — decided
+	// by the same probe the fast path uses, so the contiguity fallback below still
+	// counts as an append for the animation's purposes.
+	let isAppend = false;
+	const previousLength = cache?.content.length ?? 0;
 	if (cache && cache.content.length > 0 && markdown.length > cache.content.length) {
 		// Append-only update: seal everything except the last SEAL_SLACK rendered
 		// blocks and re-lex only the tail. offsets[] are prefix sums over raws, so
@@ -383,6 +411,7 @@ export const parseBlocks = (
 		const offset = cache.offsets[cut];
 
 		if (appendable(markdown, cache, cut, offset)) {
+			isAppend = true;
 			const tailTokens = blockTokensOf(markdown.slice(offset), extensions);
 			let tailLength = 0;
 			for (const token of tailTokens) tailLength += token.raw.length;
@@ -412,6 +441,7 @@ export const parseBlocks = (
 					cache.keptBefore.push(kept);
 				}
 				cache.content = markdown;
+				cache.lastUpdate = updateKind(isAppend, previousLength, markdown.length);
 				// Copy out: callers (Svelte `$derived`, the perf harness) diff block
 				// lists by identity, so handing back the persistent array would read as
 				// "nothing changed". slice() is a memcpy with no per-element callback.
@@ -443,6 +473,7 @@ export const parseBlocks = (
 			}
 			cache.keptBefore.push(kept);
 		}
+		cache.lastUpdate = updateKind(isAppend, previousLength, markdown.length);
 		// Only trust the cache for future appends if raws reconstruct the input.
 		cache.content = pos === markdown.length ? markdown : '';
 		return cache.blocks.slice();

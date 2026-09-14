@@ -13,12 +13,14 @@
 	const {
 		token,
 		id,
-		incomplete = false
+		incomplete = false,
+		animate = true
 	}: {
 		token: CodeToken;
 		id: string;
 		/** The fence is still being streamed; nothing below it is final yet. */
 		incomplete?: boolean;
+		animate?: boolean;
 	} = $props();
 
 	// Trailing blank lines are noise for mermaid but they still changed `token.text`
@@ -251,7 +253,7 @@
 	{#if mermaid}
 		<div
 			bind:this={container}
-			style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+			style={animate && streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 			class={streamdown.theme.mermaid.base}
 			{@attach (node) => {
 				// A half-written diagram makes mermaid throw and log on every chunk, so

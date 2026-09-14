@@ -9,6 +9,10 @@
 
 The bug predates 4.0; it was found while reviewing the 4.1.0 fence work, which had fixed the three-space case and left the four-space one.
 
+### ⚡ Streaming animation
+
+- **A bulk update of `content` is no longer animated; only streamed appends are.** Replacing a partial document with a full one (the demo's "Show All": a 5% prefix → the whole 59 KB README — technically an append, since the document starts with its own prefix) mounted ~10,000 word spans that each started a CSS animation in the same frame: roughly two seconds of stalled main thread, identical since before 4.0. The parse cache now classifies each update as the first parse, a streamed append, or bulk (a replacement, or an append of more than ~2 KB in one go), and each block captures that answer when its own text changes, so a bulk update renders plain text while the next streamed chunk animates only what it adds. `animateOnMount` and `static` are unchanged. Known edge: a block rendered plain by a bulk update that then grows by streaming animates its whole text once on that first chunk.
+
 ## 4.1.0
 
 Feature release: the LaTeX math delimiters LLMs actually emit, an `incomplete` signal for the block still streaming, a `controls` umbrella that configures the toolbars instead of only switching them off, height caps with pinned auto-scroll, a full accessibility and translation pass, and a completer that no longer goes quadratic on a long line. 835 node tests, 42 browser tests.

@@ -55,6 +55,10 @@
 		mermaidConfig?.theme ? mermaidConfig.theme : darkMode.current ? 'dark' : 'default'
 	);
 
+	// Per-instance incremental state: append-only content updates re-lex only
+	// the last couple of blocks instead of the whole document.
+	const blocksCache = createParseBlocksCache();
+
 	streamdown = new StreamdownContext({
 		get element() {
 			return element;
@@ -76,6 +80,12 @@
 		},
 		get highlightTheme() {
 			return resolvedHighlightTheme;
+		},
+		get animateUpdate() {
+			// A streamed chunk keeps animating; a replacement or a bulk append (the
+			// demo's "Show All" is an append of 95% of the document) renders plain.
+			// The first parse stays animatable so `animateOnMount` keeps its meaning.
+			return blocksCache.lastUpdate !== 'bulk';
 		},
 		get snippets() {
 			return snippets;
@@ -200,9 +210,6 @@
 
 	const id = $props.id();
 
-	// Per-instance incremental state: append-only content updates re-lex only
-	// the last couple of blocks instead of the whole document.
-	const blocksCache = createParseBlocksCache();
 	const blocks = $derived(
 		isStatic ? content : parseBlocks(content, streamdown.extensions, blocksCache)
 	);

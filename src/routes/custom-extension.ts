@@ -1,4 +1,4 @@
-import type { Extension } from './index.js';
+import type { Extension } from '$lib/marked/index.js';
 
 export const markedCollapsible: Extension = {
 	name: 'collapsible',

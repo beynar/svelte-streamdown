@@ -1,5 +1,5 @@
 import { describe, test, expect } from 'vitest';
-import { parseIncompleteMarkdown } from '$lib/utils/parse-incomplete-markdown';
+import { parseIncompleteMarkdown } from '$lib/utils/parse-incomplete-markdown.js';
 import { lex } from '$lib/marked/index.js';
 
 describe('weird cases for images and links', () => {

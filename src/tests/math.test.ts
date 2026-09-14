@@ -263,7 +263,7 @@ describe('tokenization', () => {
 			const mathTokens = paragraphTokens.filter((t: { type: string }) => t.type === 'math');
 
 			// Should not create math tokens for any currency patterns
-			expect(mathTokens.length).toBe(0, `Failed for: ${testCase}`);
+			expect(mathTokens.length, `Failed for: ${testCase}`).toBe(0);
 		});
 	});
 
@@ -281,7 +281,7 @@ describe('tokenization', () => {
 
 			// Double dollar expressions create direct math tokens (block-level)
 			const mathToken = getFirstTokenByType(tokens, 'math');
-			expect(mathToken).toBeDefined(`Math token not found for: ${input}`);
+			expect(mathToken, `Math token not found for: ${input}`).toBeDefined();
 			expect(mathToken.text).toBe(expected);
 			expect(mathToken.displayMode).toBe(true);
 			expect(mathToken.isInline).toBe(false);
@@ -300,11 +300,11 @@ describe('tokenization', () => {
 			const tokens = lex(input);
 			const paragraphToken = getFirstTokenByType(tokens, 'paragraph');
 
-			expect(paragraphToken).toBeDefined(`Paragraph not found for: ${input}`);
+			expect(paragraphToken, `Paragraph not found for: ${input}`).toBeDefined();
 			const paragraphTokens = paragraphToken.tokens || [];
 			const mathTokens = paragraphTokens.filter((t: { type: string }) => t.type === 'math');
 
-			expect(mathTokens.length).toBe(1, `Math token not found for: ${input}`);
+			expect(mathTokens.length, `Math token not found for: ${input}`).toBe(1);
 			expect(mathTokens[0].text).toBe(expected);
 			expect(mathTokens[0].displayMode).toBe(true); // $$ = display mode styling
 			expect(mathTokens[0].isInline).toBe(true); // But still inline context
@@ -319,7 +319,7 @@ describe('tokenization', () => {
 		const currencyMathTokens = (currencyParagraph.tokens || []).filter(
 			(t: { type: string }) => t.type === 'math'
 		);
-		expect(currencyMathTokens.length).toBe(0, 'Single dollars should be treated as currency');
+		expect(currencyMathTokens.length, 'Single dollars should be treated as currency').toBe(0);
 
 		// Double dollars with same numbers should be treated as math
 		const mathText = 'Formula is $$199, 199$$';
@@ -328,7 +328,7 @@ describe('tokenization', () => {
 		const mathMathTokens = (mathParagraph.tokens || []).filter(
 			(t: { type: string }) => t.type === 'math'
 		);
-		expect(mathMathTokens.length).toBe(1, 'Double dollars should be treated as math');
+		expect(mathMathTokens.length, 'Double dollars should be treated as math').toBe(1);
 		expect(mathMathTokens[0].text).toBe('199, 199');
 		expect(mathMathTokens[0].displayMode).toBe(true);
 		expect(mathMathTokens[0].isInline).toBe(true);

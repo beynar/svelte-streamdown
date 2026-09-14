@@ -43,7 +43,7 @@ Ported from vercel/streamdown c347b53, 9f96409, a725579, 716a5f0, e50b0c4, 4fffb
 ### Tooling
 
 - CI runs both suites on every push and pull request, and the release workflow runs them before publishing. Neither ran before.
-- `svelte-check` is back to its pre-existing 11 errors: a parameter annotation in `panzoom.svelte.ts` stopped type-checking under the newer DOM typings. Runtime behaviour is unchanged.
+- `svelte-check` is clean (was 11 long-standing errors, now 0), so CI can gate on it along with the build. The fixes are type-level only, except in `math.test.ts`: six assertions passed their failure message as a second argument to `toBe`/`toBeDefined`, where vitest ignores it — the messages are now on `expect()` and will actually print.
 - The vitest `client` project actually starts now (`environment: 'browser'` was never a valid vitest 3 option, so it silently never ran). It needs a Playwright Chromium binary, so it is split out: `pnpm test` runs the node tests, `pnpm test:browser` runs the component tests after `pnpm exec playwright install chromium`.
 
 ## 4.0.0

@@ -30,7 +30,7 @@
 
 	const useIsInsideForMoreThanAQuarterSecond = () => {
 		let isInside = $state(false);
-		let timeout: number | undefined = undefined;
+		let timeout: ReturnType<typeof setTimeout> | undefined = undefined;
 
 		return {
 			get isInside() {

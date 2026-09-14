@@ -169,6 +169,7 @@ export const theme = {
 			| 'inlineCitationContent'
 			| 'inlineCitationPreview'
 			| 'inlineCitationPopover'
+			| 'mdx'
 	  >
 	| 'h1'
 	| 'h2'

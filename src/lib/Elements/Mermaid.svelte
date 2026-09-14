@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import { useStreamdown } from '$lib/context.svelte.js';
-	import type { Tokens } from 'marked';
+	import type { CodeToken } from '$lib/marked/index.js';
 	import type { MermaidConfig } from 'mermaid';
 	import { on } from 'svelte/events';
 	import { usePanzoom } from '$lib/utils/panzoom.svelte';
@@ -14,9 +14,14 @@
 		token,
 		id
 	}: {
-		token: Tokens.Code;
+		token: CodeToken;
 		id: string;
 	} = $props();
+
+	// Trailing blank lines are noise for mermaid but they still changed `token.text`
+	// on nearly every streamed chunk, which re-ran the whole render. Same trim as
+	// Code.svelte.
+	const chart = $derived(token.text.replace(/\n+$/, ''));
 
 	let mermaid = $state<any>(null);
 	onMount(async () => {
@@ -217,7 +222,7 @@
 		<div
 			style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 			class={streamdown.theme.mermaid.base}
-			{@attach (node) => renderMermaid(token.text, node)}
+			{@attach (node) => renderMermaid(chart, node)}
 			{@attach insider.attach}
 			data-expanded={'false'}
 		>

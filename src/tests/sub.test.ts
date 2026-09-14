@@ -272,6 +272,30 @@ describe('tokenization', () => {
 		expect(subTokens[0].text).toBe('(i-1)');
 	});
 
+	// upstream 716a5f0: a digit before the opening `~` means a numeric range, and a
+	// subscript never contains whitespace — together these kept `20~25°C and 30~35°C`
+	// from turning half the sentence into a subscript.
+	test('should not subscript a numeric range', () => {
+		const tokens = lex('20~25°C and 30~35°C');
+		const paragraphToken = getFirstTokenByType(tokens, 'paragraph');
+		const paragraphTokens = paragraphToken.tokens || [];
+
+		// and it must not fall through to GFM strikethrough either — a single `~`
+		// is a subscript marker here, never a del delimiter
+		expect(paragraphTokens.filter((t: { type: string }) => t.type === 'sub').length).toBe(0);
+		expect(paragraphTokens.filter((t: { type: string }) => t.type === 'del').length).toBe(0);
+		expect(paragraphTokens.map((t: { raw: string }) => t.raw).join('')).toBe('20~25°C and 30~35°C');
+	});
+
+	test('should not subscript text containing whitespace', () => {
+		const tokens = lex('Range x~from here to there~ end.');
+		const paragraphToken = getFirstTokenByType(tokens, 'paragraph');
+		const paragraphTokens = paragraphToken.tokens || [];
+
+		expect(paragraphTokens.filter((t: { type: string }) => t.type === 'sub').length).toBe(0);
+		expect(paragraphTokens.filter((t: { type: string }) => t.type === 'del').length).toBe(0);
+	});
+
 	test('should parse subscript with superscript nearby', () => {
 		const tokens = lex('Formula: H~2~O and E = mc^2^.');
 		const paragraphToken = getFirstTokenByType(tokens, 'paragraph');

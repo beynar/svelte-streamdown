@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { parseIncompleteMarkdown } from './utils/parse-incomplete-markdown.js';
+	import { parseIncompleteMarkdown as completeMarkdown } from './utils/parse-incomplete-markdown.js';
 	import Element from './Elements/Element.svelte';
 	import { lex, type StreamdownToken } from './marked/index.js';
 	import AnimatedText from './AnimatedText.svelte';
@@ -15,8 +15,11 @@
 	} = $props();
 
 	const streamdown = useStreamdown();
+	// The old code never consulted `streamdown.parseIncompleteMarkdown`; the import
+	// is aliased so the context flag and the helper cannot be confused.
+	const complete = $derived(!isStatic && streamdown.parseIncompleteMarkdown !== false);
 	const tokens = $derived(
-		lex(isStatic ? block : parseIncompleteMarkdown(block.trim()), streamdown.extensions)
+		lex(complete ? completeMarkdown(block.trim()) : block, streamdown.extensions)
 	);
 	const insidePopover = getContext('POPOVER');
 </script>

@@ -24,6 +24,8 @@ export const isPathRelativeUrl = (url: unknown): boolean => {
 	return url.startsWith('/');
 };
 
+const WILDCARD_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
+
 export const transformUrl = (
 	url: unknown,
 	allowedPrefixes: string[],
@@ -65,8 +67,11 @@ export const transformUrl = (
 	}
 	// Check for wildcard - allow all URLs
 	if (allowedPrefixes.includes('*')) {
-		// Wildcard only allows http and https URLs
-		if (parsedUrl.protocol !== 'https:' && parsedUrl.protocol !== 'http:') {
+		// The wildcard allows the protocols a document can legitimately link to.
+		// javascript:, data: and vbscript: stay blocked - they execute in the
+		// page's origin. mailto:/tel: were missing, so the default ['*'] config
+		// rendered a [blocked] badge on every phone and email link.
+		if (!WILDCARD_PROTOCOLS.has(parsedUrl.protocol)) {
 			return null;
 		}
 		const inputWasRelative = isPathRelativeUrl(url);

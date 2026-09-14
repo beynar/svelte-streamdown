@@ -1,5 +1,6 @@
 import { describe, test, expect } from 'vitest';
 import { parseIncompleteMarkdown } from '$lib/utils/parse-incomplete-markdown';
+import { lex } from '$lib/marked/index.js';
 
 describe('weird cases for images and links', () => {
 	test('should handle image alt text with special characters', () => {
@@ -151,5 +152,32 @@ describe('weird cases for images and links', () => {
 		const result = parseIncompleteMarkdown(input);
 
 		expect(result).toBe('Nested: [[[[deep]]]] [[[[incomplete]]]');
+	});
+});
+
+// Escape tokens used to render as nothing (Element.svelte had a TODO comment
+// instead of an output branch), so every `\*`, `\_`, `\~`, `\>` vanished.
+describe('backslash escapes', () => {
+	const flatten = (tokens: any[]): any[] =>
+		tokens.flatMap((token) => (token.tokens?.length ? flatten(token.tokens) : [token]));
+	const escapes = (input: string) =>
+		flatten(lex(input))
+			.filter((token) => token.type === 'escape')
+			.map((token) => token.text);
+
+	test('escapes an asterisk', () => {
+		expect(escapes('a \\* b')).toEqual(['*']);
+	});
+
+	test('escapes both underscores', () => {
+		expect(escapes('literal \\_under\\_ score')).toEqual(['_', '_']);
+	});
+
+	test('escapes a tilde between digits', () => {
+		expect(escapes('20\\~25')).toEqual(['~']);
+	});
+
+	test('escapes a blockquote marker inside a list item', () => {
+		expect(escapes('- \\> 25: rich')).toEqual(['>']);
 	});
 });

@@ -1,6 +1,7 @@
 import { expect, describe, test } from 'vitest';
 import { lex } from '../lib/marked/index.js';
 import { parseIncompleteMarkdown } from '../lib/utils/parse-incomplete-markdown.js';
+import { transformUrl } from '../lib/utils/url.js';
 
 // Helper functions
 function getTokensByType(tokens: any[], type: string) {
@@ -321,5 +322,35 @@ describe('incomplete markdown', () => {
 
 		// Should preserve complete link and complete incomplete one
 		expect(result).toBe('Complete [Google](https://google.com) and incomplete [GitHub');
+	});
+});
+
+// Link.svelte renders the [blocked] badge whenever transformUrl() returns null
+// for the lexed href, so these assert what the component does with the default
+// allowedLinkPrefixes of ['*'].
+describe('link href policy with the default wildcard', () => {
+	const hrefOf = (markdown: string) => {
+		const paragraph = getFirstTokenByType(lex(markdown), 'paragraph');
+		const link = (paragraph.tokens || []).find((t: { type: string }) => t.type === 'link');
+		return link.href as string;
+	};
+
+	test('tel: and mailto: links are rendered, not blocked', () => {
+		expect(transformUrl(hrefOf('[Call us](tel:+15551234567)'), ['*'])).toBe('tel:+15551234567');
+		expect(transformUrl(hrefOf('[Mail us](mailto:hi@example.com)'), ['*'])).toBe(
+			'mailto:hi@example.com'
+		);
+	});
+
+	test('javascript: links are still blocked', () => {
+		expect(transformUrl(hrefOf('[Click](javascript:alert(1))'), ['*'])).toBeNull();
+	});
+
+	test('a link without a markdown title still lexes to a null title', () => {
+		// The blocked branch used to gate its tooltip on token.title, so the common
+		// case - a blocked link with no title - got no explanation at all.
+		const paragraph = getFirstTokenByType(lex('[Click](javascript:alert(1))'), 'paragraph');
+		const link = (paragraph.tokens || []).find((t: { type: string }) => t.type === 'link');
+		expect(link.title).toBeNull();
 	});
 });

@@ -1,5 +1,6 @@
 import {
 	Lexer,
+	Tokenizer,
 	type MarkedToken,
 	type RendererExtensionFunction,
 	type Token,
@@ -56,8 +57,15 @@ export type Extension = {
 	applyInBlockParsing?: boolean;
 };
 
+/**
+ * A fenced code block. `lang` is the first word of the info string; everything
+ * after it is `meta` (`undefined` when there is none).
+ */
+export type CodeToken = Tokens.Code & { meta?: string };
+
 export type StreamdownToken =
-	| Exclude<MarkedToken, Tokens.List | Tokens.ListItem | Tokens.Table>
+	| Exclude<MarkedToken, Tokens.List | Tokens.ListItem | Tokens.Table | Tokens.Code>
+	| CodeToken
 	| ListToken
 	| ListItemToken
 	| MathToken
@@ -115,9 +123,43 @@ const DEFAULT_BLOCK_EXTENSIONS: Extension[] = [
 	markedMdx
 ];
 
+class StreamdownTokenizer extends Tokenizer {
+	/**
+	 * marked keeps the whole fence info string in `lang`, so ```ts title="x" {1}
+	 * highlighted as plaintext, labelled the header with the entire string, downloaded
+	 * as `file.txt` and — worst — missed `token.lang === 'mermaid'` (upstream d4ec6c0).
+	 * Splitting here rather than walking lex()'s output costs one search per code
+	 * token instead of a per-block tree walk, and it also reaches fences nested in
+	 * lists and blockquotes, which a pass over the top-level tokens would not.
+	 */
+	override fences(src: string): CodeToken | undefined {
+		const token = super.fences(src);
+		if (token?.lang) {
+			const end = token.lang.search(/\s/);
+			if (end !== -1) {
+				(token as CodeToken).meta = token.lang.slice(end + 1).trim() || undefined;
+				token.lang = token.lang.slice(0, end);
+			}
+		}
+		return token;
+	}
+
+	/**
+	 * `~x~` is a subscript here, not GFM strikethrough (marked-subsup.ts). The old
+	 * subscript rule shadowed single-tilde del by matching anything; now that it
+	 * rejects whitespace, del would inherit exactly the sentences 716a5f0 is about
+	 * (`20~25°C and 30~35°C` → del('~25°C and 30~')). Only `~~` opens a del.
+	 */
+	override del(src: string, maskedSrc: string, prevChar?: string) {
+		if (src.charCodeAt(0) !== 126 /* ~ */ || src.charCodeAt(1) !== 126) return;
+		return super.del(src, maskedSrc, prevChar);
+	}
+}
+
 const parseExtensions = (...extensions: Extension[]) => {
 	const options: {
 		gfm: boolean;
+		tokenizer: Tokenizer;
 		extensions: {
 			block: TokenizerExtensionFunction[];
 			inline: TokenizerExtensionFunction[];
@@ -128,6 +170,7 @@ const parseExtensions = (...extensions: Extension[]) => {
 		};
 	} = {
 		gfm: true,
+		tokenizer: new StreamdownTokenizer(),
 		extensions: {
 			block: [],
 			inline: [],
@@ -160,9 +203,12 @@ const parseExtensions = (...extensions: Extension[]) => {
 
 type LexerOptions = ReturnType<typeof parseExtensions>;
 
-// Options objects are stateless and reusable across Lexer instances; cache them
-// per user-extension array (props are referentially stable across chunks) so the
-// hot path skips rebuilding ~20 tokenizer registrations on every streamed chunk.
+// Options objects are reusable across Lexer instances; cache them per
+// user-extension array (props are referentially stable across chunks) so the hot
+// path skips rebuilding ~20 tokenizer registrations on every streamed chunk. The
+// cached object carries one shared Tokenizer whose `lexer` back-pointer marked
+// re-stamps per Lexer construction — safe only because lexing is synchronous and
+// never re-entrant across documents.
 const DEFAULT_LEX_OPTIONS = parseExtensions(...DEFAULT_LEX_EXTENSIONS);
 const DEFAULT_BLOCK_OPTIONS = parseExtensions(...DEFAULT_BLOCK_EXTENSIONS);
 const lexOptionsCache = new WeakMap<Extension[], LexerOptions>();

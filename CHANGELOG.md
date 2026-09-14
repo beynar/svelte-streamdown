@@ -1,5 +1,51 @@
 # Changelog
 
+## 4.0.1
+
+Bug-fix release: the Jan–Sep fixes from [vercel/streamdown](https://github.com/vercel/streamdown) that applied to this port, plus the port-specific defects found while auditing them. No API changes.
+
+### ⚠️ Two behaviour changes
+
+- **Raw HTML is now shown literally instead of vanishing.** With `renderHtml` off (the default) the `html` branch had no `{:else}`, so an html token was dropped text and all — an LLM answer containing `<h2>` or `<details>` silently lost that content. It now renders as escaped text, which is what CommonMark and upstream do. Svelte interpolates it as text, so this is not an XSS surface; set `renderHtml` to insert it as markup.
+- **`mailto:` and `tel:` links are no longer blocked under the default `allowedLinkPrefixes={['*']}`.** The wildcard branch only let `http:`/`https:` through, so every legitimate phone and email link rendered a visible `[blocked]` badge. `javascript:`, `data:` and `vbscript:` stay blocked.
+
+### Rendering
+
+- `escape` tokens render again: the branch was a TODO comment, so `a \* b` came out as `a  b`.
+- The `parseIncompleteMarkdown` prop is honoured. `Block.svelte` never consulted `streamdown.parseIncompleteMarkdown`, which made `parseIncompleteMarkdown={false}` a silent no-op; the import is aliased now so the context flag and the helper cannot be confused.
+- Fenced code strips its trailing blank lines once, shared by render, copy and download, so they cannot disagree and the block stops flickering while streaming (e633ff7). Same trim for mermaid, where the trailing newlines re-ran the whole diagram render on nearly every chunk.
+- Link titles render on the built-in anchor (only custom snippets got them), and a blocked link always gets its explanatory tooltip instead of only when the source had a title.
+
+### Lexer
+
+- A fence's info string is split into `lang` and the new `meta` (d4ec6c0). ` ```ts title="x" ` highlighted as plaintext, labelled the header with the whole string, downloaded as `file.txt`, and missed `lang === 'mermaid'`. `CodeToken` (`Tokens.Code & { meta?: string }`) is exported.
+- Footnote identifiers are restricted to `\w`, `-` and `:` (9f72224). `[^\]\n]+` turned every regex character class written in prose (`[^\s]`, `[^,]`) into an empty footnote marker.
+- A sub/superscript is a single run with no whitespace in it, and a digit before the `~` is a numeric range, not a subscript base (716a5f0): `20~25°C and 30~35°C` used to subscript half the sentence. Single-tilde `del` is disabled to match.
+
+### Incomplete-markdown completer
+
+- Asterisks flanked by whitespace on both sides are arithmetic or a bare list marker, never emphasis (c347b53).
+- An asterisk that cannot _open_ emphasis is not completed: `*foo*bar*` is literal, not half of `*foo*bar**` (9f96409).
+- Markers already inside a closed `` ` `` span are code, not unterminated emphasis (a725579), and a `$` shown as code no longer flips inline-math parity (e50b0c4).
+- A half-typed block-math closer is completed to `$$` instead of gaining a stray `$`.
+- A `>` that opens a list item before a number is escaped (4fffb9f): `- > 25: rich` lexed as a blockquote nested in the list item.
+- The completer is ~28% faster than 4.0.0 on the README stream: the per-asterisk backward line scan was dead work (the handler only ever sees one line), whitespace-flanked asterisks bail before anything else runs, and the inline-code check scans on demand, allocating nothing and skipping lines with no backtick.
+
+### Tables, downloads and a11y
+
+- Downloaded CSV carries a UTF-8 BOM, so accented and CJK cells stop opening as mojibake in Excel on Windows.
+- A `<br>` in a cell survives CSV export instead of collapsing two paragraphs into one run.
+- The table node lookup quotes its attribute selector, which was invalid for most generated ids.
+- Citation `aria-label`s interpolate the id instead of announcing `${id}` verbatim, and the table/mermaid download popovers get per-instance DOM ids instead of duplicating a constant one.
+
+Ported from vercel/streamdown c347b53, 9f96409, a725579, 716a5f0, e50b0c4, 4fffb9f, 9f72224, d4ec6c0, e633ff7, 82bc4a6, 8b1c262, f46cd3c.
+
+### Tooling
+
+- CI runs both suites on every push and pull request, and the release workflow runs them before publishing. Neither ran before.
+- `svelte-check` is back to its pre-existing 11 errors: a parameter annotation in `panzoom.svelte.ts` stopped type-checking under the newer DOM typings. Runtime behaviour is unchanged.
+- The vitest `client` project actually starts now (`environment: 'browser'` was never a valid vitest 3 option, so it silently never ran). It needs a Playwright Chromium binary, so it is split out: `pnpm test` runs the node tests, `pnpm test:browser` runs the component tests after `pnpm exec playwright install chromium`.
+
 ## 4.0.0
 
 ### 💥 Breaking: shiki replaced by `@tanstack/highlight`

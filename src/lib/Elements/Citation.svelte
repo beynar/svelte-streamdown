@@ -174,7 +174,7 @@
 		style:position="relative"
 		style:transition-duration="200ms"
 		style:transition-timing-function="ease-in-out"
-		aria-label="Citations-${id}"
+		aria-label={'Citations-' + id}
 	>
 		<div
 			bind:this={stepper.stepContainer}
@@ -193,7 +193,7 @@
 					style:height="fit-content"
 					style:width="100%"
 					style:flex-grow="1"
-					aria-label="Citation-${id}"
+					aria-label={'Citation-' + id}
 				>
 					<Slot render={streamdown.snippets.inlineCitationContent} props={{ source, key, token }}>
 						{#if url || title}

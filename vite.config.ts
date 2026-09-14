@@ -15,7 +15,14 @@ export default defineConfig({
 				extends: './vite.config.ts',
 				test: {
 					name: 'client',
-					environment: 'browser',
+					// `environment: 'browser'` is not a thing in vitest 3 — it looked for a
+					// custom environment module and the project never started.
+					browser: {
+						enabled: true,
+						headless: true,
+						provider: 'playwright',
+						instances: [{ browser: 'chromium' }]
+					},
 					include: ['src/**/*.svelte.{test,spec}.{js,ts}'],
 					exclude: ['src/lib/server/**'],
 					setupFiles: ['./vitest-setup-client.ts']

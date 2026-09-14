@@ -512,7 +512,7 @@ Prefixes can also be **protocol-only**, which allows any URL using that protocol
 ```
 
 > [!NOTE]
-> `'*'` allows all `http://` and `https://` URLs. A protocol-only prefix only allows that exact protocol, so list each one you want to permit. Only add a protocol you trust — e.g. do not add `'javascript:'`.
+> `'*'` allows every `http:`, `https:`, `mailto:` and `tel:` URL — the protocols a document can legitimately link to. `javascript:`, `data:` and `vbscript:` stay blocked under the wildcard because they execute in the page's origin. A protocol-only prefix only allows that exact protocol, so list each one you want to permit. Only add a protocol you trust — e.g. do not add `'javascript:'`.
 
 ## 📦 Bundle Optimization
 
@@ -1106,6 +1106,10 @@ pnpm dev
 
 # Run tests
 pnpm test
+
+# Run the browser (component) tests — needs a Chromium binary:
+# pnpm exec playwright install chromium
+pnpm test:browser
 
 # Build for production
 pnpm build

@@ -22,6 +22,17 @@ describe('tokenization', () => {
 		expect(codeToken.text).toContain('B --> C');
 	});
 
+	// upstream d4ec6c0: Element.svelte dispatches on `token.lang === 'mermaid'`,
+	// which failed while `lang` still held the whole info string.
+	test('should still dispatch to mermaid when the fence carries meta', () => {
+		const tokens = lex('```mermaid title="d"\ngraph TD;\nA-->B;\n```');
+		const codeToken = getFirstTokenByType(tokens, 'code');
+
+		expect(codeToken).toBeDefined();
+		expect(codeToken.lang).toBe('mermaid');
+		expect(codeToken.meta).toBe('title="d"');
+	});
+
 	test('should parse mermaid sequence diagram', () => {
 		const tokens = lex(
 			'```mermaid\nsequenceDiagram\n    Alice->>Bob: Hello Bob\n    Bob-->>Alice: Hello Alice\n```'

@@ -34,8 +34,26 @@ describe('transformUrl protocol-only prefixes', () => {
 		expect(transformUrl('https://trusted.com.evil.com/x', ['https://trusted.com'])).toBeNull();
 	});
 
-	test('wildcard still only allows http and https', () => {
+	test('wildcard allows http and https', () => {
 		expect(transformUrl('https://anything.com', ['*'])).toBe('https://anything.com/');
+		expect(transformUrl('http://anything.com', ['*'])).toBe('http://anything.com/');
+	});
+
+	test('wildcard allows mailto: and tel:', () => {
+		expect(transformUrl('mailto:user@example.com', ['*'])).toBe('mailto:user@example.com');
+		expect(transformUrl('tel:+15551234567', ['*'])).toBe('tel:+15551234567');
+	});
+
+	test('wildcard still blocks executable and embedded protocols', () => {
 		expect(transformUrl('javascript:alert(1)', ['*'])).toBeNull();
+		expect(transformUrl('JavaScript:alert(1)', ['*'])).toBeNull();
+		expect(transformUrl('data:text/html,<script>alert(1)</script>', ['*'])).toBeNull();
+		expect(transformUrl('vbscript:msgbox(1)', ['*'])).toBeNull();
+		expect(transformUrl('file:///etc/passwd', ['*'])).toBeNull();
+	});
+
+	test('an explicit prefix list still excludes mailto: and tel:', () => {
+		expect(transformUrl('mailto:user@example.com', ['https://'])).toBeNull();
+		expect(transformUrl('tel:+15551234567', ['https://example.com'])).toBeNull();
 	});
 });

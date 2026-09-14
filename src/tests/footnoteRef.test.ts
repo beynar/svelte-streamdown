@@ -276,6 +276,30 @@ describe('tokenization', () => {
 		expect(footnoteRefTokens.length).toBe(0);
 	});
 
+	// upstream 9f72224: `[^\s]` is a regex character class, not a footnote.
+	test('should not parse a regex character class in prose as a footnote reference', () => {
+		const tokens = lex('Match with [^\\s] in prose.');
+		const paragraphToken = getFirstTokenByType(tokens, 'paragraph');
+
+		const footnoteRefTokens = (paragraphToken.tokens || []).filter(
+			(t: { type: string }) => t.type === 'footnoteRef'
+		);
+
+		expect(footnoteRefTokens.length).toBe(0);
+	});
+
+	test('should still parse the completer sentinel label', () => {
+		const tokens = lex('Text with incomplete footnote[^streamdown:footnote]');
+		const paragraphToken = getFirstTokenByType(tokens, 'paragraph');
+
+		const footnoteRefTokens = (paragraphToken.tokens || []).filter(
+			(t: { type: string }) => t.type === 'footnoteRef'
+		);
+
+		expect(footnoteRefTokens.length).toBe(1);
+		expect(footnoteRefTokens[0].label).toBe('streamdown:footnote');
+	});
+
 	test('should handle footnote reference without definition (edge case)', () => {
 		const tokens = lex('Text with undefined footnote[^undefined].');
 		const paragraphToken = getFirstTokenByType(tokens, 'paragraph');

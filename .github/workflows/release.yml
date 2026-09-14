@@ -49,6 +49,14 @@ jobs:
       - name: Upgrade npm
         run: npm install -g npm@latest
 
+      # The publish is gated on both suites: `pnpm test` is the node project and
+      # `pnpm test:browser` the component one, which needs a Chromium binary.
+      - name: Install Chromium
+        run: pnpm exec playwright install --with-deps chromium
+
+      - name: Test
+        run: pnpm test && pnpm test:browser
+
       # `npm publish` runs the package's `prepack` script
       # (svelte-kit sync && svelte-package && publint), which builds dist/ — no
       # separate build step is needed (and `pnpm build` would build the demo app).

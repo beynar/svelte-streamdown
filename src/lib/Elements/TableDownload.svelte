@@ -46,6 +46,15 @@
 		}
 	});
 
+	// textContent flattens a real <br> element, so a multiline cell collapses to
+	// 'Paragraph one.Paragraph two.'. Walk the cell instead and keep the breaks;
+	// the quoting below then quotes the newline for us.
+	const extractCellText = (node: Node): string => {
+		if (node.nodeType === 3) return node.textContent || '';
+		if ((node as Element).tagName === 'BR') return '\n';
+		return Array.from(node.childNodes).map(extractCellText).join('');
+	};
+
 	const copyOrDownload = (type: 'Markdown' | 'HTML' | 'CSV') => {
 		if (type === 'Markdown') {
 			copyValue = token.raw;
@@ -55,7 +64,7 @@
 				save('table.md', copyValue, 'text/markdown');
 			}
 		} else if (type === 'HTML') {
-			const table = document.querySelector(`[data-streamdown-table=${id}]`);
+			const table = document.querySelector(`[data-streamdown-table="${id}"]`);
 
 			if (table) {
 				let html = (table.cloneNode(true) as HTMLElement).outerHTML;
@@ -83,7 +92,7 @@
 				}
 			}
 		} else if (type === 'CSV') {
-			const table = document.querySelector(`[data-streamdown-table=${id}]`);
+			const table = document.querySelector(`[data-streamdown-table="${id}"]`);
 
 			if (table) {
 				const rows = table.querySelectorAll('tr');
@@ -98,9 +107,8 @@
 						const colSpan = parseInt(cell.getAttribute('colspan') || '1');
 						const rowSpan = parseInt(cell.getAttribute('rowspan') || '1');
 
-						// Add the cell content
 						// Add the cell content, quoting if it contains commas, quotes, or newlines
-						const content = cell.textContent || '';
+						const content = extractCellText(cell);
 						const needsQuoting = /[,"\n]/.test(content);
 						const escapedContent = content.replace(/"/g, '""');
 						rowData.push(needsQuoting ? `"${escapedContent}"` : content);
@@ -150,7 +158,7 @@
 
 {#if popover.isOpen}
 	<dialog
-		id={'table-download-popover'}
+		id={'table-download-popover-' + id}
 		aria-modal="false"
 		transition:scale|global={{ start: 0.95, duration: 100 }}
 		{@attach clickOutside.attachment}

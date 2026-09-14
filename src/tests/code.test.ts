@@ -113,8 +113,66 @@ describe('tokenization', () => {
 		const codeToken = getFirstTokenByType(tokens, 'code');
 
 		expect(codeToken).toBeDefined();
-		expect(codeToken.lang).toBe('javascript {.line-numbers}');
+		expect(codeToken.lang).toBe('javascript');
+		expect(codeToken.meta).toBe('{.line-numbers}');
 		expect(codeToken.text).toBe('console.log("test");');
+	});
+
+	// upstream d4ec6c0: the info string after the language is `meta`, not part of
+	// `lang` — highlighting, the header label, the download extension and the
+	// `lang === 'mermaid'` dispatch all compare against `lang`.
+	test('should split the fence info string into lang and meta', () => {
+		const tokens = lex('```ts title="x" {1}\ncode\n```');
+		const codeToken = getFirstTokenByType(tokens, 'code');
+
+		expect(codeToken.lang).toBe('ts');
+		expect(codeToken.meta).toBe('title="x" {1}');
+	});
+
+	test('should leave meta undefined for a fence with only a language', () => {
+		const tokens = lex('```ts\ncode\n```');
+		const codeToken = getFirstTokenByType(tokens, 'code');
+
+		expect(codeToken.lang).toBe('ts');
+		expect(codeToken.meta).toBeUndefined();
+	});
+
+	test('should leave lang and meta empty for a fence with no info string', () => {
+		const tokens = lex('```\nplain\n```');
+		const codeToken = getFirstTokenByType(tokens, 'code');
+
+		expect(codeToken.lang).toBe('');
+		expect(codeToken.meta).toBeUndefined();
+	});
+
+	test('should split the info string of a fence nested in a list', () => {
+		const tokens = lex('- item\n\n  ```js showLineNumbers startLine=5\n  code\n  ```');
+		const listToken = getFirstTokenByType(tokens, 'list');
+		const codeToken = listToken.tokens[0].tokens.find((t: any) => t.type === 'code');
+
+		expect(codeToken).toBeDefined();
+		expect(codeToken.lang).toBe('js');
+		expect(codeToken.meta).toBe('showLineNumbers startLine=5');
+	});
+
+	test('should split the info string of a fence nested in a blockquote', () => {
+		const tokens = lex('> ```py linenos\n> code\n> ```');
+		const blockquoteToken = getFirstTokenByType(tokens, 'blockquote');
+		const codeToken = blockquoteToken.tokens.find((t: any) => t.type === 'code');
+
+		expect(codeToken).toBeDefined();
+		expect(codeToken.lang).toBe('py');
+		expect(codeToken.meta).toBe('linenos');
+	});
+
+	// upstream e633ff7: Code.svelte renders/copies/downloads `text` with its
+	// trailing newlines stripped; marked keeps them, so assert what it hands over.
+	test('should keep trailing blank lines in text (trimmed at render time)', () => {
+		const tokens = lex('```text\nline1\nline2\n\n\n```');
+		const codeToken = getFirstTokenByType(tokens, 'code');
+
+		expect(codeToken.text).toBe('line1\nline2\n\n');
+		expect(codeToken.text.replace(/\n+$/, '')).toBe('line1\nline2');
 	});
 
 	test('should handle code block with only whitespace content', () => {

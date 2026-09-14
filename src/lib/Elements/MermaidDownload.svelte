@@ -156,7 +156,7 @@
 
 {#if popover.isOpen}
 	<dialog
-		id={'mermaid-download-popover'}
+		id={'mermaid-download-popover-' + id}
 		aria-modal="false"
 		transition:scale|global={{ start: 0.95, duration: 100 }}
 		{@attach clickOutside.attachment}

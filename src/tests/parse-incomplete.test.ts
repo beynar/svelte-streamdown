@@ -1,5 +1,6 @@
 import { expect, describe, test } from 'vitest';
 import { parseIncompleteMarkdown } from '../lib/utils/parse-incomplete-markdown.js';
+import { lex } from '../lib/marked/index.js';
 
 // Direct unit tests for parseIncompleteMarkdown plugin branches that have no
 // dedicated coverage in the element test files. Every expectation locks in
@@ -28,6 +29,118 @@ describe('parseIncompleteMarkdown direct coverage', () => {
 		});
 	});
 
+	describe('comparisonOperator plugin', () => {
+		// 4fffb9f: '- > 25: rich' lexed as a blockquote nested in the list item, so a
+		// price or P/E range lost its text to a quote block
+		test('should escape a comparison operator in a list item', () => {
+			expect(parseIncompleteMarkdown('- > 25: rich')).toBe('- \\> 25: rich');
+			expect(parseIncompleteMarkdown('* > 25: rich')).toBe('* \\> 25: rich');
+			expect(parseIncompleteMarkdown('+ > 25: rich')).toBe('+ \\> 25: rich');
+			expect(parseIncompleteMarkdown('1. > 25: rich')).toBe('1. \\> 25: rich');
+			expect(parseIncompleteMarkdown('2) > 10: high')).toBe('2) \\> 10: high');
+			expect(parseIncompleteMarkdown('  - > 25: rich')).toBe('  - \\> 25: rich');
+			expect(parseIncompleteMarkdown('- >= 10: high')).toBe('- \\>= 10: high');
+			expect(parseIncompleteMarkdown('- >25: rich')).toBe('- \\>25: rich');
+			expect(parseIncompleteMarkdown('- > $100: expensive')).toBe('- \\> $100: expensive');
+		});
+
+		test('should leave real blockquotes and prose alone', () => {
+			expect(parseIncompleteMarkdown('> Some blockquote')).toBe('> Some blockquote');
+			expect(parseIncompleteMarkdown('> 25 is a number')).toBe('> 25 is a number');
+			expect(parseIncompleteMarkdown('- > Some quoted text')).toBe('- > Some quoted text');
+			expect(parseIncompleteMarkdown('>25')).toBe('>25');
+			expect(parseIncompleteMarkdown('- x > y')).toBe('- x > y');
+			expect(parseIncompleteMarkdown('- a < b')).toBe('- a < b');
+			expect(parseIncompleteMarkdown('```\n- > 25: in code\n```')).toBe(
+				'```\n- > 25: in code\n```'
+			);
+		});
+
+		test('should still complete inline formatting on the escaped line', () => {
+			expect(parseIncompleteMarkdown('- > 25: **bold')).toBe('- \\> 25: **bold**');
+		});
+
+		test('should keep the inline-code mask aligned after the escape is inserted', () => {
+			// The escape shifts every later position by one; a mask built from the
+			// original line would judge the dangling '*' to be inside the code span.
+			expect(parseIncompleteMarkdown('- > 25: *`x`')).toBe('- \\> 25: *`x`*');
+			expect(parseIncompleteMarkdown('see *`x`')).toBe('see *`x`*');
+		});
+
+		test('should lex the escaped item as list text, not a nested blockquote', () => {
+			const [list] = lex(parseIncompleteMarkdown('- > 25: rich')) as any[];
+			expect(list.type).toBe('list');
+			const [item] = list.tokens;
+			expect(item.type).toBe('list_item');
+			expect(item.tokens[0].tokens.map((t: any) => t.type)).toEqual(['escape', 'text']);
+		});
+	});
+
+	describe('complete inline code spans', () => {
+		// a725579: markers that already sit inside a closed `...` span are code, not
+		// unterminated emphasis
+		test('should not complete emphasis markers inside a complete code span', () => {
+			expect(parseIncompleteMarkdown('`**bold`')).toBe('`**bold`');
+			expect(parseIncompleteMarkdown('`*italic`')).toBe('`*italic`');
+			expect(parseIncompleteMarkdown('`~~strikethrough`')).toBe('`~~strikethrough`');
+			expect(parseIncompleteMarkdown('`__bold__ed`')).toBe('`__bold__ed`');
+			expect(parseIncompleteMarkdown('`_italic`')).toBe('`_italic`');
+		});
+
+		test('should still complete markers outside the code span', () => {
+			expect(parseIncompleteMarkdown('`code` **bold')).toBe('`code` **bold**');
+			expect(parseIncompleteMarkdown('`code` *italic')).toBe('`code` *italic*');
+			expect(parseIncompleteMarkdown('**bold')).toBe('**bold**');
+			expect(parseIncompleteMarkdown('~~strike')).toBe('~~strike~~');
+		});
+
+		test('should still complete markers inside a half-typed code span', () => {
+			// The span is not closed yet, so this is ordinary streaming text
+			expect(parseIncompleteMarkdown('`code **bold')).toBe('`code **bold**`');
+		});
+	});
+
+	describe('singleAsteriskItalic emphasis detection', () => {
+		// c347b53: an asterisk with whitespace on both sides is arithmetic, not a marker
+		test('should not treat a whitespace-flanked asterisk as an emphasis marker', () => {
+			expect(parseIncompleteMarkdown('5 * 0')).toBe('5 * 0');
+			expect(parseIncompleteMarkdown('x * y')).toBe('x * y');
+			expect(parseIncompleteMarkdown('a * b = c')).toBe('a * b = c');
+			expect(parseIncompleteMarkdown('3 + 2 - 5 * 0 = ?')).toBe('3 + 2 - 5 * 0 = ?');
+			expect(parseIncompleteMarkdown('2 * 3 * 4')).toBe('2 * 3 * 4');
+			expect(parseIncompleteMarkdown('* not emphasis *')).toBe('* not emphasis *');
+		});
+
+		test('should still complete real emphasis on a line that also multiplies', () => {
+			expect(parseIncompleteMarkdown('5 * 0 and *italic')).toBe('5 * 0 and *italic*');
+		});
+
+		test('should still complete a list item that opens emphasis', () => {
+			expect(parseIncompleteMarkdown('- *italic')).toBe('- *italic*');
+		});
+
+		// 9f96409: a trailing or intraword asterisk that cannot open emphasis is
+		// literal text, not the first half of a closing '**'
+		test('should not complete when the dangling asterisk cannot open emphasis', () => {
+			expect(parseIncompleteMarkdown('*foo*bar*')).toBe('*foo*bar*');
+			expect(parseIncompleteMarkdown('a *b* c*')).toBe('a *b* c*');
+			expect(parseIncompleteMarkdown('*a* b*')).toBe('*a* b*');
+			expect(parseIncompleteMarkdown('a *b*c* d')).toBe('a *b*c* d');
+		});
+
+		test('should still complete an intraword asterisk that opens emphasis', () => {
+			expect(parseIncompleteMarkdown('*foo*bar*baz')).toBe('*foo*bar*baz*');
+			expect(parseIncompleteMarkdown('before *a*b after *c')).toBe('before *a*b after *c*');
+		});
+
+		test('should leave balanced or lone intraword asterisks alone', () => {
+			expect(parseIncompleteMarkdown('*foo*bar')).toBe('*foo*bar');
+			expect(parseIncompleteMarkdown('this is *real*ly good')).toBe('this is *real*ly good');
+			expect(parseIncompleteMarkdown('5*6*78')).toBe('5*6*78');
+			expect(parseIncompleteMarkdown('foo*bar')).toBe('foo*bar');
+		});
+	});
+
 	describe('blockMath plugin and math block boundaries', () => {
 		test('should close a math block opened at line start with content on the same line', () => {
 			// The opening line toggles the math context, so contextManager appends
@@ -43,6 +156,13 @@ describe('parseIncompleteMarkdown direct coverage', () => {
 		test('should leave balanced inline $$ pairs unchanged', () => {
 			expect(parseIncompleteMarkdown('a $$x$$ b')).toBe('a $$x$$ b');
 			expect(parseIncompleteMarkdown('$$x$$ trailing')).toBe('$$x$$ trailing');
+		});
+
+		// e50b0c4: half of the closing '$$' can arrive on its own; adding a whole
+		// '\n$$' left a literal '$' inside the math and '$$' after it
+		test('should only add the missing dollar when the closer is half typed', () => {
+			expect(parseIncompleteMarkdown('$$formula$')).toBe('$$formula$$');
+			expect(parseIncompleteMarkdown('$$x = y$')).toBe('$$x = y$$');
 		});
 	});
 
@@ -62,6 +182,13 @@ describe('parseIncompleteMarkdown direct coverage', () => {
 
 		test('should not complete two currency amounts in one line', () => {
 			expect(parseIncompleteMarkdown('Save $5 vs $10 deal')).toBe('Save $5 vs $10 deal');
+		});
+
+		test('should ignore a dollar shown as inline code', () => {
+			// The '$' in `$var` is code, so it must not flip the open/close parity
+			expect(parseIncompleteMarkdown('Use `$var` for variables and $formula')).toBe(
+				'Use `$var` for variables and $formula$'
+			);
 		});
 	});
 
@@ -100,6 +227,27 @@ describe('parseIncompleteMarkdown direct coverage', () => {
 
 		test('should leave balanced subscript pairs unchanged', () => {
 			expect(parseIncompleteMarkdown('H~2~O and CO~2~')).toBe('H~2~O and CO~2~');
+		});
+
+		// 716a5f0: '~x~' is a subscript only when x is non-empty and whitespace-free
+		// and no digit precedes the opening tilde
+		test('should not close a whitespace-flanked tilde', () => {
+			expect(parseIncompleteMarkdown('hello ~ world')).toBe('hello ~ world');
+			expect(parseIncompleteMarkdown('~x y')).toBe('~x y');
+		});
+
+		test('should not close a tilde that follows a digit', () => {
+			// A range, not a subscript: closing it would manufacture one
+			expect(parseIncompleteMarkdown('20~25°C')).toBe('20~25°C');
+		});
+
+		test('should not close a tilde inside a complete code span', () => {
+			expect(parseIncompleteMarkdown('`20~25`')).toBe('`20~25`');
+		});
+
+		test('should still close a real streaming subscript', () => {
+			expect(parseIncompleteMarkdown('H~2')).toBe('H~2~');
+			expect(parseIncompleteMarkdown('x~i+1')).toBe('x~i+1~');
 		});
 	});
 

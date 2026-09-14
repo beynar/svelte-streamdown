@@ -39,6 +39,7 @@
 		<a
 			data-streamdown-link={id}
 			class={streamdown.theme.link.base}
+			title={token.title}
 			{...isRelativeUrl
 				? { href: token.href }
 				: { href: transformedUrl, target: '_blank', rel: 'noopener noreferrer' }}
@@ -50,7 +51,7 @@
 	<span
 		data-streamdown-link-blocked={id}
 		class={streamdown.theme.link.blocked}
-		title={token.title ? `Blocked URL: ${token.href}` : undefined}
+		title={`Blocked URL: ${token.href}`}
 	>
 		{@render children()} [blocked]
 	</span>

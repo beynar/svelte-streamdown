@@ -1,5 +1,8 @@
 export const save = (filename: string, content: string, mimeType: string) => {
-	const blob = new Blob([content], { type: mimeType });
+	// Excel on Windows assumes the system codepage without a BOM, so accented
+	// and CJK text in a downloaded CSV opens as mojibake.
+	const body = mimeType.startsWith('text/csv') ? '\uFEFF' + content : content;
+	const blob = new Blob([body], { type: mimeType });
 	const url = URL.createObjectURL(blob);
 	const link = document.createElement('a');
 	link.href = url;

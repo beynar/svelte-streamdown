@@ -3,22 +3,27 @@
 	import { save } from '$lib/utils/save.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
 	import { highlightLines, languageExtensionMap } from '$lib/utils/hightlighter.svelte.js';
-	import type { Tokens } from 'marked';
+	import type { CodeToken } from '$lib/marked/index.js';
 	import { checkIcon, copyIcon, downloadIcon } from './icons.js';
 
 	const {
 		token,
 		id
 	}: {
-		token: Tokens.Code;
+		token: CodeToken;
 		id: string;
 	} = $props();
 
 	const streamdown = useStreamdown();
 
+	// marked keeps the fence's trailing blank lines in `text`; they render as empty
+	// lines and, while streaming, flicker in and out on nearly every chunk. Render,
+	// copy and download all read this so they can never disagree.
+	const code = $derived(token.text.replace(/\n+$/, ''));
+
 	const copy = useCopy({
 		get content() {
-			return token.text;
+			return code;
 		}
 	});
 
@@ -32,13 +37,13 @@
 					: 'txt';
 			const filename = `file.${extension}`;
 			const mimeType = 'text/plain';
-			save(filename, token.text, mimeType);
+			save(filename, code, mimeType);
 		} catch (error) {
 			console.error('Failed to download file:', error);
 		}
 	};
 
-	const lines = $derived(highlightLines(token.text, token.lang, streamdown.highlightLanguages));
+	const lines = $derived(highlightLines(code, token.lang, streamdown.highlightLanguages));
 </script>
 
 <div

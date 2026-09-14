@@ -288,12 +288,11 @@
 			{@render children()}
 		</dd>
 	</Slot>
-{:else if token.type === 'def'}
-	<!-- TODO This does not seems to be tokenized for now -->
+{:else if token.type === 'def' || token.type === 'space'}
+	<!-- Link reference definitions and blank lines produce no output (CommonMark) -->
 {:else if token.type === 'escape'}
-	<!-- TODO This does not seems to be tokenized for now -->
-{:else if token.type === 'space'}
-	<!-- TODO This does not seems to be tokenized for now -->
+	<!-- `children` renders token.text, i.e. the escaped character itself -->
+	{@render children()}
 {:else if token.type === 'text'}
 	{@render children()}
 {:else if token.type === 'html'}
@@ -301,6 +300,10 @@
 		{@const content =
 			typeof streamdown.renderHtml === 'function' ? streamdown.renderHtml(token) : token.raw}
 		{@html content}
+	{:else}
+		<!-- Without renderHtml the source is shown literally instead of being dropped;
+		     `children` interpolates it as text, so Svelte escapes it — no XSS surface -->
+		{@render children()}
 	{/if}
 {:else if token.type === 'mdx'}
 	{@const Component = streamdown.mdxComponents?.[token.tagName]}

@@ -145,6 +145,20 @@ export class IncompleteMarkdownParser {
 	// Create default plugins that replicate the original handler functions
 	static createDefaultPlugins(): Plugin[] {
 		return [
+			{
+				// Runs first: in a list item a '>' before a number is a comparison
+				// ('- > 25: rich'), but marked reads it as a nested blockquote. Escaping it
+				// keeps the text, and the escape renders as a plain '>' (4fffb9f).
+				// `pattern` is only a cheap gate — a line whose first non-space character is
+				// not a list marker can never match, and bails on that one character.
+				name: 'comparisonOperator',
+				pattern: /^\s*[-*+\d]/,
+				skipInBlockTypes: ['code', 'math'],
+				handler: ({ line }) => {
+					const match = listItemComparison.exec(line);
+					return match ? `${match[1]}\\>${line.slice(match[0].length)}` : line;
+				}
+			},
 			// Block-level plugin that manages blocking contexts
 			{
 				name: 'contextManager',
@@ -226,7 +240,9 @@ export class IncompleteMarkdownParser {
 						result += '\n```';
 					}
 					if (state.blockingContexts.has('math')) {
-						result += '\n$$';
+						// The first half of the closing '$$' may already have arrived: adding a
+						// whole '\n$$' would leave a stray '$' inside the math and '$$' after it.
+						result += result.endsWith('$') && !result.endsWith('$$') ? '$' : '\n$$';
 					}
 					if (state.blockingContexts.has('center')) {
 						result += '\n[/center]';
@@ -249,6 +265,7 @@ export class IncompleteMarkdownParser {
 					const tripleAsterisks = (line.match(/\*\*\*/g) || []).length;
 					if (tripleAsterisks % 2 === 1) {
 						const lastTripleAsteriskIndex = line.lastIndexOf('***');
+						if (isWithinCompleteInlineCode(line, lastTripleAsteriskIndex)) return line;
 						const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastTripleAsteriskIndex);
 						if (isEndingWithTripleAsterisk) {
 							return line.substring(0, lastTripleAsteriskIndex);
@@ -276,6 +293,7 @@ export class IncompleteMarkdownParser {
 					if (doubleAsteriskMatches % 2 === 1) {
 						const isEndingWithDoubleAsterisk = line.endsWith('**');
 						const lastDoubleAsteriskIndex = line.lastIndexOf('**');
+						if (isWithinCompleteInlineCode(line, lastDoubleAsteriskIndex)) return line;
 						const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastDoubleAsteriskIndex);
 						if (isEndingWithDoubleAsterisk) {
 							return line.substring(0, lastDoubleAsteriskIndex);
@@ -302,6 +320,7 @@ export class IncompleteMarkdownParser {
 					if (underscorePairs % 2 === 1) {
 						const isEndingWithDoubleUnderscore = line.endsWith('__');
 						const lastDoubleUnderscoreIndex = line.lastIndexOf('__');
+						if (isWithinCompleteInlineCode(line, lastDoubleUnderscoreIndex)) return line;
 						const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastDoubleUnderscoreIndex);
 						if (isEndingWithDoubleUnderscore) {
 							return line.substring(0, lastDoubleUnderscoreIndex);
@@ -324,6 +343,7 @@ export class IncompleteMarkdownParser {
 					if (tildePairs % 2 === 1) {
 						const isEndingWithDoubleTilde = line.endsWith('~~');
 						const lastDoubleTildeIndex = line.lastIndexOf('~~');
+						if (isWithinCompleteInlineCode(line, lastDoubleTildeIndex)) return line;
 						const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastDoubleTildeIndex);
 						// Only complete if there's content after the tildes
 						const contentAfterTildes = line.substring(lastDoubleTildeIndex + 2, endOfCellOrLine);
@@ -351,38 +371,42 @@ export class IncompleteMarkdownParser {
 					}
 					// Inline countSingleAsterisks logic
 					let singleAsterisks = 0;
+					let lastSingleAsterisk = -1;
 					for (let i = 0; i < line.length; i++) {
 						if (line[i] === '*') {
 							const prevChar = i > 0 ? line[i - 1] : '';
 							const nextChar = i < line.length - 1 ? line[i + 1] : '';
-							let lineStartIndex = i;
-							for (let j = i - 1; j >= 0; j--) {
-								if (line[j] === '\n') {
-									lineStartIndex = j + 1;
-									break;
-								}
-								if (j === 0) {
-									lineStartIndex = 0;
-									break;
-								}
+							// Whitespace on both sides means arithmetic ('5 * 0') or a bare list
+							// marker, never an emphasis delimiter (c347b53).
+							if (isSpaceOrEdge(prevChar) && isSpaceOrEdge(nextChar)) {
+								continue;
 							}
-							const beforeAsterisk = line.substring(lineStartIndex, i);
-							if (beforeAsterisk.trim() === '' && (nextChar === ' ' || nextChar === '\t')) {
+							if (isWithinCompleteInlineCode(line, i)) {
 								continue;
 							}
 							if (prevChar !== '*' && nextChar !== '*') {
 								singleAsterisks++;
+								lastSingleAsterisk = i;
 							}
 						}
 					}
 
 					if (singleAsterisks % 2 === 1) {
+						// The dangling asterisk is the last counted one. If it cannot OPEN
+						// emphasis (nothing or whitespace after it) it is an intraword or
+						// trailing closer — '*foo*bar*' is literal, not half of '*foo*bar**'
+						// (9f96409).
+						if (isSpaceOrEdge(line[lastSingleAsterisk + 1] ?? '')) {
+							return line;
+						}
 						// Inline findFirstSingleAsterisk logic
 						let firstSingleAsteriskIndex = -1;
 						for (let i = 0; i < line.length; i++) {
 							if (line[i] === '*' && line[i - 1] !== '*' && line[i + 1] !== '*') {
 								const prevChar = i > 0 ? line[i - 1] : '';
 								const nextChar = i < line.length - 1 ? line[i + 1] : '';
+								if (isSpaceOrEdge(prevChar) && isSpaceOrEdge(nextChar)) continue;
+								if (isWithinCompleteInlineCode(line, i)) continue;
 								if (/\w/.test(prevChar) && /\w/.test(nextChar)) continue;
 								if (/\w/.test(prevChar) && !/\s/.test(prevChar)) continue;
 								firstSingleAsteriskIndex = i;
@@ -447,6 +471,7 @@ export class IncompleteMarkdownParser {
 							const nextChar = i < line.length - 1 ? line[i + 1] : '';
 							if (prevChar === '\\') continue;
 							if (isWithinMathBlock(line, i)) continue;
+							if (isWithinCompleteInlineCode(line, i)) continue;
 							if (
 								prevChar &&
 								nextChar &&
@@ -470,7 +495,8 @@ export class IncompleteMarkdownParser {
 								line[i - 1] !== '_' &&
 								line[i + 1] !== '_' &&
 								line[i - 1] !== '\\' &&
-								!isWithinMathBlock(line, i)
+								!isWithinMathBlock(line, i) &&
+								!isWithinCompleteInlineCode(line, i)
 							) {
 								const prevChar = i > 0 ? line[i - 1] : '';
 								const nextChar = i < line.length - 1 ? line[i + 1] : '';
@@ -516,11 +542,21 @@ export class IncompleteMarkdownParser {
 
 					if (singleTildes % 2 === 1) {
 						const lastTildeIndex = line.lastIndexOf('~');
-						if (lastTildeIndex !== -1 && !isWithinMathBlock(line, lastTildeIndex)) {
+						if (
+							lastTildeIndex !== -1 &&
+							!isWithinMathBlock(line, lastTildeIndex) &&
+							!isWithinCompleteInlineCode(line, lastTildeIndex)
+						) {
 							const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastTildeIndex);
-							// Only complete if there's content after the tilde
 							const contentAfterTilde = line.substring(lastTildeIndex + 1, endOfCellOrLine);
-							if (contentAfterTilde.trim().length > 0) {
+							// A subscript is '~text~' with no whitespace inside (same rule as the
+							// lexer), and a digit before the tilde means a range like '20~25°C':
+							// closing those would manufacture a subscript nobody typed (716a5f0).
+							if (
+								contentAfterTilde.length > 0 &&
+								!/\s/.test(contentAfterTilde) &&
+								!/\d/.test(line[lastTildeIndex - 1] ?? '')
+							) {
 								return line.substring(0, endOfCellOrLine) + '~' + line.substring(endOfCellOrLine);
 							}
 						}
@@ -645,6 +681,8 @@ export class IncompleteMarkdownParser {
 							if (prevChar === '\\') continue;
 							if (prevChar === '$' || nextChar === '$') continue;
 							if (nextChar && /\d/.test(nextChar)) continue;
+							// A '$' shown as code ('`$var`') must not flip the parity (e50b0c4)
+							if (isWithinCompleteInlineCode(line, i)) continue;
 							singleDollars++;
 						}
 					}
@@ -660,7 +698,8 @@ export class IncompleteMarkdownParser {
 									prevChar !== '$' &&
 									nextChar !== '$' &&
 									nextChar !== '' &&
-									!/\d/.test(nextChar)
+									!/\d/.test(nextChar) &&
+									!isWithinCompleteInlineCode(line, i)
 								) {
 									lastDollarIndex = i;
 									break;
@@ -956,12 +995,49 @@ export const parseIncompleteMarkdown = (text: string): string => {
 
 // Utility functions
 
+// Full test for the comparisonOperator plugin, whose `pattern` only gates it.
+const listItemComparison = /^(\s*(?:[-*+]|\d+[.)]) +)>(?==?\s*\$?\d)/;
+
+// The char accessors in the plugins return '' past either end of the line, so an
+// empty string here means "edge of line".
+const isSpaceOrEdge = (char: string): boolean => !char || /\s/.test(char);
+
 const findEndOfCellOrLineContaining = (text: string, position: number): number => {
 	let endPos = position;
 	while (endPos < text.length && text[endPos] !== '\n' && text[endPos] !== '|') {
 		endPos++;
 	}
 	return endPos;
+};
+
+// Scanned on demand, against the line as it stands now, and allocating nothing:
+// the completer runs over every changed block of every streamed chunk, so garbage
+// here surfaces as GC pauses in the stages around it.
+const isWithinCompleteInlineCode = (line: string, position: number): boolean => {
+	let open = line.indexOf('`');
+	while (open !== -1 && open <= position) {
+		let openEnd = open;
+		while (line.charCodeAt(openEnd) === 96) openEnd++;
+		const runLength = openEnd - open;
+		let closeStart = -1;
+		for (let j = openEnd; j < line.length; j++) {
+			if (line.charCodeAt(j) !== 96) continue;
+			let closeEnd = j;
+			while (line.charCodeAt(closeEnd) === 96) closeEnd++;
+			if (closeEnd - j === runLength) {
+				closeStart = j;
+				break;
+			}
+			j = closeEnd - 1;
+		}
+		// An unterminated run closes nothing, so neither it nor anything after it
+		// is code: completing emphasis inside it is what streaming needs.
+		if (closeStart === -1) return false;
+		const spanEnd = closeStart + runLength;
+		if (position < spanEnd) return true;
+		open = line.indexOf('`', spanEnd);
+	}
+	return false;
 };
 
 const isWithinMathBlock = (text: string, position: number): boolean => {

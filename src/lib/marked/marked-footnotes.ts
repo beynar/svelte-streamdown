@@ -2,8 +2,12 @@ import { type StreamdownToken, type Extension } from './index.js';
 import { StreamdownContext } from '$lib/context.svelte.js';
 import { getContext } from 'svelte';
 
-const footnoteRegex = /^\[\^([^\]\n]+)\]:(?:[ \t]+|\n|$)([^\n]*(?:\n(?:[ \t]+[^\n]*)?)*)/;
-const footnoteRefRegex = /^\[\^([^\]\n]+)\]/;
+// Footnote identifiers are word characters, `-` and `:` only. `[^\]\n]+` turned
+// every regex character class written in prose (`[^\s]`, `[^,]`) into an empty
+// footnote marker (upstream 9f72224). `:` is kept for the completer's
+// `[^streamdown:footnote]` sentinel, which FootnoteRef.svelte renders as nothing.
+const footnoteRegex = /^\[\^([\w:-]{1,200})\]:(?:[ \t]+|\n|$)([^\n]*(?:\n(?:[ \t]+[^\n]*)?)*)/;
+const footnoteRefRegex = /^\[\^([\w:-]{1,200})\]/;
 const footNoteLastLineRegex = /^[ \t]*?[>\-*][ ]|[`]{3,}$|^[ \t]*?[|].+[|]$/;
 const safeGetContext = () => {
 	try {

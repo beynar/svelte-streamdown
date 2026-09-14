@@ -340,3 +340,31 @@ describe('brackets inside a math span', () => {
 		expect(parseIncompleteMarkdown('\\(x\\) then [1')).toBe('\\(x\\) then [1]');
 	});
 });
+
+describe('fences inside list items', () => {
+	test('a complete fenced block in a "10." item or a nested bullet is left alone', () => {
+		// The closer sits at column 4; it used to be invisible, so a stray fence was
+		// appended and lex() grew an empty top-level code block after the list.
+		const numbered = '10. ```js\n    code\n    ```';
+		const nested = '- a\n  - ```js\n    code\n    ```';
+		expect(parseIncompleteMarkdown(numbered)).toBe(numbered);
+		expect(parseIncompleteMarkdown(nested)).toBe(nested);
+	});
+
+	test('an open nested fence is closed inside the item, not at column 0', () => {
+		const result = parseIncompleteMarkdown('- a\n  - ```js\n    code');
+		expect(result).toBe('- a\n  - ```js\n    code\n    ```');
+		const codeTokens = (t: any[]): any[] =>
+			t.flatMap((x) => [
+				...(x.type === 'code' ? [x] : []),
+				...codeTokens(x.tokens ?? []),
+				...codeTokens((x.items ?? []).flatMap((i: any) => i.tokens ?? []))
+			]);
+		const tokens = lex(result);
+		expect(
+			tokens.some((t) => t.type === 'code'),
+			'no stray top-level code block'
+		).toBe(false);
+		expect(codeTokens(tokens).length, 'exactly one code block, inside the item').toBe(1);
+	});
+});

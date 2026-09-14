@@ -1,5 +1,14 @@
 # Changelog
 
+## 4.1.1
+
+### 🐛 Bug Fixes
+
+- **A fenced code block inside a list item no longer grows a stray empty code block after the list.** The fence scanner accepted a fence opener behind a list marker but rejected its closer once the item's content indent reached four spaces, which is every nested bullet and every numbered step from `10.` up. The fence looked open forever, the completer appended a second closer, and `lex()` rendered an empty code box below the list — on complete, non-streaming content too, since the completer runs on every block. The scanner now measures a closer against the opener's depth (up to three spaces deeper, per CommonMark), and the completer emits its own closer at that depth with any list marker blanked out.
+- **An unterminated fence inside a blockquote or alert is closed inside it.** The closer used to land at column 0, which ended the quote and opened a fresh top-level fence; it now carries the same `> ` prefix as the opener, so the code block stays nested.
+
+The bug predates 4.0; it was found while reviewing the 4.1.0 fence work, which had fixed the three-space case and left the four-space one.
+
 ## 4.1.0
 
 Feature release: the LaTeX math delimiters LLMs actually emit, an `incomplete` signal for the block still streaming, a `controls` umbrella that configures the toolbars instead of only switching them off, height caps with pinned auto-scroll, a full accessibility and translation pass, and a completer that no longer goes quadratic on a long line. 835 node tests, 42 browser tests.

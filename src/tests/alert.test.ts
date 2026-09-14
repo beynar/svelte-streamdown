@@ -440,9 +440,11 @@ describe('incomplete markdown', () => {
 		const input = '> [!TIP]\n> Code example:\n> ```javascript\n> console.log("incomplete");';
 		const result = parseIncompleteMarkdown(input);
 
-		// Should leave incomplete code block unchanged
+		// The closer is emitted inside the alert (behind the same "> " the opener
+		// used), so the code block stays nested; a closer at column 0 would end the
+		// alert and open a stray top-level fence instead.
 		expect(result).toBe(
-			'> [!TIP]\n> Code example:\n> ```javascript\n> console.log("incomplete");\n```'
+			'> [!TIP]\n> Code example:\n> ```javascript\n> console.log("incomplete");\n> ```'
 		);
 	});
 

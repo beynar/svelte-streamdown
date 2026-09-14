@@ -1,4 +1,4 @@
-import { trackFence, type OpenFence } from './fence.js';
+import { closingFence, trackFence, type OpenFence } from './fence.js';
 
 // Simplified interface that merges Plugin and PatternRule
 export interface Plugin {
@@ -253,10 +253,12 @@ export class IncompleteMarkdownParser {
 					// Close inner blocks (code/math) before alignment wrappers.
 					let result = text;
 					if (state.blockingContexts.has('code')) {
-						// Close with the fence that was opened: a '~~~' block is not closed by
-						// '```', and a longer run needs a closer at least as long.
+						// Close with the fence that was opened, at the depth it was opened: a
+						// '~~~' block is not closed by '```', a longer run needs a closer at
+						// least as long, and a fence inside a list item needs its closer inside
+						// the item — one at column 0 leaves the block open and starts a new one.
 						const fence = state.openFence;
-						result += '\n' + (fence ? fence.char.repeat(fence.length) : '```');
+						result += '\n' + (fence ? closingFence(fence) : '```');
 					}
 					if (state.blockingContexts.has('math')) {
 						if (state.mathCloser === '\\]') {

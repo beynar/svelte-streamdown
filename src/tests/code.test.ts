@@ -1,7 +1,7 @@
 import { expect, describe, test } from 'vitest';
 import { lex } from '../lib/marked/index.js';
 import { parseIncompleteMarkdown } from '../lib/utils/parse-incomplete-markdown.js';
-import { hasUnclosedFence } from '../lib/utils/fence.js';
+import { closingFence, hasUnclosedFence } from '../lib/utils/fence.js';
 
 // Helper functions
 function getTokensByType(tokens: any[], type: string) {
@@ -319,5 +319,26 @@ describe('hasUnclosedFence in a list item', () => {
 
 	test('and its closer still closes it', () => {
 		expect(hasUnclosedFence('- ```js\n  code\n  ```')).toBe(false);
+	});
+
+	test('a closer at the item content indent closes it, even past column 3', () => {
+		// "10. " and a nested "  - " both put the content at column 4, which a
+		// fixed 0–3 indent limit rejected: the fence looked open forever.
+		expect(hasUnclosedFence('10. ```js\n    code\n    ```')).toBe(false);
+		expect(hasUnclosedFence('- a\n  - ```js\n    code\n    ```')).toBe(false);
+		expect(hasUnclosedFence('- a\n  - ```js\n    code')).toBe(true);
+	});
+
+	test('a closer indented more than 3 past the opener is content', () => {
+		expect(hasUnclosedFence('```js\n    ```')).toBe(true);
+	});
+});
+
+describe('closingFence', () => {
+	test('is placed at the opener depth with any list marker blanked out', () => {
+		expect(closingFence({ char: '`', length: 3, prefix: '' })).toBe('```');
+		expect(closingFence({ char: '~', length: 4, prefix: '10. ' })).toBe('    ~~~~');
+		expect(closingFence({ char: '`', length: 3, prefix: '  - ' })).toBe('    ```');
+		expect(closingFence({ char: '`', length: 3, prefix: '> ' })).toBe('> ```');
 	});
 });

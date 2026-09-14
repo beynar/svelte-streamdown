@@ -1,3 +1,5 @@
+import { trackFence, type OpenFence } from './fence.js';
+
 // Simplified interface that merges Plugin and PatternRule
 export interface Plugin {
 	name: string;
@@ -25,8 +27,11 @@ interface ParseState {
 	currentLine: number;
 	context: 'normal' | 'list' | 'blockquote' | 'descriptionList';
 	blockingContexts: Set<'code' | 'math' | 'center' | 'right'>;
+	/** Delimiter that closes the open math block: '$$' or '\]'. */
+	mathCloser?: '$$' | '\\]';
+	/** The fence still open at the end of the input, if any — what closes it. */
+	openFence?: OpenFence;
 	lineContexts?: Array<{ code: boolean; math: boolean; center: boolean; right: boolean }>;
-	fenceInfo?: string;
 	mdxUnclosedTags?: Array<{ tagName: string; lineIndex: number }>;
 	mdxLineStates?: Array<{ inMdx: boolean; incompletePositions: number[] }>;
 }
@@ -58,8 +63,7 @@ export class IncompleteMarkdownParser {
 			currentLine: 0,
 			context: 'normal',
 			blockingContexts: new Set(),
-			lineContexts: [],
-			fenceInfo: undefined
+			lineContexts: []
 		};
 
 		let result = text;
@@ -165,8 +169,9 @@ export class IncompleteMarkdownParser {
 				preprocess: ({ text }) => {
 					// Pre-scan the entire text to establish blocking contexts
 					const lines = text.split('\n');
-					let inCodeBlock = false;
+					let fence: OpenFence = null;
 					let inMathBlock = false;
+					let mathCloser: '$$' | '\\]' = '$$';
 					let inCenterBlock = false;
 					let inRightBlock = false;
 					let centerOpenLine = -1;
@@ -183,13 +188,22 @@ export class IncompleteMarkdownParser {
 					for (let i = 0; i < lines.length; i++) {
 						const line = lines[i];
 
-						// Check for block boundaries (fences may be quoted inside blockquotes/alerts: "> ```")
-						const fenceLine = line.replace(/^[ \t]*(?:>[ \t]*)*/, '');
-						if (fenceLine.startsWith('```') || fenceLine.startsWith('~~~')) {
-							inCodeBlock = !inCodeBlock;
-						}
-						if (line.trim().startsWith('$$') && !line.trim().includes('$$', 2)) {
-							inMathBlock = !inMathBlock;
+						// Check for block boundaries. Fences may be quoted inside
+						// blockquotes/alerts ("> ```"); trackFence is the same CommonMark
+						// scanner the `incomplete` signal uses, so the two cannot drift.
+						fence = trackFence(line, fence);
+						const inCodeBlock = fence !== null;
+						// A math block opens with '$$' or a lone '\\[' and closes with the
+						// same delimiter it opened with, so '$' inside '\\[ … \\]' is literal.
+						const trimmed = line.trim();
+						const isDollarFence = trimmed.startsWith('$$') && !trimmed.includes('$$', 2);
+						if (!inMathBlock) {
+							if (isDollarFence || trimmed === '\\[') {
+								inMathBlock = true;
+								mathCloser = isDollarFence ? '$$' : '\\]';
+							}
+						} else if (mathCloser === '$$' ? isDollarFence : trimmed === '\\]') {
+							inMathBlock = false;
 						}
 						if (line.trim() === '[center]') {
 							inCenterBlock = true;
@@ -216,7 +230,7 @@ export class IncompleteMarkdownParser {
 
 					// Set the final blocking contexts (for postprocessing)
 					const finalContexts = new Set<string>();
-					if (inCodeBlock) finalContexts.add('code');
+					if (fence) finalContexts.add('code');
 					if (inMathBlock) finalContexts.add('math');
 					// Only auto-close center/right when content follows the opening tag;
 					// a bare trailing '[center]'/'[right]' line is left untouched.
@@ -228,7 +242,9 @@ export class IncompleteMarkdownParser {
 						text: text, // Don't modify text in preprocess
 						state: {
 							blockingContexts: finalContexts as Set<'code' | 'math' | 'center' | 'right'>,
-							lineContexts
+							lineContexts,
+							mathCloser,
+							openFence: fence
 						}
 					};
 				},
@@ -237,12 +253,19 @@ export class IncompleteMarkdownParser {
 					// Close inner blocks (code/math) before alignment wrappers.
 					let result = text;
 					if (state.blockingContexts.has('code')) {
-						result += '\n```';
+						// Close with the fence that was opened: a '~~~' block is not closed by
+						// '```', and a longer run needs a closer at least as long.
+						const fence = state.openFence;
+						result += '\n' + (fence ? fence.char.repeat(fence.length) : '```');
 					}
 					if (state.blockingContexts.has('math')) {
-						// The first half of the closing '$$' may already have arrived: adding a
-						// whole '\n$$' would leave a stray '$' inside the math and '$$' after it.
-						result += result.endsWith('$') && !result.endsWith('$$') ? '$' : '\n$$';
+						if (state.mathCloser === '\\]') {
+							result += '\n\\]';
+						} else {
+							// The first half of the closing '$$' may already have arrived: adding a
+							// whole '\n$$' would leave a stray '$' inside the math and '$$' after it.
+							result += result.endsWith('$') && !result.endsWith('$$') ? '$' : '\n$$';
+						}
 					}
 					if (state.blockingContexts.has('center')) {
 						result += '\n[/center]';
@@ -363,12 +386,14 @@ export class IncompleteMarkdownParser {
 
 			{
 				name: 'singleAsteriskItalic',
-				pattern: /[\s\S]*/,
+				pattern: /\*/,
 				skipInBlockTypes: ['code', 'math'],
 				handler: ({ line }) => {
 					if (line.trim() === '***') {
 						return line;
 					}
+					// '\(w^{*}\)' and '$w^{*}$' are formulas, not half-open emphasis (8093f2a).
+					const mathy = mathDelimiter.test(line);
 					// Inline countSingleAsterisks logic
 					let singleAsterisks = 0;
 					let lastSingleAsterisk = -1;
@@ -379,6 +404,9 @@ export class IncompleteMarkdownParser {
 							// Whitespace on both sides means arithmetic ('5 * 0') or a bare list
 							// marker, never an emphasis delimiter (c347b53).
 							if (isSpaceOrEdge(prevChar) && isSpaceOrEdge(nextChar)) {
+								continue;
+							}
+							if (mathy && isWithinMathBlock(line, i)) {
 								continue;
 							}
 							if (isWithinCompleteInlineCode(line, i)) {
@@ -406,6 +434,7 @@ export class IncompleteMarkdownParser {
 								const prevChar = i > 0 ? line[i - 1] : '';
 								const nextChar = i < line.length - 1 ? line[i + 1] : '';
 								if (isSpaceOrEdge(prevChar) && isSpaceOrEdge(nextChar)) continue;
+								if (mathy && isWithinMathBlock(line, i)) continue;
 								if (isWithinCompleteInlineCode(line, i)) continue;
 								if (/\w/.test(prevChar) && /\w/.test(nextChar)) continue;
 								if (/\w/.test(prevChar) && !/\s/.test(prevChar)) continue;
@@ -460,11 +489,14 @@ export class IncompleteMarkdownParser {
 			},
 			{
 				name: 'singleUnderscoreItalic',
-				pattern: /[\s\S]*/,
+				pattern: /_/,
 				skipInBlockTypes: ['code', 'math'],
 				handler: ({ line }) => {
-					// Inline countSingleUnderscores logic
+					// Inline countSingleUnderscores logic. The first counted underscore is
+					// also the one findFirstSingleUnderscore used to look for in a second
+					// identical pass, so it is picked up here.
 					let singleUnderscores = 0;
+					let firstSingleUnderscoreIndex = -1;
 					for (let i = 0; i < line.length; i++) {
 						if (line[i] === '_') {
 							const prevChar = i > 0 ? line[i - 1] : '';
@@ -482,44 +514,14 @@ export class IncompleteMarkdownParser {
 							}
 							if (prevChar !== '_' && nextChar !== '_') {
 								singleUnderscores++;
+								if (firstSingleUnderscoreIndex === -1) firstSingleUnderscoreIndex = i;
 							}
 						}
 					}
 
 					if (singleUnderscores % 2 === 1) {
-						// Inline findFirstSingleUnderscore logic
-						let firstSingleUnderscoreIndex = -1;
-						for (let i = 0; i < line.length; i++) {
-							if (
-								line[i] === '_' &&
-								line[i - 1] !== '_' &&
-								line[i + 1] !== '_' &&
-								line[i - 1] !== '\\' &&
-								!isWithinMathBlock(line, i) &&
-								!isWithinCompleteInlineCode(line, i)
-							) {
-								const prevChar = i > 0 ? line[i - 1] : '';
-								const nextChar = i < line.length - 1 ? line[i + 1] : '';
-								if (
-									prevChar &&
-									nextChar &&
-									/[\p{L}\p{N}_]/u.test(prevChar) &&
-									/[\p{L}\p{N}_]/u.test(nextChar)
-								) {
-									continue;
-								}
-								firstSingleUnderscoreIndex = i;
-								break;
-							}
-						}
-
-						if (firstSingleUnderscoreIndex !== -1) {
-							const endOfCellOrLine = findEndOfCellOrLineContaining(
-								line,
-								firstSingleUnderscoreIndex
-							);
-							return line.substring(0, endOfCellOrLine) + '_' + line.substring(endOfCellOrLine);
-						}
+						const endOfCellOrLine = findEndOfCellOrLineContaining(line, firstSingleUnderscoreIndex);
+						return line.substring(0, endOfCellOrLine) + '_' + line.substring(endOfCellOrLine);
 					}
 					return line;
 				}
@@ -588,50 +590,79 @@ export class IncompleteMarkdownParser {
 						return line;
 					}
 
-					// Collect unescaped opening brackets without a matching closing bracket
-					const unclosedPositions: number[] = [];
-					for (let i = 0; i < line.length; i++) {
-						if (line[i] === '[' && (i === 0 || line[i - 1] !== '\\')) {
-							// Check if this bracket has a matching closing bracket later in the line
-							if (line.indexOf(']', i + 1) === -1) {
-								unclosedPositions.push(i);
-							}
+					// A '[' is unclosed exactly when no ']' follows it, so nothing before the
+					// last ']' can be: one lastIndexOf replaces an indexOf per bracket.
+					const lastClose = line.lastIndexOf(']');
+					const unclosed: number[] = [];
+					for (let i = lastClose + 1; i < line.length; i++) {
+						// Inside a math span a bracket is notation, not a citation opener:
+						// '\\(a[b\\)' must not gain a ']' at the end of the line.
+						if (line[i] === '[' && line[i - 1] !== '\\' && mathContextAt(line, i) === 'none') {
+							unclosed.push(i);
 						}
+					}
+					if (unclosed.length === 0) return line;
+
+					// A completed `[...]` pair in front of them is evidence of an in-progress
+					// link, left to linksAndImages. No ']' can follow the first unclosed
+					// bracket, so that answer is the same for all of them: decided once.
+					let sawOpen = false;
+					for (let i = 0; i < unclosed[0]; i++) {
+						if (line[i] === ']' && sawOpen) return line;
+						sawOpen ||= line[i] === '[';
 					}
 
-					// Close every unclosed citation bracket (right to left so indices stay
-					// valid). Brackets that look like incomplete images (`![`), footnotes
-					// (`[^`), link text containing markdown formatting, table-cell content,
-					// or a trailing bracket preceded by a completed `[...]` pair (evidence
-					// of an in-progress link) are left for the dedicated plugins
-					// (footnoteRef, linksAndImages).
-					let result = line;
-					for (let k = unclosedPositions.length - 1; k >= 0; k--) {
-						const pos = unclosedPositions[k];
-						const endOfCellOrLine = findEndOfCellOrLineContaining(result, pos);
-						const content = result.substring(pos + 1, endOfCellOrLine);
-						const isImage = pos > 0 && result[pos - 1] === '!';
-						const isFootnote = content.startsWith('^');
-						const hasFormatting = /[*~`_]/.test(content);
-						const isTableCell = endOfCellOrLine < result.length && result[endOfCellOrLine] === '|';
-						const hasPriorCompletedPair = /\[[^\]]*\]/.test(line.substring(0, pos));
-						if (isImage || isFootnote || hasFormatting || isTableCell || hasPriorCompletedPair) {
-							continue;
-						}
-						if (k === unclosedPositions.length - 1) {
-							// Last bracket: close at end of cell/line (keeps multi-key citations together)
-							result =
-								result.substring(0, endOfCellOrLine) + ']' + result.substring(endOfCellOrLine);
-						} else {
-							// Earlier brackets: close right after the citation key (first word)
-							const keyMatch = content.match(/^\s*\S+/);
-							if (keyMatch) {
-								const insertAt = pos + 1 + keyMatch[0].length;
-								result = result.substring(0, insertAt) + ']' + result.substring(insertAt);
+					// Close every unclosed citation bracket. Brackets that look like
+					// incomplete images (`![`), footnotes (`[^`), link text containing
+					// markdown formatting, or table-cell content are left for the dedicated
+					// plugins (footnoteRef, linksAndImages). The cell boundary, the
+					// formatting scan and the citation key all advance monotonically with
+					// the brackets, so the line is walked a constant number of times.
+					const insertions: number[] = [];
+					let cellEnd = 0;
+					let lastFormatting = -1;
+					let keyStart = 0;
+					let keyEnd = 0;
+					for (let k = 0; k < unclosed.length; k++) {
+						const pos = unclosed[k];
+						if (cellEnd <= pos) {
+							cellEnd = findEndOfCellOrLineContaining(line, pos);
+							lastFormatting = -1;
+							for (let i = pos + 1; i < cellEnd; i++) {
+								if (formattingChars.has(line[i])) lastFormatting = i;
 							}
 						}
+						const isImage = pos > 0 && line[pos - 1] === '!';
+						const isFootnote = line[pos + 1] === '^';
+						const isTableCell = cellEnd < line.length && line[cellEnd] === '|';
+						if (isImage || isFootnote || lastFormatting > pos || isTableCell) {
+							continue;
+						}
+						if (k === unclosed.length - 1) {
+							// Last bracket: close at end of cell/line (keeps multi-key citations together)
+							insertions.push(cellEnd);
+						} else {
+							// Earlier brackets: close right after the citation key (first word)
+							if (keyStart < pos + 1) keyStart = pos + 1;
+							while (keyStart < cellEnd && isSpaceOrEdge(line[keyStart])) keyStart++;
+							if (keyEnd < keyStart) keyEnd = keyStart;
+							while (keyEnd < cellEnd && !isSpaceOrEdge(line[keyEnd])) keyEnd++;
+							if (keyEnd > keyStart) insertions.push(keyEnd);
+						}
 					}
-					return result;
+					if (insertions.length === 0) return line;
+
+					// Offsets are all against the original line and ascending, so the
+					// closers are spliced in with one join instead of rebuilding the line
+					// per bracket.
+					const out: string[] = [];
+					let from = 0;
+					for (const at of insertions) {
+						out.push(line.slice(from, at), ']');
+						from = at;
+					}
+					out.push(line.slice(from));
+					return out.join('');
 				}
 			},
 			{
@@ -639,12 +670,15 @@ export class IncompleteMarkdownParser {
 				pattern: /\^/,
 				skipInBlockTypes: ['code', 'math'],
 				handler: ({ line }) => {
+					// An exponent ('\(w^{*}\)', '$E = mc^2$') is not half-open superscript.
+					const mathy = mathDelimiter.test(line);
 					// Inline countSingleCarets logic
 					let singleCarets = 0;
 					for (let i = 0; i < line.length; i++) {
 						if (line[i] === '^') {
 							const prevChar = i > 0 ? line[i - 1] : '';
 							if (prevChar === '\\') continue;
+							if (mathy && isWithinMathBlock(line, i)) continue;
 							if (!isWithinFootnoteRef(line, i)) singleCarets++;
 						}
 					}
@@ -653,7 +687,7 @@ export class IncompleteMarkdownParser {
 						const lastCaretIndex = line.lastIndexOf('^');
 						if (
 							lastCaretIndex !== -1 &&
-							!isWithinMathBlock(line, lastCaretIndex) &&
+							!(mathy && isWithinMathBlock(line, lastCaretIndex)) &&
 							!isWithinFootnoteRef(line, lastCaretIndex)
 						) {
 							const endOfCellOrLine = findEndOfCellOrLineContaining(line, lastCaretIndex);
@@ -736,6 +770,25 @@ export class IncompleteMarkdownParser {
 				}
 			},
 			{
+				// Same job inlineMath does for '$': a half-streamed '\(x^2' should render
+				// as math rather than flashing a literal escaped paren. A lone '\[' on its
+				// own line is a block opener and is closed by contextManager instead.
+				name: 'latexMath',
+				pattern: /\\[([]/,
+				skipInBlockTypes: ['code', 'math'],
+				handler: ({ line }) => {
+					const context = mathContextAt(line, line.length);
+					if (context !== 'inlineLatex' && context !== 'blockLatex') return line;
+					const opener = context === 'inlineLatex' ? '\\(' : '\\[';
+					const openIndex = line.lastIndexOf(opener);
+					const endOfCellOrLine = findEndOfCellOrLineContaining(line, openIndex);
+					// Nothing to render yet: leave the bare delimiter for the next chunk.
+					if (!line.substring(openIndex + 2, endOfCellOrLine).trim()) return line;
+					const closer = context === 'inlineLatex' ? '\\)' : '\\]';
+					return line.substring(0, endOfCellOrLine) + closer + line.substring(endOfCellOrLine);
+				}
+			},
+			{
 				name: 'descriptionList',
 				pattern: /^(\s*):/,
 				skipInBlockTypes: ['code', 'math'],
@@ -760,7 +813,11 @@ export class IncompleteMarkdownParser {
 				handler: ({ line }) => {
 					// Check for incomplete links with URLs: [text](url
 					const urlMatch = line.match(/(!?\[[^\]]*\]\()([^)]*?)$/);
-					if (urlMatch) {
+					// An escaped bracket opens nothing — '\[' is LaTeX display math or a
+					// literal '[', never an incomplete link (8093f2a). Both regexes here are
+					// anchored to the end of the line, so a guarded match means the line has
+					// no incomplete link at all.
+					if (urlMatch && !isEscapedBracket(line, urlMatch)) {
 						const url = urlMatch[2];
 						if (url.length > 0) {
 							// Inline isUrlIncomplete logic
@@ -803,7 +860,7 @@ export class IncompleteMarkdownParser {
 
 					// Check for incomplete links without URLs: [text
 					const linkMatch = line.match(/(!?\[)([^\]]*?)$/);
-					if (linkMatch && !line.includes('](')) {
+					if (linkMatch && !isEscapedBracket(line, linkMatch) && !line.includes('](')) {
 						const [, openBracket, linkTextWithPossibleBoundary] = linkMatch;
 						// Position of the matched opening bracket (the regex matches the first
 						// bracket that stays unclosed through the end of the line). Using the
@@ -998,6 +1055,10 @@ export const parseIncompleteMarkdown = (text: string): string => {
 // Full test for the comparisonOperator plugin, whose `pattern` only gates it.
 const listItemComparison = /^(\s*(?:[-*+]|\d+[.)]) +)>(?==?\s*\$?\d)/;
 
+// Emphasis/code markers, as a set so inlineCitation can scan a cell for them
+// without building a substring per bracket.
+const formattingChars = new Set(['*', '~', '`', '_']);
+
 // The char accessors in the plugins return '' past either end of the line, so an
 // empty string here means "edge of line".
 const isSpaceOrEdge = (char: string): boolean => !char || /\s/.test(char);
@@ -1010,78 +1071,152 @@ const findEndOfCellOrLineContaining = (text: string, position: number): number =
 	return endPos;
 };
 
-// Scanned on demand, against the line as it stands now, and allocating nothing:
-// the completer runs over every changed block of every streamed chunk, so garbage
-// here surfaces as GC pauses in the stages around it.
-const isWithinCompleteInlineCode = (line: string, position: number): boolean => {
-	let open = line.indexOf('`');
-	while (open !== -1 && open <= position) {
-		let openEnd = open;
-		while (line.charCodeAt(openEnd) === 96) openEnd++;
-		const runLength = openEnd - open;
-		let closeStart = -1;
-		for (let j = openEnd; j < line.length; j++) {
-			if (line.charCodeAt(j) !== 96) continue;
-			let closeEnd = j;
-			while (line.charCodeAt(closeEnd) === 96) closeEnd++;
-			if (closeEnd - j === runLength) {
-				closeStart = j;
-				break;
-			}
-			j = closeEnd - 1;
-		}
-		// An unterminated run closes nothing, so neither it nor anything after it
-		// is code: completing emphasis inside it is what streaming needs.
-		if (closeStart === -1) return false;
-		const spanEnd = closeStart + runLength;
-		if (position < spanEnd) return true;
-		open = line.indexOf('`', spanEnd);
+// End (exclusive) of the complete inline-code span opened by the backtick run at
+// `open`, or -1 when that run is never closed.
+const endOfCodeSpan = (line: string, open: number): number => {
+	let openEnd = open;
+	while (line.charCodeAt(openEnd) === 96) openEnd++;
+	const runLength = openEnd - open;
+	for (let j = openEnd; j < line.length; j++) {
+		if (line.charCodeAt(j) !== 96) continue;
+		let closeEnd = j;
+		while (line.charCodeAt(closeEnd) === 96) closeEnd++;
+		if (closeEnd - j === runLength) return j + runLength;
+		j = closeEnd - 1;
 	}
-	return false;
+	return -1;
 };
 
-const isWithinMathBlock = (text: string, position: number): boolean => {
-	let inInlineMath = false;
-	let inBlockMath = false;
+// The spans are probed at ascending positions along one line (once per marker
+// character in the worst case), so the walk is resumed where it stopped instead
+// of restarted from the line's first backtick — the difference between linear
+// and quadratic on a long line. A query that moves backwards, or onto another
+// line, restarts it. Four scalars: allocating a mask per line instead costs more
+// in GC than the scan it saves.
+let codeLine = '';
+let codePosition = -1;
+let codeOpen = -1;
+let codeEnd = -1;
+let codeUnclosed = false;
 
-	for (let i = 0; i < text.length && i < position; i++) {
-		if (text[i] === '\\' && text[i + 1] === '$') {
-			i++;
+const isWithinCompleteInlineCode = (line: string, position: number): boolean => {
+	if (line !== codeLine || position < codePosition) {
+		codeLine = line;
+		codeOpen = line.indexOf('`');
+		codeEnd = codeOpen === -1 ? -1 : endOfCodeSpan(line, codeOpen);
+		// An unterminated run closes nothing, so neither it nor anything after it
+		// is code: completing emphasis inside it is what streaming needs.
+		codeUnclosed = codeOpen !== -1 && codeEnd === -1;
+	}
+	codePosition = position;
+	while (!codeUnclosed && codeOpen !== -1 && position >= codeEnd) {
+		codeOpen = line.indexOf('`', codeEnd);
+		if (codeOpen === -1) break;
+		codeEnd = endOfCodeSpan(line, codeOpen);
+		if (codeEnd === -1) codeUnclosed = true;
+	}
+	return !codeUnclosed && codeOpen !== -1 && position >= codeOpen && position < codeEnd;
+};
+
+type MathContext = 'none' | 'inlineDollar' | 'blockDollar' | 'inlineLatex' | 'blockLatex';
+
+/**
+ * Math delimiters `mathContextAt` reacts to. Testing this first keeps the
+ * per-character scan off the lines — nearly all of them — that cannot be math.
+ */
+const mathDelimiter = /\$|\\[([]/;
+
+// Same deal as the code-span walk above: one left-to-right fold over the line,
+// resumed rather than replayed from character 0 on every probe. The fold carries
+// the LaTeX states too (8093f2a), so the guards that consult it stay linear on a
+// long line instead of costing an O(n) probe per marker.
+let mathLine = '';
+let mathNext = 0;
+let mathState: MathContext = 'none';
+
+/**
+ * The math context a position sits in: `$`/`$$` as before, plus the LaTeX
+ * delimiters the lexer now tokenizes. Inside `\(`/`\[` a `$` is literal, so
+ * dollars are only read when no LaTeX span is open.
+ */
+const mathContextAt = (text: string, position: number): MathContext => {
+	if (text !== mathLine || position < mathNext) {
+		mathLine = text;
+		mathNext = 0;
+		mathState = 'none';
+	}
+
+	let i = mathNext;
+	for (; i < text.length && i < position; i++) {
+		if (text[i] === '\\') {
+			const next = text[i + 1];
+			// An escaped backslash consumes both characters, so '\\[' in the source is a
+			// literal backslash then a '[', not an opener. The lexer's tokenizer rejects
+			// it the same way; skipping the pair keeps the two scanners in agreement.
+			if (next === '\\') {
+				i++;
+				continue;
+			}
+			if (next === '$') {
+				i++;
+				continue;
+			}
+			if (mathState === 'none' && (next === '(' || next === '[')) {
+				mathState = next === '(' ? 'inlineLatex' : 'blockLatex';
+				i++;
+				continue;
+			}
+			if (
+				(mathState === 'inlineLatex' && next === ')') ||
+				(mathState === 'blockLatex' && next === ']')
+			) {
+				mathState = 'none';
+				i++;
+				continue;
+			}
 			continue;
 		}
 
-		if (text[i] === '$') {
+		if (text[i] === '$' && mathState !== 'inlineLatex' && mathState !== 'blockLatex') {
 			if (text[i + 1] === '$') {
-				inBlockMath = !inBlockMath;
+				mathState = mathState === 'blockDollar' ? 'none' : 'blockDollar';
 				i++;
-				inInlineMath = false;
-			} else if (!inBlockMath) {
-				inInlineMath = !inInlineMath;
+			} else if (mathState !== 'blockDollar') {
+				// '$100' is a price, not an opening delimiter — the same currency rule the
+				// inlineMath counter below and the lexer apply. Without it a single price
+				// on the line would make everything after it look like math.
+				if (mathState === 'none' && /\d/.test(text[i + 1] ?? '')) continue;
+				mathState = mathState === 'inlineDollar' ? 'none' : 'inlineDollar';
 			}
 		}
 	}
+	mathNext = i;
 
-	return inInlineMath || inBlockMath;
+	return mathState;
 };
 
+const isWithinMathBlock = (text: string, position: number): boolean =>
+	mathContextAt(text, position) !== 'none';
+
+/**
+ * True when the '[' captured in group 1 (possibly behind a '!') cannot open a
+ * link: it is backslash-escaped, or it sits inside a math span, where brackets
+ * are notation ('\\(a[b\\)') rather than markup.
+ */
+const isEscapedBracket = (line: string, match: RegExpMatchArray): boolean => {
+	const bracketIndex = (match.index ?? 0) + (match[1].startsWith('!') ? 1 : 0);
+	return line[bracketIndex - 1] === '\\' || mathContextAt(line, bracketIndex) !== 'none';
+};
+
+// Only ever asked about a '^': that caret belongs to a footnote reference when a
+// '[' sits immediately before it and a ']' closes it before any other bracket.
+// (Walking back to the nearest bracket instead is O(line) per caret.)
 const isWithinFootnoteRef = (text: string, position: number): boolean => {
-	let openBracketPos = -1;
-	let caretPos = -1;
+	if (text[position - 1] !== '[') return false;
 
-	for (let i = position; i >= 0; i--) {
-		if (text[i] === ']') return false;
-		if (text[i] === '^' && caretPos === -1) caretPos = i;
-		if (text[i] === '[') {
-			openBracketPos = i;
-			break;
-		}
-	}
-
-	if (openBracketPos !== -1 && caretPos === openBracketPos + 1 && position >= caretPos) {
-		for (let i = position + 1; i < text.length; i++) {
-			if (text[i] === ']') return true;
-			if (text[i] === '[' || text[i] === '\n') break;
-		}
+	for (let i = position + 1; i < text.length; i++) {
+		if (text[i] === ']') return true;
+		if (text[i] === '[' || text[i] === '\n') break;
 	}
 
 	return false;

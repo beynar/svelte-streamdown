@@ -12,16 +12,28 @@
 
 	const {
 		token,
-		id
+		id,
+		incomplete = false
 	}: {
 		token: CodeToken;
 		id: string;
+		/** The fence is still being streamed; nothing below it is final yet. */
+		incomplete?: boolean;
 	} = $props();
 
 	// Trailing blank lines are noise for mermaid but they still changed `token.text`
 	// on nearly every streamed chunk, which re-ran the whole render. Same trim as
 	// Code.svelte.
 	const chart = $derived(token.text.replace(/\n+$/, ''));
+
+	// Screen readers get the diagram's declaration line ('flowchart TD', 'sequenceDiagram'),
+	// which is the only human-readable summary the source offers.
+	const firstLine = $derived(chart.split('\n', 1)[0].trim());
+	const diagramLabel = $derived(
+		firstLine
+			? `${streamdown.translations.controls.diagram}: ${firstLine}`
+			: streamdown.translations.controls.diagram
+	);
 
 	let mermaid = $state<any>(null);
 	onMount(async () => {
@@ -65,6 +77,19 @@
 		get activateMouseWheel() {
 			return insider.isInside && streamdown.controls.mermaidMouseWheelZoom;
 		}
+	});
+
+	const expandLabel = $derived(
+		panzoom.expanded
+			? streamdown.translations.controls.exitFullscreen
+			: streamdown.translations.controls.fullscreen
+	);
+
+	let container = $state<HTMLDivElement>();
+	$effect(() => {
+		// Expanding covers the page: move focus in so Escape (handled by panzoom)
+		// and the toolbar are reachable from the keyboard.
+		if (panzoom.expanded) container?.focus();
 	});
 
 	const sanitizeMermaidCode = (code: string): string => {
@@ -199,10 +224,15 @@
 				svgTarget.innerHTML = svgString;
 				svgTarget.id = uniqueId;
 
-				// Apply any additional attributes from the rendered SVG
+				// Apply any additional attributes from the rendered SVG. The accessibility
+				// attributes are ours: mermaid's root carries role="graphics-document" and
+				// an aria-roledescription, which would overwrite the label a screen reader
+				// needs (and did, non-deterministically, depending on when the lazy import
+				// resolved).
+				const keepOwn = new Set(['id', 'role', 'aria-label', 'aria-roledescription']);
 				const tempSvg = new DOMParser().parseFromString(svgString, 'image/svg+xml').documentElement;
 				Array.from(tempSvg.attributes).forEach((attribute) => {
-					if (attribute.name !== 'id') {
+					if (!keepOwn.has(attribute.name)) {
 						svgTarget.setAttribute(attribute.name, attribute.value);
 					}
 				});
@@ -217,20 +247,31 @@
 	};
 </script>
 
-<div data-streamdown-mermaid={id}>
+<div data-streamdown-mermaid={id} data-incomplete={incomplete || undefined}>
 	{#if mermaid}
 		<div
+			bind:this={container}
 			style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 			class={streamdown.theme.mermaid.base}
-			{@attach (node) => renderMermaid(chart, node)}
+			{@attach (node) => {
+				// A half-written diagram makes mermaid throw and log on every chunk, so
+				// skip the render entirely and keep showing whatever rendered last.
+				if (!incomplete) renderMermaid(chart, node);
+			}}
 			{@attach insider.attach}
 			data-expanded={'false'}
+			role={panzoom.expanded ? 'dialog' : undefined}
+			aria-modal={panzoom.expanded ? 'true' : undefined}
+			aria-label={panzoom.expanded ? diagramLabel : undefined}
+			tabindex="-1"
 		>
 			{#if streamdown.controls.mermaid}
 				<div class={streamdown.theme.mermaid.buttons}>
 					<button
 						class={streamdown.theme.components.button}
-						aria-label="Zoom to fit"
+						aria-label={streamdown.translations.controls.resetView}
+						title={streamdown.translations.controls.resetView}
+						type="button"
 						onclick={() => panzoom.zoomToFit()}
 						data-panzoom-ignore
 					>
@@ -238,7 +279,9 @@
 					</button>
 					<button
 						class={streamdown.theme.components.button}
-						aria-label="Zoom in"
+						aria-label={streamdown.translations.controls.zoomIn}
+						title={streamdown.translations.controls.zoomIn}
+						type="button"
 						onclick={() => panzoom.zoomIn()}
 						data-panzoom-ignore
 					>
@@ -246,7 +289,9 @@
 					</button>
 					<button
 						class={streamdown.theme.components.button}
-						aria-label="Zoom out"
+						aria-label={streamdown.translations.controls.zoomOut}
+						title={streamdown.translations.controls.zoomOut}
+						type="button"
 						onclick={() => panzoom.zoomOut()}
 						data-panzoom-ignore
 					>
@@ -254,16 +299,21 @@
 					</button>
 					<button
 						class={streamdown.theme.components.button}
-						aria-label="Toggle expand"
+						aria-label={expandLabel}
+						title={expandLabel}
+						aria-pressed={panzoom.expanded}
+						type="button"
 						onclick={() => panzoom.toggleExpand()}
 						data-panzoom-ignore
 					>
 						{@render (streamdown.icons?.fullscreen || fullscreenIcon)()}
 					</button>
-					<MermaidDownload {id} />
+					{#if streamdown.controls.mermaidDownload}
+						<MermaidDownload {token} {id} />
+					{/if}
 				</div>
 			{/if}
-			<svg {@attach panzoom.attach} data-mermaid-svg></svg>
+			<svg {@attach panzoom.attach} data-mermaid-svg role="img" aria-label={diagramLabel}></svg>
 		</div>
 	{:else}
 		<div class={streamdown.theme.mermaid.base}></div>

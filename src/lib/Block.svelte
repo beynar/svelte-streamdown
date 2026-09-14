@@ -8,10 +8,13 @@
 
 	let {
 		block,
-		static: isStatic = false
+		static: isStatic = false,
+		incomplete = false
 	}: {
 		block: string;
 		static?: boolean;
+		/** This block ends inside an unfinished code fence (streaming only). */
+		incomplete?: boolean;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -29,7 +32,7 @@
 		{#if token}
 			{@const children = (token as any)?.tokens || []}
 			{@const isTextOnlyNode = children.length === 0}
-			<Element {token}>
+			<Element {token} {incomplete}>
 				{#if isTextOnlyNode}
 					{#if streamdown.animation.enabled && !insidePopover && !isStatic}
 						<AnimatedText text={'text' in token ? token.text || '' : ''} />

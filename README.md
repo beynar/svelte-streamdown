@@ -26,6 +26,10 @@ Perfect for AI-powered applications that need to stream and render markdown cont
 - **Progressive Rendering**: Perfect for streaming AI responses
 - **Real-time Updates**: Optimized for dynamic content
 - **Smooth Animations**: Animate tokens and blocks as they are streamed.
+- **An [`incomplete` signal](#the-incomplete-signal)** on the block still being streamed, so
+  expensive renderers can wait and loading states need no JavaScript
+- **Capped, self-scrolling blocks**: `codeBlockMaxHeight` / `tableMaxHeight` keep a long snippet or
+  table pinned to its newest line while it streams
 
 ### 🔒 Security Hardening
 
@@ -58,7 +62,7 @@ Full support for
 - Task lists ([ ] and [x])
 - Code blocks
 - Mermaid diagrams
-- Math $expressions$
+- Math $expressions$, in `$…$` / `$$…$$` or the LaTeX `\(…\)` / `\[…\]` delimiters
 - Escaping currency symbols ($140)
 - Complex tables
 - Footnotes [^1]
@@ -77,14 +81,17 @@ Full support for
 
 - Syntax highlighting powered by [@tanstack/highlight](https://github.com/TanStack/highlight) (synchronous, SSR-friendly, ~31KB min / ~11KB gzip for every language)
 - Copy-to-clipboard functionality
+- Download the snippet with the extension of its language
 - Support any `@tanstack/highlight` theme, or your own
 
 ### 🔢 Mathematical Expressions
 
-LaTeX math support through KaTeX. Use single dollars for **inline** math and double dollars for **block** (display) math:
+LaTeX math support through KaTeX. Both delimiter styles are supported — dollars and the LaTeX delimiters LLMs usually emit:
 
-- Inline math: `$E = mc^2$` renders inline as $E = mc^2$
-- Block math:
+- Inline math: `$E = mc^2$` or `\(E = mc^2\)` renders inline as $E = mc^2$
+- Block (display) math: `$$ … $$` or `\[ … \]`
+
+> `\(` and `\[` are always read as math delimiters — in static rendering as well as while streaming. Prose that uses them as literal-bracket escapes renders as math: `\[optional\]` is a display-math token, and an unterminated `Use \[ to open a bracket` is auto-closed into one by the completer (`parseIncompleteMarkdown={false}` stops that half). Escape the backslash — `\\[` — to keep the sequence literal. See the [4.1.0 behaviour changes](CHANGELOG.md#410).
 
 $$
 f(x) = \frac{1}{\sigma\sqrt{2\pi}} e^{-\frac{1}{2}\left(\frac{x-\mu}{\sigma}\right)^2}
@@ -109,6 +116,7 @@ Pass KaTeX options through the [`katexConfig`](#-props-api) prop (e.g. to set `t
 - **Incremental rendering** during streaming content
 - Pan and Zoom
 - Full screen mode
+- Download as PNG, SVG or `.mmd` source
 
 # **Example:**
 
@@ -145,6 +153,9 @@ pie title Project Time Allocation
 ```
 
 ### Complex table support
+
+Tables copy and download as Markdown, HTML, CSV or TSV — see [Controls](#-controls) for the
+separator and filename options, and for the exported table utilities.
 
 #### Colspan
 
@@ -402,6 +413,47 @@ Code highlighting is incremental as well: a code block is only re-highlighted wh
 
 > [!NOTE]
 > There is intentionally no separate block-level parse cache (e.g. an LRU keyed by block content). For the common append-only streaming case the reactivity-based approach above already avoids redundant work, and a standalone cache would add memory usage and invalidation complexity without a measurable benefit. If you have a workload where this matters, please [open an issue](https://github.com/beynar/svelte-streamdown/issues) with a repro — we're happy to revisit.
+
+### The incremental block cache contract
+
+Step 1 above keeps a small per-instance cache so that block splitting costs O(new text) rather than O(document) on each update. It seals every block except the last two and re-splits only the live tail.
+
+Deciding whether an update is an append has to be cheap, so the sealed prefix is **sampled, not rescanned**: the first character of every sealed block, plus a fixed number of evenly spaced characters. Anything that fails a sample falls back to a full parse.
+
+What that means in practice:
+
+- **Append-only updates are exact.** This is what an LLM stream does, and what the component does with its own `content` prop.
+- **Replacing, shortening or restructuring the content is detected** — a different length, a moved block boundary, or a changed block start all fail the checks and trigger a full reparse.
+- **A same-length edit in the middle of a sealed block can be missed**, and that block will keep rendering its old text. If you bind `content` to an editor, or regenerate a block in the middle of a finished document, either pass `static` (which skips the streaming path) or force a fresh parse by re-keying the component:
+
+```svelte
+{#key documentVersion}
+	<Streamdown content={editorValue} />
+{/key}
+```
+
+### The `incomplete` signal
+
+While a fence is still streaming, the block it produces is a guess: the closing ``` has not arrived,
+so the language, the last line and even whether it is a diagram at all can still change. Streamdown
+now says so out loud.
+
+- The `code` and `mermaid` snippets receive an extra `incomplete: boolean` prop, as do custom
+  `components.code` / `components.mermaid` components.
+- The rendered container carries `data-incomplete="true"` while the fence is open, so a loading
+  style needs no JavaScript: `[data-streamdown-code][data-incomplete] { opacity: 0.7 }`.
+- Only the **last** block of a streaming document can be incomplete, and `static` never marks
+  anything.
+
+```svelte
+{#snippet code({ token, children, incomplete })}
+	<pre class:animate-pulse={incomplete}>{@render children()}</pre>
+{/snippet}
+```
+
+The built-in Mermaid component already acts on it: it skips `mermaid.render` while the fence is
+open and keeps the last good diagram on screen, instead of re-parsing a half-written graph on every
+chunk and flashing an error.
 
 ## 🎭 Animation System
 
@@ -698,42 +750,44 @@ v4 replaces shiki with `@tanstack/highlight`. Highlighting is now synchronous, r
 
 ## 📋 Props API
 
-| Prop                       | Type                                                                                                        | Default                | Description                                                                                                                                                                                                                  |
-| -------------------------- | ----------------------------------------------------------------------------------------------------------- | ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `content`                  | `string`                                                                                                    | -                      | **Required.** The markdown content to render                                                                                                                                                                                 |
-| `sources`                  | `Record<string, any>`                                                                                       | -                      | Citation data object for inline citations                                                                                                                                                                                    |
-| `class`                    | `string`                                                                                                    | -                      | CSS class names for the wrapper element                                                                                                                                                                                      |
-| `parseIncompleteMarkdown`  | `boolean`                                                                                                   | `true`                 | Parse and fix incomplete markdown syntax                                                                                                                                                                                     |
-| `defaultOrigin`            | `string`                                                                                                    | -                      | Default origin for relative URLs                                                                                                                                                                                             |
-| `allowedLinkPrefixes`      | `string[]`                                                                                                  | `['*']`                | Allowed URL prefixes for links                                                                                                                                                                                               |
-| `allowedImagePrefixes`     | `string[]`                                                                                                  | `['*']`                | Allowed URL prefixes for images                                                                                                                                                                                              |
-| `renderHtml`               | `boolean \| ((token) => string)`                                                                            | `false`                | Render raw HTML blocks and inline tags. When off, the HTML source is shown as literal text instead of being dropped. Pass a function to sanitize and return the HTML string yourself.                                        |
-| `inlineCitationsMode`      | `'list' \| 'carousel'`                                                                                      | `'carousel'`           | How an inline citation popover presents its sources                                                                                                                                                                          |
-| `translations`             | `{ alert?: { note?, tip?, warning?, caution?, important? } }`                                               | -                      | Override the built-in alert titles                                                                                                                                                                                           |
-| `icons`                    | `Partial<Record<IconName, Snippet>>`                                                                        | -                      | Replace any built-in icon (`copy`, `check`, `download`, `fullscreen`, `zoomIn`, `zoomOut`, `fitView`, `chevronLeft`, `chevronRight`, `note`, `tip`, `warning`, `caution`, `important`) with your own snippet                 |
-| `static`                   | `boolean`                                                                                                   | `false`                | Render finished content: skips the incomplete-markdown pass and the streaming animation                                                                                                                                      |
-| `element`                  | `HTMLElement`                                                                                               | -                      | `bind:element` to get the wrapper node                                                                                                                                                                                       |
-| `streamdown`               | `StreamdownContext`                                                                                         | -                      | `bind:streamdown` to read the resolved context (theme, controls, footnotes, sources)                                                                                                                                         |
-| `theme`                    | `DeepPartial<Theme>`                                                                                        | -                      | Custom theme overrides                                                                                                                                                                                                       |
-| `baseTheme`                | `'tailwind' \| 'shadcn'`                                                                                    | `'tailwind'`           | Base theme to use before applying overrides                                                                                                                                                                                  |
-| `mergeTheme`               | `boolean`                                                                                                   | `true`                 | Whether to merge theme with base theme                                                                                                                                                                                       |
-| `highlightTheme`           | `string`                                                                                                    | auto (dark-mode aware) | Code highlighting theme. Defaults to `github-dark` in dark mode / `github-light` otherwise. Any other value must be a key registered via `highlightThemes`. See [Highlight themes](#highlight-themes).                       |
-| `highlightThemes`          | `Record<string, HighlightTheme>`                                                                            | -                      | Register additional pre-imported themes (e.g. `{ dracula }`) so they can be selected via `highlightTheme`, including dynamic light/dark switching.                                                                           |
-| `highlightLanguages`       | `LanguageDefinition[]`                                                                                      | -                      | Additional languages built with `defineLanguage` (merged with the 30 built-in ones)                                                                                                                                          |
-| `mermaidConfig`            | `MermaidConfig`                                                                                             | -                      | Mermaid diagram configuration                                                                                                                                                                                                |
-| `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`                                                       | -                      | KaTeX math rendering options                                                                                                                                                                                                 |
-| `animation`                | `AnimationConfig`                                                                                           | -                      | Animation configuration for streaming content                                                                                                                                                                                |
-| `animation.enabled`        | `boolean`                                                                                                   | `false`                | Enable/disable animations                                                                                                                                                                                                    |
-| `animation.type`           | `'fade' \| 'blur' \| 'slideUp' \| 'slideDown'`                                                              | `'blur'`               | Animation style for text appearance                                                                                                                                                                                          |
-| `animation.duration`       | `number`                                                                                                    | `500`                  | Animation duration in milliseconds                                                                                                                                                                                           |
-| `animation.timingFunction` | `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'`                                            | `'ease-in'`            | CSS timing function for animations                                                                                                                                                                                           |
-| `animation.tokenize`       | `'word' \| 'char'`                                                                                          | `'word'`               | Tokenization method for text animations                                                                                                                                                                                      |
-| `animation.animateOnMount` | `boolean`                                                                                                   | `false`                | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM                                                                           |
-| `extensions`               | `Array<Extension>`                                                                                          | `[]`                   | Custom marked tokenizers to render special markdown blocks or inline tokens                                                                                                                                                  |
-| `mdxComponents`            | `Record<string, Component>`                                                                                 | `{}`                   | Map of MDX component names to Svelte components (e.g., `{ Card, Button }`)                                                                                                                                                   |
-| `components`               | `{ code?, mermaid?, math? }`                                                                                | -                      | Optional heavy components for syntax highlighting, diagrams, and math rendering                                                                                                                                              |
-| `controls`                 | `{ code?: boolean, mermaid?: boolean \| { enabled?: boolean, mouseWheelZoom?: boolean }, table?: boolean }` | all `true`             | Toggle the action toolbars for code blocks, mermaid diagrams, and tables. For mermaid, pass an object to disable only mouse-wheel zoom while keeping pan and the zoom buttons, e.g. `{ mermaid: { mouseWheelZoom: false } }` |
-| `children`                 | `Snippet<[{token:GenericToken, streamdown: StreamdownContext, children: Snippet`                            | `undefined`            | Snippet used to render elements not supported by Streamdown, custom extensions, and MDX components                                                                                                                           |
+| Prop                       | Type                                                                             | Default                | Description                                                                                                                                                                                                  |
+| -------------------------- | -------------------------------------------------------------------------------- | ---------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `content`                  | `string`                                                                         | -                      | **Required.** The markdown content to render                                                                                                                                                                 |
+| `sources`                  | `Record<string, any>`                                                            | -                      | Citation data object for inline citations                                                                                                                                                                    |
+| `class`                    | `string`                                                                         | -                      | CSS class names for the wrapper element                                                                                                                                                                      |
+| `parseIncompleteMarkdown`  | `boolean`                                                                        | `true`                 | Parse and fix incomplete markdown syntax                                                                                                                                                                     |
+| `defaultOrigin`            | `string`                                                                         | -                      | Default origin for relative URLs                                                                                                                                                                             |
+| `allowedLinkPrefixes`      | `string[]`                                                                       | `['*']`                | Allowed URL prefixes for links                                                                                                                                                                               |
+| `allowedImagePrefixes`     | `string[]`                                                                       | `['*']`                | Allowed URL prefixes for images                                                                                                                                                                              |
+| `renderHtml`               | `boolean \| ((token) => string)`                                                 | `false`                | Render raw HTML blocks and inline tags. When off, the HTML source is shown as literal text instead of being dropped. Pass a function to sanitize and return the HTML string yourself.                        |
+| `inlineCitationsMode`      | `'list' \| 'carousel'`                                                           | `'carousel'`           | How an inline citation popover presents its sources                                                                                                                                                          |
+| `translations`             | `{ alert?: {...}, controls?: {...} }`                                            | `defaultTranslations`  | Override the built-in alert titles and control labels — see [Translations](#-translations)                                                                                                                   |
+| `icons`                    | `Partial<Record<IconName, Snippet>>`                                             | -                      | Replace any built-in icon (`copy`, `check`, `download`, `fullscreen`, `zoomIn`, `zoomOut`, `fitView`, `chevronLeft`, `chevronRight`, `note`, `tip`, `warning`, `caution`, `important`) with your own snippet |
+| `static`                   | `boolean`                                                                        | `false`                | Render finished content: skips the incomplete-markdown pass and the streaming animation                                                                                                                      |
+| `element`                  | `HTMLElement`                                                                    | -                      | `bind:element` to get the wrapper node                                                                                                                                                                       |
+| `streamdown`               | `StreamdownContext`                                                              | -                      | `bind:streamdown` to read the resolved context (theme, controls, footnotes, sources)                                                                                                                         |
+| `theme`                    | `DeepPartial<Theme>`                                                             | -                      | Custom theme overrides                                                                                                                                                                                       |
+| `baseTheme`                | `'tailwind' \| 'shadcn'`                                                         | `'tailwind'`           | Base theme to use before applying overrides                                                                                                                                                                  |
+| `mergeTheme`               | `boolean`                                                                        | `true`                 | Whether to merge theme with base theme                                                                                                                                                                       |
+| `highlightTheme`           | `string`                                                                         | auto (dark-mode aware) | Code highlighting theme. Defaults to `github-dark` in dark mode / `github-light` otherwise. Any other value must be a key registered via `highlightThemes`. See [Highlight themes](#highlight-themes).       |
+| `highlightThemes`          | `Record<string, HighlightTheme>`                                                 | -                      | Register additional pre-imported themes (e.g. `{ dracula }`) so they can be selected via `highlightTheme`, including dynamic light/dark switching.                                                           |
+| `highlightLanguages`       | `LanguageDefinition[]`                                                           | -                      | Additional languages built with `defineLanguage` (merged with the 30 built-in ones)                                                                                                                          |
+| `mermaidConfig`            | `MermaidConfig`                                                                  | -                      | Mermaid diagram configuration                                                                                                                                                                                |
+| `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`                            | -                      | KaTeX math rendering options                                                                                                                                                                                 |
+| `animation`                | `AnimationConfig`                                                                | -                      | Animation configuration for streaming content                                                                                                                                                                |
+| `animation.enabled`        | `boolean`                                                                        | `false`                | Enable/disable animations                                                                                                                                                                                    |
+| `animation.type`           | `'fade' \| 'blur' \| 'slideUp' \| 'slideDown'`                                   | `'blur'`               | Animation style for text appearance                                                                                                                                                                          |
+| `animation.duration`       | `number`                                                                         | `500`                  | Animation duration in milliseconds                                                                                                                                                                           |
+| `animation.timingFunction` | `'ease' \| 'ease-in' \| 'ease-out' \| 'ease-in-out' \| 'linear'`                 | `'ease-in'`            | CSS timing function for animations                                                                                                                                                                           |
+| `animation.tokenize`       | `'word' \| 'char'`                                                               | `'word'`               | Tokenization method for text animations                                                                                                                                                                      |
+| `animation.animateOnMount` | `boolean`                                                                        | `false`                | Run the token animation on mount or not, useful if you render the Streamdown component in the same time as the first token is receive from the LLM                                                           |
+| `extensions`               | `Array<Extension>`                                                               | `[]`                   | Custom marked tokenizers to render special markdown blocks or inline tokens                                                                                                                                  |
+| `mdxComponents`            | `Record<string, Component>`                                                      | `{}`                   | Map of MDX component names to Svelte components (e.g., `{ Card, Button }`)                                                                                                                                   |
+| `components`               | `{ code?, mermaid?, math? }`                                                     | -                      | Optional heavy components for syntax highlighting, diagrams, and math rendering                                                                                                                              |
+| `controls`                 | `boolean \| { code?, table?, mermaid? }`                                         | all `true`             | Toggle and configure the action toolbars for code blocks, tables and mermaid diagrams — see [Controls](#-controls)                                                                                           |
+| `codeBlockMaxHeight`       | `string`                                                                         | -                      | CSS length that caps the height of code blocks (e.g. `'24rem'`). While content streams in, the block stays scrolled to the bottom unless the reader has scrolled up.                                         |
+| `tableMaxHeight`           | `string`                                                                         | -                      | CSS length that caps the height of tables, with the same streaming auto-scroll as `codeBlockMaxHeight`.                                                                                                      |
+| `children`                 | `Snippet<[{token:GenericToken, streamdown: StreamdownContext, children: Snippet` | `undefined`            | Snippet used to render elements not supported by Streamdown, custom extensions, and MDX components                                                                                                           |
 
 #### All Available Customizable Elements:
 
@@ -743,7 +797,7 @@ v4 replaces shiki with `@tanstack/highlight`. Highlighting is now synchronous, r
 
 **Lists**: `ul`, `ol`, `li`
 
-**Code**: `code`, `codespan`
+**Code**: `code`, `codespan` — `code` and `mermaid` also receive [`incomplete`](#the-incomplete-signal)
 
 **Tables**: `table`, `thead`, `tbody`, `tr`, `th`, `td`, `tfoot`
 
@@ -752,6 +806,117 @@ v4 replaces shiki with `@tanstack/highlight`. Highlighting is now synchronous, r
 **MDX Components**: Handled via a single `mdx` snippet that receives `token`, `props`, and `children`. Use `token.tagName` to differentiate between components.
 
 **Note**: The above elements are **supported by Streamdown** and should be customized using individual props or the theme system. MDX components require the `mdx` snippet.
+
+## 🌍 Translations
+
+Every string the components render themselves — alert titles, button labels, download menu entries, the copy announcements screen readers hear, the blocked-URL tooltips — comes from one nested `translations` object. Pass only the keys you want to change; the rest fall back to `defaultTranslations`, which is exported so you can read the shipped English values (or diff against them when a new key appears).
+
+```svelte
+<script>
+	import { Streamdown, defaultTranslations } from 'svelte-streamdown';
+</script>
+
+<Streamdown
+	{content}
+	translations={{
+		alert: { note: 'remarque', warning: 'attention' },
+		controls: {
+			copyCode: 'Copier le code',
+			copiedCode: 'Code copié',
+			downloadCode: 'Télécharger le code'
+		}
+	}}
+/>
+```
+
+| Namespace  | Keys                                                                                                                                                                                                                                                                                                                                                                                                                                         |
+| ---------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `alert`    | `note`, `tip`, `warning`, `caution`, `important`                                                                                                                                                                                                                                                                                                                                                                                             |
+| `controls` | `copyCode`, `copiedCode`, `downloadCode`, `copyTable`, `copiedTable`, `downloadTable`, `tableFormatMarkdown`, `tableFormatHtml`, `tableFormatCsv`, `tableFormatTsv`, `downloadDiagram`, `downloadDiagramPng`, `downloadDiagramSvg`, `downloadDiagramMmd`, `zoomIn`, `zoomOut`, `resetView`, `fullscreen`, `exitFullscreen`, `diagram`, `previousCitation`, `nextCitation`, `blockedUrl`, `imageBlocked`, `imageNoDescription`, `linkBlocked` |
+
+The alert defaults are lowercase because the theme capitalizes them with CSS; if you drop that class, capitalize them here instead.
+
+Control labels are used as both the `title` and the `aria-label` of the matching icon-only button, so translating them translates the accessible name too. `copiedCode` / `copiedTable` are announced through a visually hidden `aria-live` region after a copy.
+
+## 🎛️ Controls
+
+`controls` turns the code / table / mermaid toolbars on and off and configures what they do.
+`controls={false}` turns every control off, `controls={true}` (the default) turns them all on,
+and each section takes a boolean or an object:
+
+```ts
+type Controls =
+	| boolean
+	| {
+			code?:
+				| boolean
+				| {
+						enabled?: boolean;
+						copy?: boolean;
+						download?: boolean | { filename?: string | ((token: CodeToken) => string) };
+				  };
+			table?:
+				| boolean
+				| {
+						enabled?: boolean;
+						copy?: boolean;
+						download?: boolean | { filename?: string | ((token: TableToken) => string) };
+						csvSeparator?: ',' | ';' | '\t' | 'auto';
+				  };
+			mermaid?:
+				| boolean
+				| {
+						enabled?: boolean;
+						download?: boolean | { filename?: string | ((token: CodeToken) => string) };
+						mouseWheelZoom?: boolean;
+				  };
+	  };
+```
+
+```svelte
+<Streamdown
+	{content}
+	controls={{
+		code: { download: { filename: (token) => `snippet-${token.lang}` } },
+		table: { copy: false, csvSeparator: 'auto' },
+		mermaid: { mouseWheelZoom: false }
+	}}
+/>
+```
+
+- `filename` is the **base name**; the extension still comes from the content — `languageExtensionMap`
+  for code (`.ts`, `.py`, … `.txt`), `.csv` / `.tsv` / `.md` / `.html` for tables, `.svg` / `.png` / `.mmd`
+  for diagrams. The defaults are `file`, `table` and `diagram`.
+- `csvSeparator: 'auto'` picks `;` when the browser locale writes decimals with a comma (Excel reads
+  `,` as a decimal point there), otherwise `,`. CSV downloads carry a UTF-8 BOM so accented and CJK
+  text opens correctly in Excel.
+- `mouseWheelZoom` is a gesture rather than a button: it stays on unless you set it to `false` or
+  turn every control off with `controls={false}`.
+
+### Table export utilities
+
+The table toolbar's DOM walk is exported, so a custom `table` snippet can build its own copy or
+download menu:
+
+```ts
+import {
+	extractTableData,
+	tableDataToCSV,
+	tableDataToTSV,
+	tableDataToMarkdown,
+	tableDataToHTML,
+	type TableData
+} from 'svelte-streamdown';
+
+const data = extractTableData(document.querySelector('[data-streamdown-table="..."]')!);
+// { headers: string[], rows: string[][] } — <br> becomes \n, colspan/rowspan become empty cells
+tableDataToCSV(data, ';');
+tableDataToTSV(data);
+```
+
+`tableDataToMarkdown` and `tableDataToHTML` are there for callers that only hold a DOM table; the
+built-in menu copies Markdown from `token.raw` instead, which keeps the author's original inline
+formatting.
 
 ## 🎨 Theming System
 

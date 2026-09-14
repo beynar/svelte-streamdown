@@ -74,6 +74,7 @@
 		aria-expanded={popover.isOpen}
 		aria-haspopup="dialog"
 		aria-controls={'footnote-popover-' + id}
+		type="button"
 		{@attach clickOutside.attachment}
 	>
 		{token.label.replace('^', '')}

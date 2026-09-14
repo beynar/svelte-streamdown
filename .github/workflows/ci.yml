@@ -37,6 +37,9 @@ jobs:
       - name: Test
         run: pnpm test && pnpm test:browser
 
+      - name: Bundle size
+        run: pnpm test:size
+
       - name: Typecheck
         run: pnpm check
 

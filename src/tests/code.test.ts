@@ -1,6 +1,7 @@
 import { expect, describe, test } from 'vitest';
 import { lex } from '../lib/marked/index.js';
 import { parseIncompleteMarkdown } from '../lib/utils/parse-incomplete-markdown.js';
+import { hasUnclosedFence } from '../lib/utils/fence.js';
 
 // Helper functions
 function getTokensByType(tokens: any[], type: string) {
@@ -239,6 +240,21 @@ describe('incomplete markdown', () => {
 		expect(result).toBe('```typescript\nfunction test() {}\nconsole.log("end")\n```');
 	});
 
+	test('should close a tilde fence with tildes, not backticks', () => {
+		// A '```' closer inside a '~~~' block is content: it would show up as a
+		// literal line in the streamed code block on every chunk.
+		expect(parseIncompleteMarkdown('~~~py\nx = 1')).toBe('~~~py\nx = 1\n~~~');
+		expect(getFirstTokenByType(lex(parseIncompleteMarkdown('~~~py\nx = 1')), 'code').text).toBe(
+			'x = 1'
+		);
+	});
+
+	test('should close a long fence with a closer of the same length', () => {
+		expect(parseIncompleteMarkdown('````md\n```ts\nconst a = 1;\n```')).toBe(
+			'````md\n```ts\nconst a = 1;\n```\n````'
+		);
+	});
+
 	test('should handle code blocks with nested content', () => {
 		const input = '```markdown\n# This is markdown\n**bold** and *italic*\n\nEnd of code';
 		const result = parseIncompleteMarkdown(input);
@@ -247,5 +263,61 @@ describe('incomplete markdown', () => {
 		expect(result).toBe(
 			'```markdown\n# This is markdown\n**bold** and *italic*\n\nEnd of code\n```'
 		);
+	});
+});
+
+describe('hasUnclosedFence', () => {
+	test('an open backtick fence is unclosed', () => {
+		expect(hasUnclosedFence('```ts\nconst a = 1;')).toBe(true);
+	});
+
+	test('an open tilde fence is unclosed', () => {
+		expect(hasUnclosedFence('~~~\ncode here')).toBe(true);
+	});
+
+	test('a closed fence is complete', () => {
+		expect(hasUnclosedFence('```ts\nconst a = 1;\n```')).toBe(false);
+		expect(hasUnclosedFence('~~~\ncode here\n~~~')).toBe(false);
+	});
+
+	test('a shorter fence line inside a longer fence is content, not a closer', () => {
+		expect(hasUnclosedFence('````md\n```ts\nconst a = 1;\n```')).toBe(true);
+		expect(hasUnclosedFence('````md\n```ts\nconst a = 1;\n```\n````')).toBe(false);
+	});
+
+	test('a fence is only closed by its own character', () => {
+		expect(hasUnclosedFence('~~~\ncode\n```')).toBe(true);
+	});
+
+	test('a closer cannot carry an info string', () => {
+		expect(hasUnclosedFence('```ts\nconst a = 1;\n```python')).toBe(true);
+	});
+
+	test('a backtick info string containing a backtick opens nothing', () => {
+		// CommonMark (and marked) reject it as a fence, so neither should we.
+		expect(hasUnclosedFence('```ts title=`x`\nconst a = 1;')).toBe(false);
+		expect(hasUnclosedFence('Use ``` to open a fence.')).toBe(false);
+	});
+
+	test('a fence quoted inside a blockquote still counts', () => {
+		expect(hasUnclosedFence('> ```ts\n> const a = 1;')).toBe(true);
+		expect(hasUnclosedFence('> ```ts\n> const a = 1;\n> ```')).toBe(false);
+	});
+
+	test('prose is never unclosed', () => {
+		expect(hasUnclosedFence('# Title\n\nSome `inline` code.')).toBe(false);
+		expect(hasUnclosedFence('')).toBe(false);
+	});
+});
+
+describe('hasUnclosedFence in a list item', () => {
+	test('a fence opened after a list marker is tracked', () => {
+		// '- ```js' opens a fence inside the item; the marker used to hide it.
+		expect(hasUnclosedFence('- ```\n  x')).toBe(true);
+		expect(hasUnclosedFence('1. ```js\n   code')).toBe(true);
+	});
+
+	test('and its closer still closes it', () => {
+		expect(hasUnclosedFence('- ```js\n  code\n  ```')).toBe(false);
 	});
 });

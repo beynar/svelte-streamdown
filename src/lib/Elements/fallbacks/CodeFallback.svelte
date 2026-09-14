@@ -1,13 +1,17 @@
 <script lang="ts">
 	import { useStreamdown } from '$lib/context.svelte.js';
+	import { usePinnedScroll } from '$lib/utils/usePinnedScroll.svelte.js';
 	import type { Tokens } from 'marked';
 
 	const {
 		token,
-		id
+		id,
+		incomplete = false
 	}: {
 		token: Tokens.Code;
 		id: string;
+		/** The fence is still being streamed; nothing below it is final yet. */
+		incomplete?: boolean;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -17,10 +21,21 @@
 	// on nearly every streamed chunk. This is the default renderer, so it needs it
 	// too.
 	const code = $derived(token.text.replace(/\n+$/, ''));
+
+	// Same scroll container as Code.svelte: `pre` already scrolls horizontally.
+	const pinnedScroll = usePinnedScroll({
+		get maxHeight() {
+			return streamdown.codeBlockMaxHeight;
+		},
+		get content() {
+			return code;
+		}
+	});
 </script>
 
 <div
 	data-streamdown-code={id}
+	data-incomplete={incomplete || undefined}
 	style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 	class={streamdown.theme.code.base}
 >
@@ -28,7 +43,11 @@
 		<span class={streamdown.theme.code.language}>{token.lang}</span>
 	</div>
 	<div style="height: fit-content; width: 100%;" class={streamdown.theme.code.container}>
-		<pre class={streamdown.theme.code.pre}><code
+		<pre
+			class={streamdown.theme.code.pre}
+			style:max-height={streamdown.codeBlockMaxHeight}
+			style:overflow-y={streamdown.codeBlockMaxHeight ? 'auto' : undefined}
+			{@attach pinnedScroll}><code
 				>{#each code.split('\n') as line}<span class={streamdown.theme.code.line}
 						><span style={streamdown.isMounted ? streamdown.animationTextStyle : ''}
 							>{line.trim().length > 0 ? line : '\u200B'}</span

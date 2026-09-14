@@ -51,8 +51,8 @@
 	<span
 		data-streamdown-link-blocked={id}
 		class={streamdown.theme.link.blocked}
-		title={`Blocked URL: ${token.href}`}
+		title={`${streamdown.translations.controls.blockedUrl}: ${token.href}`}
 	>
-		{@render children()} [blocked]
+		{@render children()} [{streamdown.translations.controls.linkBlocked}]
 	</span>
 {/if}

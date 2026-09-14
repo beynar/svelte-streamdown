@@ -1,5 +1,24 @@
 export { default as Streamdown } from './Streamdown.svelte';
-export { useStreamdown, type StreamdownProps } from './context.svelte.js';
+export {
+	useStreamdown,
+	defaultTranslations,
+	type StreamdownProps,
+	type Translations,
+	type Controls,
+	type CodeControls,
+	type TableControls,
+	type MermaidControls,
+	type ResolvedControls
+} from './context.svelte.js';
+export {
+	extractTableData,
+	tableDataToCSV,
+	tableDataToTSV,
+	tableDataToMarkdown,
+	tableDataToHTML,
+	type TableData,
+	type CsvSeparator
+} from './utils/table-export.js';
 export { theme, shadcnTheme, mergeTheme, type Theme } from './theme.js';
 export {
 	type CodeToken,

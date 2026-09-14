@@ -6,15 +6,23 @@
 	import { useClickOutside } from '$lib/utils/useClickOutside.svelte.js';
 	import { useKeyDown } from '$lib/utils/useKeyDown.svelte.js';
 	import { save } from '$lib/utils/save.js';
+	import type { CodeToken } from '$lib/marked/index.js';
 
 	let {
+		token,
 		id
 	}: {
+		token: CodeToken;
 		id: string;
 	} = $props();
 
 	const streamdown = useStreamdown();
 	const popover = new Popover();
+
+	const filename = (extension: string) => {
+		const base = streamdown.controls.mermaidDownloadFilename;
+		return `${typeof base === 'function' ? base(token) : base}.${extension}`;
+	};
 
 	useKeyDown({
 		keys: ['Escape'],
@@ -68,7 +76,7 @@
 		}
 
 		const svgString = new XMLSerializer().serializeToString(clonedSvg);
-		save('mermaid-diagram.svg', svgString, 'image/svg+xml');
+		save(filename('svg'), svgString, 'image/svg+xml');
 		popover.isOpen = false;
 	};
 
@@ -128,7 +136,7 @@
 					const url = URL.createObjectURL(blob);
 					const link = document.createElement('a');
 					link.href = url;
-					link.download = 'mermaid-diagram.png';
+					link.download = filename('png');
 					document.body.appendChild(link);
 					link.click();
 					document.body.removeChild(link);
@@ -145,11 +153,21 @@
 		popover.isOpen = false;
 	};
 
-	const download = (type: 'SVG' | 'PNG') => {
+	const formats = $derived([
+		{ type: 'PNG', label: streamdown.translations.controls.downloadDiagramPng },
+		{ type: 'SVG', label: streamdown.translations.controls.downloadDiagramSvg },
+		{ type: 'MMD', label: streamdown.translations.controls.downloadDiagramMmd }
+	] as const);
+
+	const download = (type: 'SVG' | 'PNG' | 'MMD') => {
 		if (type === 'SVG') {
 			downloadSvg();
-		} else {
+		} else if (type === 'PNG') {
 			downloadPng();
+		} else {
+			// The diagram source, same trailing-newline trim as the rendered chart.
+			save(filename('mmd'), token.text.replace(/\n+$/, ''), 'text/plain');
+			popover.isOpen = false;
 		}
 	};
 </script>
@@ -166,13 +184,14 @@
 		style:min-width="fit-content !important"
 		class={streamdown.theme.components.popover}
 	>
-		{#each ['PNG', 'SVG'] as type}
+		{#each formats as { type, label } (type)}
 			<button
 				style="width: 100%; text-align: left; justify-content: flex-start; padding: 1rem 1rem; margin: 0.2rem 0;"
-				onclick={() => download(type as 'SVG' | 'PNG')}
+				onclick={() => download(type)}
 				class={streamdown.theme.components.button}
+				type="button"
 			>
-				{type}
+				{label}
 			</button>
 		{/each}
 	</dialog>
@@ -189,7 +208,9 @@
 		popover.isOpen = true;
 	}}
 	{@attach clickOutside.attachment}
-	title="Download diagram"
+	type="button"
+	title={streamdown.translations.controls.downloadDiagram}
+	aria-label={streamdown.translations.controls.downloadDiagram}
 	data-panzoom-ignore
 >
 	{@render (streamdown.icons?.download || downloadIcon)()}

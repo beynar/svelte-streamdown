@@ -152,6 +152,9 @@
 					disabled={!stepper.canGoPrevious}
 					class={streamdown.theme.components.button}
 					onclick={() => stepper.previous()}
+					type="button"
+					aria-label={streamdown.translations.controls.previousCitation}
+					title={streamdown.translations.controls.previousCitation}
 				>
 					{@render (streamdown.icons?.chevronLeft || chevronLeft)()}
 				</button>
@@ -159,6 +162,9 @@
 					disabled={!stepper.canGoNext}
 					class={streamdown.theme.components.button}
 					onclick={() => stepper.next()}
+					type="button"
+					aria-label={streamdown.translations.controls.nextCitation}
+					title={streamdown.translations.controls.nextCitation}
 				>
 					{@render (streamdown.icons?.chevronRight || chevronRight)()}
 				</button>
@@ -243,6 +249,7 @@
 		aria-expanded={popover.isOpen}
 		aria-haspopup="dialog"
 		aria-controls={'citation-popover-' + id}
+		type="button"
 		{@attach clickOutside.attachment}
 	>
 		<Slot

@@ -6,6 +6,88 @@ import { getContext, onMount, setContext } from 'svelte';
 import type { HighlightTheme } from '@tanstack/highlight/theme';
 import type { LanguageDefinition } from '@tanstack/highlight';
 
+/**
+ * Every user-visible string the components render themselves. Nested by area,
+ * like the theme; `Streamdown` merges the `translations` prop over
+ * `defaultTranslations` once so components always read a complete object.
+ */
+export type Translations = {
+	alert: {
+		note: string;
+		tip: string;
+		warning: string;
+		caution: string;
+		important: string;
+	};
+	controls: {
+		copyCode: string;
+		copiedCode: string;
+		downloadCode: string;
+		copyTable: string;
+		copiedTable: string;
+		downloadTable: string;
+		tableFormatMarkdown: string;
+		tableFormatHtml: string;
+		tableFormatCsv: string;
+		tableFormatTsv: string;
+		downloadDiagram: string;
+		downloadDiagramPng: string;
+		downloadDiagramSvg: string;
+		downloadDiagramMmd: string;
+		zoomIn: string;
+		zoomOut: string;
+		resetView: string;
+		fullscreen: string;
+		exitFullscreen: string;
+		diagram: string;
+		previousCitation: string;
+		nextCitation: string;
+		blockedUrl: string;
+		imageBlocked: string;
+		imageNoDescription: string;
+		linkBlocked: string;
+	};
+};
+
+// Alert titles stay lowercase: the theme capitalizes them with CSS.
+export const defaultTranslations: Translations = {
+	alert: {
+		note: 'note',
+		tip: 'tip',
+		warning: 'warning',
+		caution: 'caution',
+		important: 'important'
+	},
+	controls: {
+		copyCode: 'Copy code',
+		copiedCode: 'Code copied',
+		downloadCode: 'Download code',
+		copyTable: 'Copy table',
+		copiedTable: 'Table copied',
+		downloadTable: 'Download table',
+		tableFormatMarkdown: 'Markdown',
+		tableFormatHtml: 'HTML',
+		tableFormatCsv: 'CSV',
+		tableFormatTsv: 'TSV',
+		downloadDiagram: 'Download diagram',
+		downloadDiagramPng: 'PNG',
+		downloadDiagramSvg: 'SVG',
+		downloadDiagramMmd: 'MMD',
+		zoomIn: 'Zoom in',
+		zoomOut: 'Zoom out',
+		resetView: 'Zoom to fit',
+		fullscreen: 'Expand diagram',
+		exitFullscreen: 'Collapse diagram',
+		diagram: 'Diagram',
+		previousCitation: 'Previous citation',
+		nextCitation: 'Next citation',
+		blockedUrl: 'Blocked URL',
+		imageBlocked: 'Image blocked',
+		imageNoDescription: 'No description',
+		linkBlocked: 'blocked'
+	}
+};
+
 export interface StreamdownContext
 	extends Omit<
 		StreamdownProps,
@@ -14,12 +96,8 @@ export interface StreamdownContext
 	snippets: Snippets;
 	highlightTheme: HighlightTheme;
 	theme: Theme;
-	controls: {
-		code: boolean;
-		mermaid: boolean;
-		mermaidMouseWheelZoom: boolean;
-		table: boolean;
-	};
+	translations: Translations;
+	controls: ResolvedControls;
 	inlineCitationsMode: 'list' | 'carousel';
 	animation: {
 		enabled: boolean;
@@ -89,6 +167,7 @@ export const useStreamdown = () => {
 
 import type {
 	AlertToken,
+	CodeToken,
 	MathToken,
 	SubSupToken,
 	TableToken,
@@ -105,6 +184,7 @@ import type {
 	MdxToken
 } from './marked/index.js';
 import type { Tokens } from 'marked';
+import type { CsvSeparator } from './utils/table-export.js';
 import type { ListItemToken, ListToken } from './marked/marked-list.js';
 import type { Footnote, FootnoteRef, FootnoteToken } from './marked/marked-footnotes.js';
 import { bind } from './utils/bind.js';
@@ -173,9 +253,55 @@ export type Snippets<Source extends Record<string, any> = Record<string, any>> =
 					? {
 							props: Record<string, number | string | boolean | null | undefined>;
 						}
-					: {})
+					: K extends 'code' | 'mermaid'
+						? {
+								/** The fence is still streaming: defer expensive work. */
+								incomplete: boolean;
+							}
+						: {})
 		]
 	>;
+};
+
+/** `filename` is the base name; the extension comes from the format. */
+type DownloadControl<Token> = boolean | { filename?: string | ((token: Token) => string) };
+
+export type CodeControls =
+	| boolean
+	| { enabled?: boolean; copy?: boolean; download?: DownloadControl<CodeToken> };
+
+export type TableControls =
+	| boolean
+	| {
+			enabled?: boolean;
+			copy?: boolean;
+			download?: DownloadControl<TableToken>;
+			csvSeparator?: CsvSeparator;
+	  };
+
+export type MermaidControls =
+	| boolean
+	| { enabled?: boolean; download?: DownloadControl<CodeToken>; mouseWheelZoom?: boolean };
+
+export type Controls =
+	| boolean
+	| { code?: CodeControls; table?: TableControls; mermaid?: MermaidControls };
+
+/** What `Streamdown.svelte` flattens `controls` into, so components stay dumb. */
+export type ResolvedControls = {
+	code: boolean;
+	codeCopy: boolean;
+	codeDownload: boolean;
+	codeDownloadFilename: string | ((token: CodeToken) => string);
+	table: boolean;
+	tableCopy: boolean;
+	tableDownload: boolean;
+	tableDownloadFilename: string | ((token: TableToken) => string);
+	tableCsvSeparator: CsvSeparator;
+	mermaid: boolean;
+	mermaidDownload: boolean;
+	mermaidDownloadFilename: string | ((token: CodeToken) => string);
+	mermaidMouseWheelZoom: boolean;
 };
 
 export type StreamdownProps<Source extends Record<string, any> = Record<string, any>> = {
@@ -204,20 +330,12 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	highlightThemes?: Record<string, HighlightTheme>;
 	mermaidConfig?: MermaidConfig;
 	katexConfig?: KatexOptions | ((inline: boolean) => KatexOptions);
-	translations?: {
-		alert?: {
-			note?: string;
-			tip?: string;
-			warning?: string;
-			caution?: string;
-			important?: string;
-		};
-	};
-	controls?: {
-		code?: boolean;
-		mermaid?: boolean | { enabled?: boolean; mouseWheelZoom?: boolean };
-		table?: boolean;
-	};
+	/** Partial overrides; unset keys fall back to `defaultTranslations`. */
+	translations?: { [K in keyof Translations]?: Partial<Translations[K]> };
+	controls?: Controls;
+	// CSS lengths (e.g. '24rem'). Undefined leaves the element unbounded, as before.
+	codeBlockMaxHeight?: string;
+	tableMaxHeight?: string;
 	renderHtml?: boolean | ((token: Tokens.HTML | Tokens.Tag) => string);
 
 	animation?: {
@@ -259,8 +377,8 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 		>
 	>;
 	components?: {
-		code?: Component<{ token: Tokens.Code; id: string }, any, any>;
-		mermaid?: Component<{ token: Tokens.Code; id: string }, any, any>;
+		code?: Component<{ token: Tokens.Code; id: string; incomplete: boolean }, any, any>;
+		mermaid?: Component<{ token: Tokens.Code; id: string; incomplete: boolean }, any, any>;
 		math?: Component<{ token: MathToken; id: string }, any, any>;
 	};
 } & Partial<Snippets<Source>>;

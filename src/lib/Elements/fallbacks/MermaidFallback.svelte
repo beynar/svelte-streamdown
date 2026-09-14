@@ -4,10 +4,13 @@
 
 	const {
 		token,
-		id
+		id,
+		incomplete = false
 	}: {
 		token: Tokens.Code;
 		id: string;
+		/** The fence is still being streamed; nothing below it is final yet. */
+		incomplete?: boolean;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -19,7 +22,7 @@
 	const chart = $derived(token.text.replace(/\n+$/, ''));
 </script>
 
-<div data-streamdown-mermaid={id}>
+<div data-streamdown-mermaid={id} data-incomplete={incomplete || undefined}>
 	<div
 		style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 		class={streamdown.theme.code.base}

@@ -146,6 +146,47 @@ describe('parseBlocks incremental cache equivalence', () => {
 		}
 	});
 
+	// The cache never rescans the sealed prefix (that scan was 93% of streaming
+	// cost). It samples it instead: the first character of every sealed block,
+	// plus a fixed number of evenly spaced characters. These two tests pin the
+	// resulting contract — see the streaming section of the README.
+	describe('out-of-band edits to the sealed prefix', () => {
+		const paragraphs = Array.from(
+			{ length: 400 },
+			(_, i) => `Paragraph number ${i} with some filler text.`
+		);
+		const doc = paragraphs.join('\n\n');
+
+		test('an edit at a block start is detected and forces a full reparse', () => {
+			const cache = createParseBlocksCache();
+			parseBlocks(doc, [], cache);
+			const start = doc.indexOf('Paragraph number 50 ');
+			const edited = `${doc.slice(0, start)}Z${doc.slice(start + 1)}\n\nnew tail`;
+			expect(parseBlocks(edited, [], cache)).toEqual(parseBlocks(edited));
+		});
+
+		test('every block start is probed, not just a sampled few', () => {
+			for (const n of [1, 7, 123, 398]) {
+				const cache = createParseBlocksCache();
+				parseBlocks(doc, [], cache);
+				const start = doc.indexOf(`Paragraph number ${n} `);
+				const edited = `${doc.slice(0, start)}Z${doc.slice(start + 1)}\n\nnew tail`;
+				expect(parseBlocks(edited, [], cache)).toEqual(parseBlocks(edited));
+			}
+		});
+
+		test('KNOWN LIMIT: a same-length edit mid-block can be missed', () => {
+			const cache = createParseBlocksCache();
+			const before = parseBlocks(doc, [], cache);
+			// index 500 is inside a paragraph body, not at a block start or a probe.
+			const edited = `${doc.slice(0, 500)}Z${doc.slice(501)}\n\nnew tail`;
+			const incremental = parseBlocks(edited, [], cache);
+			// The edited block is served stale from the cache; only the tail is new.
+			expect(incremental).toEqual([...before, 'new tail']);
+			expect(incremental).not.toEqual(parseBlocks(edited));
+		});
+	});
+
 	test('same cache object across many appends stays internally consistent', () => {
 		const cache = createParseBlocksCache();
 		let doc = '';

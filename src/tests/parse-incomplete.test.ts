@@ -269,6 +269,57 @@ describe('parseIncompleteMarkdown direct coverage', () => {
 		});
 	});
 
+	// 8093f2a: LaTeX delimiters are a protected context. Every input here used to
+	// be corrupted — a stray '_', '*^', or a '\[' turned into an incomplete link.
+	describe('latex math as a protected context', () => {
+		test('should not treat an underscore inside \\(..\\) as italic', () => {
+			expect(parseIncompleteMarkdown(String.raw`\(P(x_{t+1})\)` + '\n\nplain trailing text.')).toBe(
+				String.raw`\(P(x_{t+1})\)` + '\n\nplain trailing text.'
+			);
+		});
+
+		test('should leave a \\[..\\] display block untouched', () => {
+			const input = '\\[\nP(x_{t+1} | x_t)\n\\]';
+			expect(parseIncompleteMarkdown(input)).toBe(input);
+		});
+
+		test('should not treat ^ and * inside \\(..\\) as emphasis', () => {
+			expect(parseIncompleteMarkdown(String.raw`\(w^{*}\)` + '\n\nplain trailing text.')).toBe(
+				String.raw`\(w^{*}\)` + '\n\nplain trailing text.'
+			);
+		});
+
+		test('should still complete bold that follows latex in a blockquote', () => {
+			const full = [
+				String.raw`> Given tokens \(x_1, ..., x_t\), maximize \(P(x_{t+1} | x_1, ..., x_t)\)`,
+				'',
+				'**2. Instruction Tuning (SFT)**',
+				'- Dataset size is much smaller than pre-training'
+			].join('\n');
+			const streamed = full.slice(0, full.indexOf('(SFT)') + '(SFT'.length);
+			expect(parseIncompleteMarkdown(streamed)).toBe(streamed + '**');
+		});
+
+		test('should still complete ordinary italic outside latex on the same line', () => {
+			expect(parseIncompleteMarkdown(String.raw`Inline math \(x_1\) and _ordinary italic`)).toBe(
+				String.raw`Inline math \(x_1\) and _ordinary italic_`
+			);
+		});
+
+		test('should still complete italic after a price on the same line', () => {
+			// A lone '$100' is currency, so it must not open a math context that
+			// would swallow the emphasis after it.
+			expect(parseIncompleteMarkdown('costs $100 and *italic')).toBe('costs $100 and *italic*');
+		});
+
+		test('should not turn an escaped bracket into an incomplete link', () => {
+			expect(parseIncompleteMarkdown(String.raw`a \[b`)).toBe(String.raw`a \[b\]`);
+			expect(parseIncompleteMarkdown(String.raw`see \[x\] and [real link`)).toBe(
+				String.raw`see \[x\] and [real link](streamdown:incomplete-link)`
+			);
+		});
+	});
+
 	describe('contextManager block completion', () => {
 		test('should close a lone opening fence as an empty code block', () => {
 			expect(parseIncompleteMarkdown('```')).toBe('```\n```');
@@ -277,5 +328,15 @@ describe('parseIncompleteMarkdown direct coverage', () => {
 		test('should close an opening fence that has an info string', () => {
 			expect(parseIncompleteMarkdown('```js')).toBe('```js\n```');
 		});
+	});
+});
+
+describe('brackets inside a math span', () => {
+	test('a bracket inside \\( .. \\) is notation, not a citation opener', () => {
+		expect(parseIncompleteMarkdown('inline \\(a[b\\) tail')).toBe('inline \\(a[b\\) tail');
+	});
+
+	test('a real citation after a math span still completes', () => {
+		expect(parseIncompleteMarkdown('\\(x\\) then [1')).toBe('\\(x\\) then [1]');
 	});
 });

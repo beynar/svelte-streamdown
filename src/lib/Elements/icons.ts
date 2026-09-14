@@ -5,6 +5,7 @@ export const copyIcon = createRawSnippet(() => {
 		render: () => {
 			return `
             <svg
+	aria-hidden="true"
 	xmlns="http://www.w3.org/2000/svg"
 	width="100%"
 	height="100%"
@@ -25,6 +26,7 @@ export const downloadIcon = createRawSnippet(() => {
 	return {
 		render: () => {
 			return `<svg
+	aria-hidden="true"
 		xmlns="http://www.w3.org/2000/svg"
 		width="100%"
 		height="100%"
@@ -46,7 +48,8 @@ export const checkIcon = createRawSnippet(() => {
 	return {
 		render: () => {
 			return `
-            <svg xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
+            <svg
+	aria-hidden="true" xmlns="http://www.w3.org/2000/svg" width="100%" height="100%" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>
             `;
 		}
 	};
@@ -55,6 +58,7 @@ export const zoomInIcon = createRawSnippet(() => {
 	return {
 		render: () => `
 			<svg
+	aria-hidden="true"
 				width="100%"
 				height="100%"
 				viewBox="0 0 24 24"
@@ -78,6 +82,7 @@ export const zoomOutIcon = createRawSnippet(() => {
 	return {
 		render: () => `
 		<svg
+	aria-hidden="true"
 			width="100%"
 			height="100%"
 			viewBox="0 0 24 24"
@@ -100,6 +105,7 @@ export const fitViewIcon = createRawSnippet(() => {
 	return {
 		render: () => `
 		<svg
+	aria-hidden="true"
 			width="100%"
 			height="100%"
 			viewBox="0 0 24 24"
@@ -124,6 +130,7 @@ export const fullscreenIcon = createRawSnippet(() => {
 	return {
 		render: () => `
 		<svg
+	aria-hidden="true"
 			width="100%"
 			height="100%"
 			viewBox="0 0 24 24"
@@ -145,6 +152,7 @@ export const chevronRight = createRawSnippet(() => {
 	return {
 		render: () => `
 			<svg
+	aria-hidden="true"
 				xmlns="http://www.w3.org/2000/svg"
 				width="100%"
 				height="100%"
@@ -165,6 +173,7 @@ export const chevronLeft = createRawSnippet(() => {
 	return {
 		render: () => `
 			<svg
+	aria-hidden="true"
 				xmlns="http://www.w3.org/2000/svg"
 				width="100%"
 				height="100%"

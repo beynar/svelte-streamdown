@@ -6,6 +6,13 @@ const blockRule = /^(\$\$)(?:\n((?:\\[\s\S]|[^\\])+?)\n\1(?:\n|$)|([^$\n]+?)\1(?
 // Inline math: handles both single ($) and double ($$) dollar delimiters
 // Avoids matching currency by checking context and requiring proper content
 const inlineRule = /^(\${1,2})(?!\$)((?:[^$\n]|\\\$)*?)\1(?!\d)/;
+// LaTeX delimiters. LLMs emit these as often as dollars, so they produce the
+// same `math` token: `\(`/`\)` inline, `\[`/`\]` display. Only the block form
+// may span lines; an escaped backslash (`\\(`) is not a delimiter, which the
+// charCode dispatch below rejects before any regex runs.
+const inlineParenRule = /^\\\(([^\n]*?)\\\)/;
+const inlineBracketRule = /^\\\[([^\n]*?)\\\]/;
+const blockBracketRule = /^\\\[([\s\S]+?)\\\](?:\n|$)/;
 
 // Enhanced currency detection patterns
 const currencyPatterns = {
@@ -24,6 +31,18 @@ export const markedMath: Extension[] = [
 		name: 'math',
 		level: 'block',
 		tokenizer(this, src) {
+			if (src.charCodeAt(0) === 92 /* \ */) {
+				if (src.charCodeAt(1) !== 91 /* [ */) return;
+				const latex = src.match(blockBracketRule);
+				if (!latex) return;
+				return {
+					type: 'math',
+					isInline: false,
+					displayMode: true,
+					raw: latex[0],
+					text: latex[1].trim()
+				} satisfies MathToken;
+			}
 			if (src.charCodeAt(0) !== 36 /* $ */) return;
 			const match = src.match(blockRule);
 
@@ -79,7 +98,23 @@ export const markedMath: Extension[] = [
 			}
 		},
 		tokenizer(this, src) {
-			// inlineRule is anchored on `$`; skip the regex otherwise (see marked-br.ts).
+			// The rules are anchored on their opening delimiter; skip the regex
+			// otherwise (see marked-br.ts) — this runs at every inline scan position.
+			if (src.charCodeAt(0) === 92 /* \ */) {
+				const open = src.charCodeAt(1);
+				// `\\(` is an escaped backslash followed by a paren, never math.
+				const displayMode = open === 91; /* [ */
+				if (!displayMode && open !== 40 /* ( */) return;
+				const latex = src.match(displayMode ? inlineBracketRule : inlineParenRule);
+				if (!latex) return;
+				return {
+					type: 'math',
+					isInline: true,
+					displayMode,
+					raw: latex[0],
+					text: latex[1].trim()
+				} satisfies MathToken;
+			}
 			if (src.charCodeAt(0) !== 36 /* $ */) return;
 			const match = src.match(inlineRule);
 			if (match) {

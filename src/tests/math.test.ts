@@ -480,3 +480,101 @@ describe('incomplete markdown', () => {
 		expect(result).toBe('Math $x + y$ costs $199 and formula $a = b$');
 	});
 });
+
+describe('latex delimiters', () => {
+	// Every math token here must be the same shape the `$` rules emit, so the
+	// Math component renders \(..\) like $..$ and \[..\] like $$..$$.
+	const mathIn = (markdown: string) => {
+		const flat = (tokens: any[]): any[] =>
+			tokens.flatMap((token) => [token, ...(token.tokens ? flat(token.tokens) : [])]);
+		return flat(lex(markdown)).filter((token) => token.type === 'math');
+	};
+
+	test('should parse \\(..\\) as inline math', () => {
+		const [math, ...rest] = mathIn(String.raw`Given \(x^2\) here`);
+		expect(rest).toEqual([]);
+		expect(math).toMatchObject({
+			type: 'math',
+			raw: String.raw`\(x^2\)`,
+			text: 'x^2',
+			isInline: true,
+			displayMode: false
+		});
+	});
+
+	test('should parse \\[..\\] as display math', () => {
+		const [math, ...rest] = mathIn('\\[\nE = mc^2\n\\]');
+		expect(rest).toEqual([]);
+		expect(math).toMatchObject({
+			type: 'math',
+			raw: '\\[\nE = mc^2\n\\]',
+			text: 'E = mc^2',
+			isInline: false,
+			displayMode: true
+		});
+	});
+
+	test('should parse \\[..\\] inside a sentence as display math', () => {
+		const [math] = mathIn(String.raw`so \[E=mc^2\] follows`);
+		expect(math).toMatchObject({ text: 'E=mc^2', displayMode: true });
+	});
+
+	test('should keep \\(..\\) spanning newlines out of inline math', () => {
+		expect(mathIn('\\(x\n+ y\\)')).toEqual([]);
+	});
+
+	test('should parse \\(..\\) inside bold', () => {
+		const [math] = mathIn(String.raw`**weight \(w^{*}\)**`);
+		expect(math).toMatchObject({ text: 'w^{*}', isInline: true });
+	});
+
+	test('should parse \\(..\\) inside a table cell', () => {
+		const [math] = mathIn('| formula | value |\n| --- | --- |\n| \\(a+b\\) | 3 |');
+		expect(math).toMatchObject({ text: 'a+b', isInline: true });
+	});
+
+	test('should parse \\(..\\) inside a list item', () => {
+		const [math] = mathIn(String.raw`- the term \(x_1\) matters`);
+		expect(math).toMatchObject({ text: 'x_1', isInline: true });
+	});
+
+	test('should parse \\(..\\) next to currency', () => {
+		const [math, ...rest] = mathIn(String.raw`costs $100, and \(x\)`);
+		expect(rest).toEqual([]);
+		expect(math).toMatchObject({ text: 'x', isInline: true });
+	});
+
+	test('should not start math from an escaped backslash', () => {
+		expect(mathIn(String.raw`escaped \\(x\\) here`)).toEqual([]);
+		expect(mathIn(String.raw`escaped \\[x\\] here`)).toEqual([]);
+	});
+
+	test('should not complete an escaped backslash into a math closer', () => {
+		// The documented escape hatch for literal delimiters: the lexer opens nothing
+		// here, so the completer must not add a stray '\\]' / '\\)' either.
+		expect(parseIncompleteMarkdown(String.raw`Use \\[ to open a bracket`)).toBe(
+			String.raw`Use \\[ to open a bracket`
+		);
+		expect(parseIncompleteMarkdown(String.raw`Use \\( to open a paren`)).toBe(
+			String.raw`Use \\( to open a paren`
+		);
+	});
+
+	test('should complete an unterminated \\( mid-stream', () => {
+		expect(parseIncompleteMarkdown(String.raw`The term \(x^2`)).toBe(String.raw`The term \(x^2\)`);
+		// The completed text is what gets lexed, so the half-typed formula already
+		// renders as math instead of a literal escaped paren.
+		expect(mathIn(parseIncompleteMarkdown(String.raw`The term \(x^2`))[0]).toMatchObject({
+			text: 'x^2',
+			isInline: true
+		});
+	});
+
+	test('should leave a bare \\( alone until content arrives', () => {
+		expect(parseIncompleteMarkdown(String.raw`The term \(`)).toBe(String.raw`The term \(`);
+	});
+
+	test('should close an unterminated \\[ block', () => {
+		expect(parseIncompleteMarkdown('\\[\nE = mc^2')).toBe('\\[\nE = mc^2\n\\]');
+	});
+});

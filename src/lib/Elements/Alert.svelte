@@ -45,7 +45,7 @@
 	>
 		<div data-alert-title class={streamdown.theme.alert.title}>
 			{@render (streamdown.icons?.[token.variant] || icon)()}
-			{streamdown.translations?.alert?.[token.variant] || token.variant}
+			{streamdown.translations.alert[token.variant]}
 		</div>
 		{@render children()}
 	</div>
@@ -53,6 +53,7 @@
 
 {#snippet icon()}
 	<svg
+		aria-hidden="true"
 		xmlns="http://www.w3.org/2000/svg"
 		width="24"
 		height="24"

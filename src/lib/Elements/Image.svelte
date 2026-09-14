@@ -51,9 +51,10 @@
 		<span
 			data-streamdown-image-blocked={id}
 			class="inline-block rounded bg-gray-200 px-3 py-1 text-sm text-gray-600 dark:bg-gray-700 dark:text-gray-400"
-			title={`Blocked URL: ${token.href}`}
+			title={`${streamdown.translations.controls.blockedUrl}: ${token.href}`}
 		>
-			[Image blocked: {token.text || 'No description'}]
+			[{streamdown.translations.controls.imageBlocked}: {token.text ||
+				streamdown.translations.controls.imageNoDescription}]
 		</span>
 	{/if}
 {/if}

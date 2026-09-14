@@ -285,9 +285,10 @@ export const createParseBlocksCache = (): ParseBlocksCache => ({
 // line becoming a table once its delimiter row arrives, or a setext heading.
 const SEAL_SLACK = 2;
 
-// Spot checks over the sealed prefix per append (see `appendable`). The sealed
-// region was compared byte-for-byte while it was live, so this only has to catch
-// a caller that swapped in a different, longer document.
+// Stride spot checks over the sealed prefix per append (see `appendable`), on
+// top of the per-block-start probes. The sealed region was compared
+// byte-for-byte while it was live, so this only has to catch a caller that
+// swapped in a different, longer document.
 const SEAL_PROBES = 16;
 
 /**
@@ -323,21 +324,39 @@ const blockTokensOf = (markdown: string, extensions: Extension[]) =>
  * Is `markdown` an append to `cache.content`?
  *
  * The live region [offset, cache.content.length) is compared exactly — that is
- * the only region whose segmentation can still change. The sealed prefix gets
- * SEAL_PROBES sampled character comparisons instead of a full scan: a complete
- * `markdown.startsWith(cache.content)` was 93% of parseBlocks' streaming cost
- * (676 ms of 727 ms over a 100 KB / 5028-chunk stream) and is the single reason
- * the append path was O(N) per chunk rather than O(tail).
+ * the only region whose segmentation can still change. The sealed prefix is only
+ * sampled, never scanned: a complete `markdown.startsWith(cache.content)` was
+ * 93% of parseBlocks' streaming cost (676 ms of 727 ms over a 100 KB /
+ * 5028-chunk stream) and is the single reason the append path was O(N) per chunk
+ * rather than O(tail).
+ *
+ * Two families of samples, both O(sealed blocks) and not O(sealed characters):
+ * the first character of every sealed block (`cache.offsets` already holds those
+ * positions), which catches any edit that moves a block boundary or rewrites a
+ * block's first character — the shape a real out-of-band edit takes; plus
+ * SEAL_PROBES evenly spaced characters, which catch a wholesale document swap.
+ * A same-length edit in the middle of a sealed block can still slip through; see
+ * the streaming contract in the README.
  *
  * Note this compares source against source, not source against `raws`: marked's
  * tokenizers normalize (e.g. the list tokenizer rewrites a trailing space as a
  * newline), so raws are not always literal slices of the input.
  */
-const appendable = (markdown: string, content: string, offset: number): boolean => {
+const appendable = (
+	markdown: string,
+	cache: ParseBlocksCache,
+	cut: number,
+	offset: number
+): boolean => {
+	const content = cache.content;
 	for (let i = offset; i < content.length; i++) {
 		if (markdown.charCodeAt(i) !== content.charCodeAt(i)) return false;
 	}
 	if (offset === 0) return true;
+	for (let b = 0; b < cut; b++) {
+		const i = cache.offsets[b];
+		if (markdown.charCodeAt(i) !== content.charCodeAt(i)) return false;
+	}
 	const step = offset > SEAL_PROBES ? offset / SEAL_PROBES : 1;
 	for (let f = 0; f < offset; f += step) {
 		const i = f | 0;
@@ -363,7 +382,7 @@ export const parseBlocks = (
 		}
 		const offset = cache.offsets[cut];
 
-		if (appendable(markdown, cache.content, offset)) {
+		if (appendable(markdown, cache, cut, offset)) {
 			const tailTokens = blockTokensOf(markdown.slice(offset), extensions);
 			let tailLength = 0;
 			for (const token of tailTokens) tailLength += token.raw.length;

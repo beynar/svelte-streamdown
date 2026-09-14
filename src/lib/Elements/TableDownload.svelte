@@ -8,6 +8,10 @@
 	import type { TableToken } from '$lib/marked/marked-table.js';
 	import { useCopy } from '$lib/utils/copy.svelte.js';
 	import { save } from '$lib/utils/save.js';
+	import { srOnly } from './srOnly.js';
+	import { extractTableData, tableDataToCSV, tableDataToTSV } from '$lib/utils/table-export.js';
+
+	type Format = 'Markdown' | 'HTML' | 'CSV' | 'TSV';
 
 	let {
 		token,
@@ -19,6 +23,11 @@
 	const streamdown = useStreamdown();
 	const popover = new Popover();
 	let modeState = $state<'download' | 'copy'>('download');
+	const modes = $derived(
+		(['download', 'copy'] as const).filter((mode) =>
+			mode === 'download' ? streamdown.controls.tableDownload : streamdown.controls.tableCopy
+		)
+	);
 
 	useKeyDown({
 		keys: ['Escape'],
@@ -46,31 +55,41 @@
 		}
 	});
 
-	// textContent flattens a real <br> element, so a multiline cell collapses to
-	// 'Paragraph one.Paragraph two.'. Walk the cell instead and keep the breaks;
-	// the quoting below then quotes the newline for us.
-	const extractCellText = (node: Node): string => {
-		if (node.nodeType === 3) return node.textContent || '';
-		if ((node as Element).tagName === 'BR') return '\n';
-		return Array.from(node.childNodes).map(extractCellText).join('');
+	const filename = (extension: string) => {
+		const base = streamdown.controls.tableDownloadFilename;
+		return `${typeof base === 'function' ? base(token) : base}.${extension}`;
 	};
 
-	const copyOrDownload = (type: 'Markdown' | 'HTML' | 'CSV') => {
+	const formats = $derived([
+		{ type: 'Markdown', label: streamdown.translations.controls.tableFormatMarkdown },
+		{ type: 'HTML', label: streamdown.translations.controls.tableFormatHtml },
+		{ type: 'CSV', label: streamdown.translations.controls.tableFormatCsv },
+		{ type: 'TSV', label: streamdown.translations.controls.tableFormatTsv }
+	] as const satisfies readonly { type: Format; label: string }[]);
+
+	const emit = (content: string, extension: string, mimeType: string) => {
+		copyValue = content;
+		if (modeState === 'copy') {
+			copy.copy();
+		} else {
+			save(filename(extension), content, mimeType);
+		}
+	};
+
+	const tableElement = () => document.querySelector(`[data-streamdown-table="${id}"]`);
+
+	const copyOrDownload = (type: Format) => {
 		if (type === 'Markdown') {
-			copyValue = token.raw;
-			if (modeState === 'copy') {
-				copy.copy();
-			} else {
-				save('table.md', copyValue, 'text/markdown');
-			}
+			// `token.raw` is the author's own markdown; a DOM round-trip through
+			// tableDataToMarkdown() would lose the inline formatting.
+			emit(token.raw, 'md', 'text/markdown');
 		} else if (type === 'HTML') {
-			const table = document.querySelector(`[data-streamdown-table="${id}"]`);
+			const table = tableElement();
 
 			if (table) {
 				let html = (table.cloneNode(true) as HTMLElement).outerHTML;
 				// remove comments
 				html = html.replace(/<!--[\s\S]*?-->/g, '');
-				copyValue = html;
 				// Remove class and style attributes
 				html = html.replace(/class="[^"]*"/g, '');
 				html = html.replace(/style="[^"]*"/g, '');
@@ -83,72 +102,17 @@
 				// Collapse multiple spaces within tags to single space
 				html = html.replace(/<([^>]+)>/g, (match) => match.replace(/\s+/g, ' '));
 
-				copyValue = html;
-
-				if (modeState === 'copy') {
-					copy.copy();
-				} else {
-					save('table.html', copyValue, 'text/html');
-				}
+				emit(html, 'html', 'text/html');
 			}
-		} else if (type === 'CSV') {
-			const table = document.querySelector(`[data-streamdown-table="${id}"]`);
+		} else {
+			const table = tableElement();
 
 			if (table) {
-				const rows = table.querySelectorAll('tr');
-				const rowSpanFills: Array<{ rowIndex: number; colIndex: number; colSpan: number }> = [];
-
-				const matrix = Array.from(rows).reduce((acc, row, rowIndex) => {
-					const cells = row.querySelectorAll('td, th');
-					const rowData: string[] = [];
-					let actualCol = 0; // Track actual column position in the output matrix
-
-					Array.from(cells).forEach((cell) => {
-						const colSpan = parseInt(cell.getAttribute('colspan') || '1');
-						const rowSpan = parseInt(cell.getAttribute('rowspan') || '1');
-
-						// Add the cell content, quoting if it contains commas, quotes, or newlines
-						const content = extractCellText(cell);
-						const needsQuoting = /[,"\n]/.test(content);
-						const escapedContent = content.replace(/"/g, '""');
-						rowData.push(needsQuoting ? `"${escapedContent}"` : content);
-
-						// Add empty cells for colspan
-						for (let i = 0; i < colSpan - 1; i++) {
-							rowData.push('');
-						}
-
-						// Track rowspan fills needed in future rows
-						if (rowSpan > 1) {
-							for (let r = 1; r < rowSpan; r++) {
-								rowSpanFills.push({
-									rowIndex: rowIndex + r,
-									colIndex: actualCol,
-									colSpan: colSpan
-								});
-							}
-						}
-
-						actualCol += colSpan;
-					});
-
-					acc.push(rowData);
-					return acc;
-				}, [] as string[][]);
-
-				// Process rowspan fills - insert empty cells at correct positions
-				rowSpanFills.forEach(({ rowIndex, colIndex, colSpan }) => {
-					if (matrix[rowIndex]) {
-						matrix[rowIndex].splice(colIndex, 0, ...Array(colSpan).fill(''));
-					}
-				});
-
-				const csv = matrix.map((row) => row.join(',')).join('\n');
-				copyValue = csv;
-				if (modeState === 'copy') {
-					copy.copy();
+				const data = extractTableData(table);
+				if (type === 'CSV') {
+					emit(tableDataToCSV(data, streamdown.controls.tableCsvSeparator), 'csv', 'text/csv');
 				} else {
-					save('table.csv', copyValue, 'text/csv');
+					emit(tableDataToTSV(data), 'tsv', 'text/tab-separated-values');
 				}
 			}
 		}
@@ -168,13 +132,14 @@
 		style:min-width="fit-content !important"
 		class={streamdown.theme.components.popover}
 	>
-		{#each ['Markdown', 'HTML', 'CSV'] as type}
+		{#each formats as { type, label } (type)}
 			<button
 				style="width: 100%; text-align: left; justify-content: flex-start; padding: 1rem 1rem; margin: 0.2rem 0;"
-				onclick={() => copyOrDownload(type as 'Markdown' | 'HTML' | 'CSV')}
+				onclick={() => copyOrDownload(type)}
 				class={streamdown.theme.components.button}
+				type="button"
 			>
-				{type}
+				{label}
 			</button>
 		{/each}
 	</dialog>
@@ -184,7 +149,7 @@
 	data-streamdown-table-download
 	class=" right-0 ml-auto flex items-center justify-end gap-2 p-1"
 >
-	{#each ['download', 'copy'] as mode (mode)}
+	{#each modes as mode (mode)}
 		<button
 			class={streamdown.theme.components.button}
 			onclick={async (e: MouseEvent) => {
@@ -204,7 +169,13 @@
 				modeState = mode as 'download' | 'copy';
 			}}
 			{@attach clickOutside.attachment}
-			title={mode === 'download' ? 'Download table' : 'Copy table'}
+			type="button"
+			title={mode === 'download'
+				? streamdown.translations.controls.downloadTable
+				: streamdown.translations.controls.copyTable}
+			aria-label={mode === 'download'
+				? streamdown.translations.controls.downloadTable
+				: streamdown.translations.controls.copyTable}
 		>
 			{#if mode === 'download'}
 				{@render (streamdown.icons?.download || downloadIcon)()}
@@ -215,6 +186,9 @@
 			{/if}
 		</button>
 	{/each}
+	<span aria-live="polite" style={srOnly}
+		>{copy.isCopied ? streamdown.translations.controls.copiedTable : ''}</span
+	>
 </div>
 
 <style>

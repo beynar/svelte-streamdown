@@ -9,9 +9,14 @@
 	import FootnoteRef from './FootnoteRef.svelte';
 	import Citation from './Citation.svelte';
 	import TableDownload from './TableDownload.svelte';
+	import { usePinnedScroll } from '$lib/utils/usePinnedScroll.svelte.js';
 	// Import fallback components
 	import { CodeFallback, MermaidFallback, MathFallback } from './fallbacks/index.js';
-	let { token, children }: { token: StreamdownToken; children: Snippet } = $props();
+	let {
+		token,
+		children,
+		incomplete = false
+	}: { token: StreamdownToken; children: Snippet; incomplete?: boolean } = $props();
 	const streamdown = useStreamdown();
 
 	// Use provided components or fallback to lightweight versions
@@ -22,6 +27,17 @@
 	// Only apply animation on block level elements. Leaves text elements to be animated by their text children.
 	const style = $derived(streamdown.isMounted ? streamdown.animationBlockStyle : '');
 	const id = $props.id();
+
+	// Only ever attached to the table wrapper, which is the element that already
+	// owns the horizontal scroll.
+	const tableScroll = usePinnedScroll({
+		get maxHeight() {
+			return streamdown.tableMaxHeight;
+		},
+		get content() {
+			return token.type === 'table' ? token.raw : undefined;
+		}
+	});
 </script>
 
 {#if token.type === 'heading'}
@@ -71,12 +87,15 @@
 		</blockquote>
 	</Slot>
 {:else if token.type === 'code' && token.lang === 'mermaid'}
-	<Slot props={{ children, token }} render={streamdown.snippets.code}>
-		<MermaidComponent {id} {token} />
+	<Slot
+		props={{ children, token, incomplete }}
+		render={streamdown.snippets.mermaid ?? streamdown.snippets.code}
+	>
+		<MermaidComponent {id} {token} {incomplete} />
 	</Slot>
 {:else if token.type === 'code'}
-	<Slot props={{ children, token }} render={streamdown.snippets.code}>
-		<CodeComponent {id} {token} />
+	<Slot props={{ children, token, incomplete }} render={streamdown.snippets.code}>
+		<CodeComponent {id} {token} {incomplete} />
 	</Slot>
 {:else if token.type === 'codespan'}
 	<Slot props={{ children, token }} render={streamdown.snippets.codespan}>
@@ -124,7 +143,7 @@
 	</Slot>
 {:else if token.type === 'table'}
 	<Slot props={{ token, children }} render={streamdown.snippets.table}>
-		{#if streamdown.controls.table}
+		{#if streamdown.controls.tableCopy || streamdown.controls.tableDownload}
 			<TableDownload {id} {token} />
 		{/if}
 		<div
@@ -132,6 +151,9 @@
 			{style}
 			class={`${streamdown.theme.table.base} group`}
 			style:overscroll-behavior-x="none"
+			style:max-height={streamdown.tableMaxHeight}
+			style:overflow-y={streamdown.tableMaxHeight ? 'auto' : undefined}
+			{@attach tableScroll}
 		>
 			<table class={streamdown.theme.table.table}>
 				{@render children()}

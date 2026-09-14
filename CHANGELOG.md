@@ -1,5 +1,86 @@
 # Changelog
 
+## 4.1.0
+
+Feature release: the LaTeX math delimiters LLMs actually emit, an `incomplete` signal for the block still streaming, a `controls` umbrella that configures the toolbars instead of only switching them off, height caps with pinned auto-scroll, a full accessibility and translation pass, and a completer that no longer goes quadratic on a long line. 835 node tests, 42 browser tests.
+
+### ⚠️ Behaviour changes
+
+- **An unterminated `\(` or `\[` is now auto-closed while streaming**, exactly as `$` and `$$` already were, so a half-typed formula renders as math instead of flashing a literal escaped paren. The cost is that a line using those sequences as prose escapes (`Use \[ to open a bracket`) becomes math. LLM output uses them for math essentially always; if you write them literally, escape the backslash.
+- **A completed `\(…\)` / `\[…\]` pair is now tokenized as math everywhere**, static rendering included — the tokenizer change is not streaming-only. `the value is \[optional\]` rendered the literal text `[optional]` in 4.0.1 and is a display-math token now, with no completer involved. A document that uses those sequences as literal-bracket escapes changes appearance on upgrade; escaping the backslash (`\\[`) keeps it literal, and an escaped pair opens neither a token nor a completion.
+- **The mermaid download filenames lost their prefix**: `diagram.svg` / `diagram.png`, not `mermaid-diagram.svg` / `mermaid-diagram.png`. One base name now feeds every format (`.svg`, `.png`, and the new `.mmd`), and it is configurable — `controls={{ mermaid: { download: { filename: 'chart' } } }}`.
+- **A code or table toolbar with nothing left in it is no longer rendered.** `controls={{ table: { copy: false, download: false } }}` used to leave an empty bar taking vertical space above the table; it now removes the bar, which is what `{ table: false }` does.
+- **A price no longer opens a math span in the completer.** `costs $100 and *italic` completes to `…*italic*`; before, the lone `$` made the rest of the line look like math to the new guards. The same hole was silently there for `_`, `~` and `^`.
+- **Fence detection in the completer follows CommonMark** (character, run length, info string) now that it shares one scanner with the `incomplete` signal: a `~~~` line no longer closes a ` ``` ` block, a shorter fence line inside a longer one is content, and an info string containing a backtick opens nothing.
+
+### 🐛 Also fixed
+
+- **The `mermaid` snippet is rendered.** Both the mermaid and the plain-code branch went through `snippets.code`, so a `mermaid` snippet — documented since 3.x — never ran. It now takes precedence for mermaid blocks and still falls back to `code`, so overriding only `code` keeps catching them.
+- **A fence opened inside a list item is tracked.** `- ```js` was invisible to the fence scanner, so the `incomplete` signal and the completer both thought the block was closed.
+- **A bracket inside a math span is notation, not a citation.** `inline \(a[b\) tail` no longer gains a stray `]` at the end of the line.
+
+### 🔢 LaTeX math delimiters
+
+- `\(x^2\)` and `\[ E = mc^2 \]` are tokenized end to end and render identically to `$x^2$` and `$$ … $$` — same `MathToken`, same `Math.svelte`, no new prop or export. Verified inside bold, table cells, list items and next to currency (`costs $100, and \(x\)` is exactly one math token), and an escaped `\\(` still opens nothing.
+- The completer knows the five math contexts (`$`, `$$`, `\(`, `\[`, none) instead of counting dollars, which fixes three corruptions of finished formulas: `\(P(x_{t+1})\)` gained a stray `_`, `\(w^{*}\)` gained `*^`, and a `\[ … \]` block was rewritten into an incomplete-link placeholder. Emphasis outside the span still completes.
+- A backslash-escaped `[` is no longer treated as an unclosed link: `see \[x\] and [real link` completes only the real one.
+
+Ported from vercel/streamdown 8093f2a, with the currency heuristic kept.
+
+### ⚡ The completer is linear on long lines
+
+Four quadratic (one cubic) scans in `parseIncompleteMarkdown` are gone. No behaviour change — verified by a differential fuzz of 500k inputs against the 4.0.1 implementation.
+
+- `inlineCitation` was cubic: one `lastIndexOf(']')` decides unclosedness, the formatting and citation-key scans advance with monotone pointers, and the closers are spliced in with a single join. A 16 KB line of `see [a [b [c [d ` through the whole completer: **51.4 s → 0.67 ms**. Scaling per doubling went from ×9 to ×1.5.
+- The inline-code and math-context probes resume their left-to-right walk where the previous probe stopped instead of restarting at character 0 (four/five module-level scalars, no per-line allocation — the allocating mask shape that regressed the gate in 4.0.1 review stays rejected). `singleUnderscoreItalic` on a 46 KB line: 197 ms → 0.43 ms.
+- `isWithinFootnoteRef` drops its backward walk; for a caret it reduces to checking the previous character. A caret-heavy 24 KB line: 105 ms → 0.06 ms.
+- `singleUnderscoreItalic` no longer re-derives, in a second full pass, the underscore the counting pass already found, and both single-marker handlers are gated on their own marker instead of `/[\s\S]*/`.
+- `src/tests/parse-incomplete-perf.spec.ts` gates all of it: a 16 KB unclosed-bracket line must complete in under 50 ms, and doubling a line must not more than 2.5× the time for five shapes. Measured today: ×1.44–×2.26, and the 16 KB case at 0.66 ms.
+
+Streaming gate (`streaming-perf.spec.ts`, medians of 5 isolated runs): full-stream parsing of the README 310 ms → 286 ms, on a README that is 12% longer than 4.0.1's. `parseIncompleteMarkdown` on the typical-chat-answer breakdown 2.92 ms → 2.38 ms.
+
+### 🔁 Streaming signals and the block-cache contract
+
+- **`incomplete`**: the `code` and `mermaid` snippets and `components` receive `incomplete: boolean`, and their containers carry `data-incomplete="true"` while the fence is open. Only the last block of a non-`static` document can be incomplete. The Mermaid component acts on it — it skips `mermaid.render` on a half-written diagram (each of those runs parsed, threw and warned) and keeps the last good chart on screen.
+- **The append fast path now probes the first character of every sealed block**, not a fixed sample of the document. Editing the first character of a middle block and then appending used to return the stale block; it now falls back to a full parse. The probe is O(sealed blocks) against offsets the cache already keeps, and pure append-only streaming is unaffected.
+- The remaining hole — a same-length edit **inside** a sealed block — is documented rather than papered over, with the `static` / `{#key}` workarounds, and pinned by a `KNOWN LIMIT` test so it cannot regress silently.
+
+### 🎛️ Controls
+
+`controls` grew from three booleans into an umbrella that also configures the toolbars. Every pre-4.1 form resolves unchanged, and `controls={false}` is a new all-off shorthand.
+
+```svelte
+<Streamdown
+	{content}
+	controls={{
+		code: { download: { filename: (token) => `snippet-${token.lang}` } },
+		table: { copy: false, csvSeparator: 'auto' },
+		mermaid: { mouseWheelZoom: false }
+	}}
+/>
+```
+
+- Copy and download switch independently per section; `filename` is a base name (or a function of the token) and the extension follows the format.
+- **TSV** joins Markdown / HTML / CSV in the table menu, and **`.mmd`** (the diagram source) joins PNG / SVG.
+- `csvSeparator` takes `','`, `';'`, `'\t'` or `'auto'`, which picks `;` in locales that write decimals with a comma. Quoting follows the separator in use instead of a hard-coded `/[,"\n]/`.
+- The table toolbar's DOM walk is now a pure module and exported: `extractTableData`, `tableDataToCSV`, `tableDataToTSV`, `tableDataToMarkdown`, `tableDataToHTML`, plus `TableData` and `CsvSeparator`. New types: `Controls`, `CodeControls`, `TableControls`, `MermaidControls`, `ResolvedControls`.
+
+### 🌍 Translations and accessibility
+
+- Every string the components render themselves — alert titles, button labels, menu entries, copy announcements, blocked-URL tooltips — comes from one `translations` object with `alert` and `controls` namespaces. Pass only the keys you want; `defaultTranslations` is exported, and `Streamdown` merges once so components never fall back themselves. The 4.0.1 alert-only shape still type-checks, and the rendered alert text is byte-identical.
+- Icon-only buttons have accessible names (`title` + `aria-label`, both translated), all 14 buttons in `src/lib/Elements` carry `type="button"` so a Streamdown instance inside a `<form>` cannot submit it, and the 9 inline icon SVGs are `aria-hidden`.
+- Copying announces itself through a visually hidden `aria-live` region (`Code copied` / `Table copied`).
+- An expanded mermaid diagram is a real `role="dialog"` with `aria-modal`, a label and focus moved into it; Escape still collapses it. The rendered diagram is `role="img"` labelled with its declaration line — and the render no longer overwrites that label with mermaid's own `role="graphics-document"`, which it did depending on when the lazy import resolved.
+
+### 📐 Height caps
+
+- `codeBlockMaxHeight` and `tableMaxHeight` take a CSS length (`'24rem'`) and cap the block's own scroll container — the `<pre>` for code, the wrapper for tables, so the horizontal scrollbar stays reachable. Unset leaves everything unbounded, allocates nothing and registers no listener.
+- While the content grows the container stays pinned to the bottom; scrolling up latches that off, and scrolling back to the bottom re-arms it. The scroll is instant, never smooth — an animation could not finish between chunks anyway.
+
+### Tooling
+
+- `pnpm test:size` bundles and minifies the three entry points and fails when one grows past its budget, with the replacement number in the failure message; CI runs it as its own step. Today: root 193 KB min / 59 KB gzip, code 43 KB / 15 KB, parser 76 KB / 24 KB.
+
 ## 4.0.1
 
 Bug-fix release: the Jan–Sep fixes from [vercel/streamdown](https://github.com/vercel/streamdown) that applied to this port, plus the port-specific defects found while auditing them. No API changes.

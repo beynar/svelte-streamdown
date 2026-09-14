@@ -1,6 +1,6 @@
 {
 	"name": "svelte-streamdown",
-	"version": "4.0.1",
+	"version": "4.1.0",
 	"packageManager": "pnpm@10.32.1",
 	"repository": {
 		"type": "git",
@@ -23,7 +23,8 @@
 		"test:ui": "vitest --ui",
 		"test:unit": "vitest",
 		"test:browser": "vitest --run --project client",
-		"test": "npm run test:unit -- --run --project server"
+		"test": "npm run test:unit -- --run --project server",
+		"test:size": "vitest --run --project server src/tests/bundle-size.test.ts"
 	},
 	"files": [
 		"dist",

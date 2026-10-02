@@ -1,6 +1,6 @@
 {
 	"name": "svelte-streamdown",
-	"version": "4.2.0",
+	"version": "4.2.1",
 	"packageManager": "pnpm@10.32.1",
 	"repository": {
 		"type": "git",
@@ -96,7 +96,7 @@
 	},
 	"dependencies": {
 		"@floating-ui/dom": "^1.7.4",
-		"@tanstack/highlight": "^0.1.0",
+		"@tanstack/highlight": "^1.0.0",
 		"clsx": "^2.1.1",
 		"katex": "^0.16.22",
 		"marked": "18.0.12",

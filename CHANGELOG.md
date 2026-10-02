@@ -1,5 +1,9 @@
 # Changelog
 
+## 4.2.1
+
+Code blocks highlight with `@tanstack/highlight` 1.0.0 (from 0.1.0). Same API, themes and markup; the JavaScript and TypeScript tokenizers now mark object-literal keys as properties and no longer mistake a spread (`...rest`) for a property access. The dependency range moves from `^0.1.0` to `^1.0.0`, so an app that also installs 1.0.0 (entasis does) ships one copy of the highlighter instead of two.
+
 ## 4.2.0
 
 Feature release, all five items from the September upstream audit that were judged worth porting: HTML that streams without flashing, an opt-in allowlist that turns `<ai-thinking>` into a component, a fullscreen toggle for wide tables, and line numbers with `startLine`. Every new prop defaults to off, so the only 4.1.1 renders that change are the two below: the table toolbar grows a third button, and the completer strips a half-typed HTML tag from the end of the block still streaming. 908 node tests, 63 browser tests.

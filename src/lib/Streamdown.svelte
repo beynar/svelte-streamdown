@@ -281,8 +281,10 @@
 		}
 
 		/* Lives here, not in Mermaid.svelte: the table overlay needs it on pages
-		   that never render a diagram. */
-		[data-expanded='true'] {
+		   that never render a diagram. Global, so it only matches elements Streamdown
+		   marks as expandable: `data-expanded` is a common attribute name on the
+		   host page. `:where` keeps the specificity of a bare attribute selector. */
+		:where([data-streamdown-expandable])[data-expanded='true'] {
 			position: fixed;
 			top: 16px;
 			left: 16px;

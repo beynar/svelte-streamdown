@@ -32,6 +32,25 @@ describe('mermaid streaming', () => {
 		await waitForNodes(container, ['A', 'B', 'C']);
 	});
 
+	test('a line that parsed is not dropped when the next chunk breaks it', async () => {
+		// `A-->B` is a complete graph; `A-->B{Is` is not. Dropping the broken line
+		// would leave only `flowchart TD` and replace the diagram with an empty one.
+		const { container, rerender } = render(Streamdown, {
+			content: '```mermaid\nflowchart TD\n  A-->B',
+			components: { mermaid: Mermaid }
+		});
+		await waitForNodes(container, ['A', 'B']);
+
+		await rerender({ content: '```mermaid\nflowchart TD\n  A-->B{Is' });
+		await new Promise((resolve) => setTimeout(resolve, 50));
+		expect(nodeIds(container)).toEqual(['A', 'B']);
+
+		await rerender({ content: '```mermaid\nflowchart TD\n  A-->B{Is it?}' });
+		await vi.waitFor(() =>
+			expect(container.querySelector('.pele-node[data-id="B"]')?.textContent).toContain('Is it?')
+		);
+	});
+
 	test('a closed fence that does not parse shows the error as text', async () => {
 		const { container } = render(Streamdown, {
 			content: '```mermaid\nflowchart TD\n  A-->\n```',

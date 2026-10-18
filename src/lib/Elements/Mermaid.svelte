@@ -113,6 +113,8 @@
 	let svg = $state('');
 	// Only shown once the fence is closed: mid-stream, a parse error is expected.
 	let error = $state('');
+	// The source behind `svg`. Plain variable: only the render effect reads it.
+	let drawn = '';
 
 	const idPrefix = `sd-${id}-`;
 
@@ -145,17 +147,26 @@
 			const next = draw(chart);
 			if (next !== null) {
 				svg = next;
+				drawn = chart;
 				error = '';
 			}
 		} catch (cause) {
 			if (incomplete) {
 				// The streaming tail is usually a half-typed line: drop it and try the
-				// rest, so nodes appear as soon as their line is done.
+				// rest, so nodes appear as soon as their line is done…
 				const lastBreak = chart.lastIndexOf('\n');
-				if (lastBreak > 0) {
+				const head = chart.slice(0, lastBreak);
+				// …unless the frame on screen came from a longer prefix of this same
+				// stream: `A --> B` parses on its own, then `A --> B{Is` does not, and
+				// dropping that line would swap a two-node diagram for an empty one.
+				const ahead = drawn.length > head.length && chart.startsWith(drawn);
+				if (lastBreak > 0 && !ahead) {
 					try {
-						const next = draw(chart.slice(0, lastBreak));
-						if (next !== null) svg = next;
+						const next = draw(head);
+						if (next !== null) {
+							svg = next;
+							drawn = head;
+						}
 					} catch {
 						// Keep the previous frame.
 					}

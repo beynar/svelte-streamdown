@@ -163,8 +163,10 @@ Pass KaTeX options through the [`katexConfig`](#-props-api) prop (e.g. to set `t
 
 ### 🧜‍♀️ Mermaid Diagrams
 
-- Render Mermaid diagrams from code blocks
-- **Incremental rendering** during streaming content
+- Render Mermaid diagrams from code blocks, drawn by [pele](https://pele.run) — Mermaid syntax, no mermaid.js
+- **Live rendering while streaming**: each finished line appears as it arrives
+- Layout adapts to the column width (a wide flowchart turns vertical on a phone)
+- Themed with CSS variables, so light/dark switches without a re-render
 - Pan and Zoom
 - Full screen mode
 - Download as PNG, SVG or `.mmd` source
@@ -514,9 +516,10 @@ now says so out loud.
 {/snippet}
 ```
 
-The built-in Mermaid component already acts on it: it skips `mermaid.render` while the fence is
-open and keeps the last good diagram on screen, instead of re-parsing a half-written graph on every
-chunk and flashing an error.
+The built-in Mermaid component already acts on it. pele draws in well under a millisecond, so the
+diagram is redrawn on every chunk while the fence is open; a half-typed last line is dropped before
+parsing, and if the source still does not parse the last good diagram stays on screen. Parse errors
+are only shown once the fence is closed.
 
 ## 🎭 Animation System
 
@@ -655,7 +658,7 @@ Streamdown is optimized for minimal bundle size by making heavy components **opt
 | Component | Import Path                 | Dependency            | Size Impact                                          |
 | --------- | --------------------------- | --------------------- | ---------------------------------------------------- |
 | `Code`    | `svelte-streamdown/code`    | `@tanstack/highlight` | ~31KB min / ~11KB gzip (all 30 languages + 2 themes) |
-| `Mermaid` | `svelte-streamdown/mermaid` | Mermaid.js            | ~1.5MB                                               |
+| `Mermaid` | `svelte-streamdown/mermaid` | `pele`                | ~15KB gzip + 6–45KB gzip per diagram type, on demand |
 | `Math`    | `svelte-streamdown/math`    | KaTeX                 | ~300KB                                               |
 
 > [!TIP]
@@ -838,7 +841,8 @@ v4 replaces shiki with `@tanstack/highlight`. Highlighting is now synchronous, r
 | `highlightTheme`           | `string`                                                                         | auto (dark-mode aware) | Code highlighting theme. Defaults to `github-dark` in dark mode / `github-light` otherwise. Any other value must be a key registered via `highlightThemes`. See [Highlight themes](#highlight-themes).                            |
 | `highlightThemes`          | `Record<string, HighlightTheme>`                                                 | -                      | Register additional pre-imported themes (e.g. `{ dracula }`) so they can be selected via `highlightTheme`, including dynamic light/dark switching.                                                                                |
 | `highlightLanguages`       | `LanguageDefinition[]`                                                           | -                      | Additional languages built with `defineLanguage` (merged with the 30 built-in ones)                                                                                                                                               |
-| `mermaidConfig`            | `MermaidConfig`                                                                  | -                      | Mermaid diagram configuration                                                                                                                                                                                                     |
+| `mermaidConfig`            | `MermaidConfig`                                                                  | -                      | Mermaid settings (`flowchart`, `sequence`, `gantt`…) used as defaults; a diagram's frontmatter or `%%{init}%%` overrides them. `theme` and `themeVariables` do not apply — see [Mermaid theming](#mermaid-theming).               |
+| `peleOptions`              | `PeleOptions`                                                                    | -                      | [pele render options](https://pele.run/api): `limit`, `maxEdges`, `linkSchemes`, `imageSchemes`, `links`, `images`, `icons`, `fontFamily`, `autoDirection`…                                                                       |
 | `katexConfig`              | `KatexOptions \| ((inline: boolean) => KatexOptions)`                            | -                      | KaTeX math rendering options                                                                                                                                                                                                      |
 | `animation`                | `AnimationConfig`                                                                | -                      | Animation configuration for streaming content                                                                                                                                                                                     |
 | `animation.enabled`        | `boolean`                                                                        | `false`                | Enable/disable animations                                                                                                                                                                                                         |
@@ -1087,7 +1091,27 @@ Each component supports multiple themeable parts:
 
 **Alerts (`alert`)**: `base`, `title`, `icon`, plus type-specific styles (`note`, `tip`, `warning`, `caution`, `important`)
 
-**Mermaid (`mermaid`)**: `base`, `downloadButton`
+**Mermaid (`mermaid`)**: `base`, `buttons`, `icon`, `error`
+
+#### Mermaid theming
+
+Diagrams are drawn by [pele](https://pele.run/theming), which reads its colours from CSS variables
+instead of a Mermaid theme. Set them on any ancestor, or on `.pele`:
+
+```css
+.my-diagrams {
+	--pele-bg: #fffcf0;
+	--pele-fg: #100f0f;
+	--pele-line: #6f6e69;
+	--pele-surface: #f2f0e5;
+	--pele-border: #cecdc3;
+	--pele-accent: #205ea6;
+}
+```
+
+The `shadcn` base theme already points them at `--card`, `--muted`, `--border`, `--primary`…, so
+diagrams follow `.dark` with no extra work. The `tailwind` theme keeps pele's light defaults to
+match its white card.
 
 **Math (`math`, `inlineMath`)**: `base`
 

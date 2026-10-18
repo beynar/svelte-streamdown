@@ -1,5 +1,39 @@
 # Changelog
 
+## 5.0.0
+
+### 💥 Breaking: mermaid.js replaced by pele
+
+Mermaid fences are now drawn by [pele](https://pele.run), Obsidian's MIT renderer for Mermaid syntax, instead of mermaid.js. The fence, the `Mermaid` component, `svelte-streamdown/mermaid`, the toolbar, `controls.mermaid` and the download formats are unchanged; what changes is the engine underneath and how diagrams are themed.
+
+- **Size**: the component now costs ~15KB gzip for pele's runtime plus 6–45KB gzip for each diagram type a page actually shows (flowchart ~39KB, sequence ~33KB, pie ~9KB), each loaded on demand. mermaid.js was ~1.5MB, with 23 dependencies; pele has none.
+- **Speed**: a diagram renders in well under a millisecond, synchronously, instead of 6–80ms async per diagram.
+- **Diagrams draw while they stream.** The `incomplete` flag no longer skips rendering: the diagram is redrawn on every chunk, a half-typed last line is dropped before parsing, and if the source still does not parse the last good diagram stays up. Parse errors are only shown — as text, in the new `mermaid.error` theme slot — once the fence closes; mermaid.js swallowed them silently.
+- **Layout adapts to the box.** The diagram is laid out for the width it has, so a wide `flowchart LR` turns vertical in a narrow column (below 640px, configurable with `peleOptions.autoDirection` / `directionBreakpoint`), and fullscreen re-lays it out for the whole window.
+- **Diagrams look different.** pele has its own layout engine, so node positions, spacing and edge paths are not mermaid's. It covers every diagram type built into Mermaid 12.1 (flowchart, sequence, class, state, ER, Gantt, git graph, pie, mindmap, timeline, C4, architecture, block, packet, treemap, …); ZenUML and other external mermaid plugins are not supported. Labels are SVG text (line breaks, bold, italic), not HTML.
+
+**Theming moves to CSS variables:**
+
+- `mermaidConfig.theme` and `themeVariables` no longer apply. Colours come from the `--pele-*` CSS variables ([list](https://pele.run/theming)), set on any ancestor or on `.pele`, so light/dark switches without a re-render.
+- The `shadcn` base theme maps them to `--card`, `--card-foreground`, `--muted`, `--muted-foreground`, `--accent`, `--border` and `--primary`: diagrams follow `.dark` with nothing to configure. Drop any `mermaidConfig={{ theme: isDark ? 'dark' : 'default' }}`.
+- The `tailwind` base theme keeps pele's light defaults, matching its white card. Streamdown no longer switches mermaid to its `dark` theme by itself.
+
+**Props and types:**
+
+```diff
+- mermaidConfig={{ theme: 'dark', flowchart: { curve: 'basis' } }}
++ mermaidConfig={{ flowchart: { rankSpacing: 60 } }}
++ peleOptions={{ linkSchemes: ['https'], maxEdges: 1000 }}
+```
+
+- `mermaidConfig` is still accepted and is passed to pele as default Mermaid settings; a diagram's frontmatter or `%%{init}%%` overrides it. Its type is now pele's config object rather than mermaid's `MermaidConfig`, and is exported as `MermaidConfig`.
+- **New prop** `peleOptions` (type `PeleOptions`, exported): pele's render options — source/output/edge limits, allowed link and image schemes, `links`, `images`, `icons`, `fontFamily`, `autoDirection`, … `config`, `idPrefix`, `responsive` and `maxWidth` are set by the component.
+- **New theme key** `mermaid.error`.
+- The source is no longer "sanitized" before rendering. The old pass trimmed every line, removed blank lines, collapsed spaces and rewrote quotes and dashes, which broke indentation-sensitive diagrams (mindmap, block) and changed label text. Only a BOM, CRLF line endings and zero-width characters are stripped now.
+- The hidden `div[id^='dmermaid-']` rule mermaid.js needed is gone.
+
+**Security**: pele escapes all diagram text, emits no script, event handler or HTML label, ignores `click` JavaScript callbacks, and only allows `http`, `https`, `mailto` and `tel` links and `http`/`https` images by default (`peleOptions.linkSchemes` / `imageSchemes` to narrow them). Its output is inserted as is.
+
 ## 4.2.1
 
 Code blocks highlight with `@tanstack/highlight` 1.0.0 (from 0.1.0). Same API, themes and markup; the JavaScript and TypeScript tokenizers now mark object-literal keys as properties and no longer mistake a spread (`...rest`) for a property access. The dependency range moves from `^0.1.0` to `^1.0.0`, so an app that also installs 1.0.0 (entasis does) ships one copy of the highlighter instead of two.

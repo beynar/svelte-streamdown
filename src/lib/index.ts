@@ -8,6 +8,8 @@ export {
 	type CodeControls,
 	type TableControls,
 	type MermaidControls,
+	type MermaidConfig,
+	type PeleOptions,
 	type ResolvedControls
 } from './context.svelte.js';
 export {

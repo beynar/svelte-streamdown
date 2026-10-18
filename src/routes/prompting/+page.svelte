@@ -418,9 +418,6 @@ Self-closing or with children - both work!
 				}
 			}}
 			baseTheme="shadcn"
-			mermaidConfig={{
-				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
-			}}
 			highlightTheme={theme.resolvedTheme === 'dark' ? 'github-dark' : 'github-light'}
 			{content}
 		>

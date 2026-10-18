@@ -113,7 +113,8 @@ export const theme = {
 	mermaid: {
 		base: 'group relative my-4 h-auto rounded-xl border border-gray-200 bg-white overflow-hidden items-center min-h-[500px]',
 		icon: 'size-5',
-		buttons: 'absolute right-1 top-1 flex h-fit w-fit items-center gap-1'
+		buttons: 'absolute right-1 top-1 flex h-fit w-fit items-center gap-1',
+		error: 'm-0 p-4 font-mono text-sm whitespace-pre-wrap text-red-600'
 	},
 	math: {
 		block: '',
@@ -293,9 +294,12 @@ export const shadcnTheme = {
 		base: 'font-semibold text-foreground'
 	},
 	mermaid: {
-		base: 'group relative my-4 h-auto rounded-lg border border-border bg-card overflow-hidden items-center min-h-[500px]',
+		// pele reads its colours from CSS variables, so pointing them at the shadcn
+		// tokens is all dark mode takes: no re-render when `.dark` flips.
+		base: 'group relative my-4 h-auto rounded-lg border border-border bg-card overflow-hidden items-center min-h-[500px] [--pele-bg:var(--card)] [--pele-fg:var(--card-foreground)] [--pele-muted:var(--muted-foreground)] [--pele-line:var(--muted-foreground)] [--pele-surface:var(--muted)] [--pele-surface-alt:var(--accent)] [--pele-border:var(--border)] [--pele-accent:var(--primary)]',
 		icon: 'size-5',
-		buttons: 'absolute right-1 top-1 flex h-fit w-fit items-center gap-1'
+		buttons: 'absolute right-1 top-1 flex h-fit w-fit items-center gap-1',
+		error: 'm-0 p-4 font-mono text-sm whitespace-pre-wrap text-destructive'
 	},
 	math: {
 		block: 'text-foreground',

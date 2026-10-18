@@ -26,7 +26,8 @@
 		allowedLinkPrefixes = ['*'],
 		allowedImagePrefixes = ['*'],
 		theme,
-		mermaidConfig = {},
+		mermaidConfig,
+		peleOptions,
 		katexConfig,
 		translations,
 		baseTheme,
@@ -59,10 +60,6 @@
 
 	const resolvedHighlightTheme = $derived(
 		resolveHighlightTheme(highlightTheme, highlightThemes, darkMode.current)
-	);
-
-	const mermaidThemedTheme = $derived(
-		mermaidConfig?.theme ? mermaidConfig.theme : darkMode.current ? 'dark' : 'default'
 	);
 
 	// Per-instance incremental state: append-only content updates re-lex only
@@ -123,10 +120,10 @@
 			return baseTheme;
 		},
 		get mermaidConfig() {
-			return {
-				theme: mermaidThemedTheme,
-				...mermaidConfig
-			};
+			return mermaidConfig;
+		},
+		get peleOptions() {
+			return peleOptions;
 		},
 		get katexConfig() {
 			return katexConfig;

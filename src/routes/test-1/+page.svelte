@@ -51,9 +51,6 @@
 				code: false
 			}}
 			baseTheme="shadcn"
-			mermaidConfig={{
-				theme: theme.resolvedTheme === 'dark' ? 'dark' : 'default'
-			}}
 			allowedLinkPrefixes={['*']}
 			highlightTheme="github-dark"
 			content={`

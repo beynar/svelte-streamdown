@@ -1,6 +1,6 @@
 import type { Component, Snippet, SvelteComponent } from 'svelte';
 import type { DeepPartialTheme, Theme } from './theme.js';
-import type { MermaidConfig } from 'mermaid';
+import type { RenderOptions } from 'pele';
 import type { KatexOptions } from 'katex';
 import { getContext, onMount, setContext } from 'svelte';
 import type { HighlightTheme } from '@tanstack/highlight/theme';
@@ -293,6 +293,12 @@ export type TableControls =
 			csvSeparator?: CsvSeparator;
 	  };
 
+/** Mermaid's own settings object (`flowchart`, `sequence`, `gantt`…), forwarded to pele as `config`. */
+export type MermaidConfig = NonNullable<RenderOptions['config']>;
+
+/** pele's `RenderOptions`, minus what the Mermaid component sets itself. */
+export type PeleOptions = Omit<RenderOptions, 'config' | 'idPrefix' | 'responsive' | 'maxWidth'>;
+
 export type MermaidControls =
 	| boolean
 	| { enabled?: boolean; download?: DownloadControl<CodeToken>; mouseWheelZoom?: boolean };
@@ -343,7 +349,14 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	highlightTheme?: string;
 	highlightLanguages?: LanguageDefinition[];
 	highlightThemes?: Record<string, HighlightTheme>;
+	/**
+	 * Mermaid settings, as in a diagram's frontmatter or `%%{init}%%` directive
+	 * (which override them). Rendered by pele: `theme` and `themeVariables` do
+	 * not apply, colours come from the `--pele-*` CSS variables.
+	 */
 	mermaidConfig?: MermaidConfig;
+	/** Render options passed to pele: limits, link and image schemes, icons, fonts. */
+	peleOptions?: PeleOptions;
 	katexConfig?: KatexOptions | ((inline: boolean) => KatexOptions);
 	/** Partial overrides; unset keys fall back to `defaultTranslations`. */
 	translations?: { [K in keyof Translations]?: Partial<Translations[K]> };

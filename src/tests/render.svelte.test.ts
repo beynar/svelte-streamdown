@@ -77,7 +77,7 @@ describe('rendering', () => {
 });
 
 // While a fence is still streaming, its content changes on every chunk. The flag
-// lets the code block defer expensive work (highlighting, mermaid.render) and
+// lets the code block defer expensive work (highlighting) and
 // lets CSS show a loading state; it can only ever be true for the last block.
 const incompleteAttr = (container: HTMLElement, selector = '[data-streamdown-code]') =>
 	container.querySelector(selector)?.getAttribute('data-incomplete') ?? null;

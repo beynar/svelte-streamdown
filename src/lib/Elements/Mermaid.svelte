@@ -1,8 +1,7 @@
 <script lang="ts">
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { useStreamdown } from '$lib/context.svelte.js';
 	import type { CodeToken } from '$lib/marked/index.js';
-	import type { MermaidConfig } from 'mermaid';
 	import { on } from 'svelte/events';
 	import { usePanzoom } from '$lib/utils/panzoom.svelte';
 	import { fitViewIcon, fullscreenIcon, zoomInIcon, zoomOutIcon } from './icons.js';
@@ -23,10 +22,18 @@
 		animate?: boolean;
 	} = $props();
 
-	// Trailing blank lines are noise for mermaid but they still changed `token.text`
+	// Trailing blank lines are noise for the parser but they still changed `token.text`
 	// on nearly every streamed chunk, which re-ran the whole render. Same trim as
-	// Code.svelte.
-	const chart = $derived(token.text.replace(/\n+$/, ''));
+	// Code.svelte. The rest only undoes what copy-paste and some models add: a BOM,
+	// CRLF and zero-width characters. Whitespace inside the source is left alone,
+	// mindmap and block diagrams are indentation-sensitive.
+	const chart = $derived(
+		token.text
+			.replace(/^﻿/, '')
+			.replace(/\r\n?/g, '\n')
+			.replace(/[​-‍⁠]/g, '')
+			.replace(/\n+$/, '')
+	);
 
 	// Screen readers get the diagram's declaration line ('flowchart TD', 'sequenceDiagram'),
 	// which is the only human-readable summary the source offers.
@@ -37,9 +44,15 @@
 			: streamdown.translations.controls.diagram
 	);
 
-	let mermaid = $state<any>(null);
-	onMount(async () => {
-		mermaid = (await import('mermaid')).default;
+	// `pele/lazy` is the renderer without any diagram type; each type (flowchart,
+	// sequence, pie…) is a separate chunk fetched the first time it is needed.
+	let pele = $state<typeof import('pele/lazy') | null>(null);
+	// Bumped when a diagram type finishes loading or web fonts arrive (labels are
+	// measured, so a late font means wrong box sizes): both call for a redraw.
+	let generation = $state(0);
+	onMount(() => {
+		import('pele/lazy').then((module) => (pele = module));
+		document.fonts?.ready.then(() => generation++);
 	});
 
 	const useIsInsideForMoreThanAQuarterSecond = () => {
@@ -88,185 +101,98 @@
 	);
 
 	let container = $state<HTMLDivElement>();
+	let width = $state(0);
 	$effect(() => {
 		// Expanding covers the page: move focus in so Escape (handled by panzoom)
 		// and the toolbar are reachable from the keyboard.
 		if (panzoom.expanded) container?.focus();
 	});
 
-	const sanitizeMermaidCode = (code: string): string => {
-		try {
-			let sanitized = code;
+	// The last SVG that rendered. A half-written diagram usually fails to parse, and
+	// keeping the previous frame on screen is what makes streaming look continuous.
+	let svg = $state('');
+	// Only shown once the fence is closed: mid-stream, a parse error is expected.
+	let error = $state('');
 
-			// 1. Remove Byte Order Mark (BOM)
-			sanitized = sanitized.replace(/^\uFEFF/, '');
+	const idPrefix = `sd-${id}-`;
 
-			// 2. Normalize Unicode (NFC form for consistent rendering)
-			sanitized = sanitized.normalize('NFC');
-
-			// 3. Remove invisible/zero-width characters
-			sanitized = sanitized.replace(/[\u200B-\u200F\u2028-\u202F\u205F-\u206F]/g, '');
-
-			// 4. Remove control characters (except tab, line feed, carriage return)
-			sanitized = sanitized.replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
-
-			// 5. Normalize line endings to LF
-			sanitized = sanitized.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
-
-			// 6. Decode common HTML entities that might appear in Mermaid code
-			const htmlEntities: Record<string, string> = {
-				'&lt;': '<',
-				'&gt;': '>',
-				'&amp;': '&',
-				'&quot;': '"',
-				'&#39;': "'",
-				'&apos;': "'",
-				'&nbsp;': ' ',
-				'&hellip;': '...',
-				'&mdash;': '--',
-				'&ndash;': '-',
-				'&lsquo;': "'",
-				'&rsquo;': "'",
-				'&ldquo;': '"',
-				'&rdquo;': '"'
-			};
-
-			for (const [entity, replacement] of Object.entries(htmlEntities)) {
-				sanitized = sanitized.replace(new RegExp(entity, 'g'), replacement);
-			}
-
-			// 7. Convert smart quotes and other quote variants to standard quotes
-			sanitized = sanitized
-				.replace(/[\u2018\u2019]/g, "'") // Smart single quotes
-				.replace(/[\u201C\u201D]/g, '"') // Smart double quotes
-				.replace(/[\u2013\u2014]/g, '-') // Em/en dashes
-				.replace(/\u2026/g, '...'); // Horizontal ellipsis
-
-			// 8. Trim leading/trailing whitespace from each line and remove empty lines
-			sanitized = sanitized
-				.split('\n')
-				.map((line) => line.trim())
-				.filter((line) => line.length > 0)
-				.join('\n');
-
-			// 9. Normalize multiple spaces/tabs to single space (but preserve indentation in code blocks)
-			sanitized = sanitized.replace(/[ \t]+/g, ' ');
-
-			// 10. Handle over-escaped characters (common in copied code)
-			// Convert double backslashes to single (except in JSON strings)
-			sanitized = sanitized.replace(/\\\\(?![\\"])/g, '\\');
-
-			// 11. Remove non-breaking spaces and other special spaces
-			sanitized = sanitized.replace(/[\u00A0\u1680\u180E\u2000-\u200A\u202F\u205F\u3000]/g, ' ');
-
-			// 12. Ensure proper spacing around operators and keywords
-			// Add space after commas if missing (common in CSV-like data)
-			sanitized = sanitized.replace(/,([^\s])/g, ', $1');
-
-			// 13. Clean up Mermaid-specific issues
-			// Remove trailing semicolons that might break parsing
-			sanitized = sanitized.replace(/;+\s*$/gm, '');
-
-			// Ensure proper spacing in flowchart syntax
-			sanitized = sanitized.replace(
-				/([A-Za-z0-9_]+)(\-\-|\-\-\>|\-\.\-|\-\.\-\>|\=\=|\=\=\>|\=\.\=\>|\=\.\-\>)/g,
-				'$1 $2'
-			);
-
-			// 14. Final cleanup: trim and ensure single trailing newline
-			sanitized = sanitized.trim();
-			if (sanitized && !sanitized.endsWith('\n')) {
-				sanitized += '\n';
-			}
-
-			return sanitized;
-		} catch (error) {
-			console.warn('Error during Mermaid code sanitization:', error);
-			// Return original code if sanitization fails
-			return code;
+	const draw = (source: string) => {
+		if (!pele) return null;
+		const type = pele.detectType(source);
+		if (!type) throw new Error(`Unknown diagram type: ${firstLine}`);
+		if (!pele.supports(source)) {
+			pele.load(type).then((loaded) => loaded && generation++);
+			return null;
 		}
+		return pele.render(source, {
+			// Defaults first, app options after, the bits we own last.
+			fontFamily: container ? getComputedStyle(container).fontFamily : undefined,
+			...streamdown.peleOptions,
+			config: streamdown.mermaidConfig,
+			idPrefix,
+			// Panzoom does the scaling, so pele draws at natural size — but laid out
+			// for the room it has, which is what lets a wide flowchart turn vertical
+			// in a narrow column.
+			responsive: false,
+			maxWidth: width || undefined
+		}).svg;
 	};
 
-	const renderMermaid = async (code: string, element: HTMLElement) => {
+	$effect(() => {
+		void generation;
+		if (!pele || !width) return;
 		try {
-			// Sanitize the code first
-			const sanitizedCode = sanitizeMermaidCode(code);
-
-			// Default configuration
-			const defaultConfig: MermaidConfig = {
-				theme: 'base',
-				startOnLoad: false,
-				securityLevel: 'strict',
-				fontFamily: 'monospace',
-				suppressErrorRendering: true,
-
-				flowchart: {
-					useMaxWidth: true,
-					htmlLabels: true,
-					curve: 'basis'
-				},
-				...(streamdown.mermaidConfig || {})
-			};
-
-			// Initialize mermaid with merged config
-			mermaid.initialize(defaultConfig);
-
-			const chartHash = code.split('').reduce((acc, char) => {
-				return ((acc << 5) - acc + char.charCodeAt(0)) | 0;
-			}, 0);
-
-			const uniqueId = `mermaid-${Math.abs(chartHash)}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
-
-			// Render the diagram
-			const { svg: svgString } = await mermaid.render(uniqueId, sanitizedCode);
-
-			// Insert the SVG into the target element
-			const svgTarget = element.querySelector('[data-mermaid-svg]') as SVGElement;
-			if (svgTarget) {
-				svgTarget.innerHTML = svgString;
-				svgTarget.id = uniqueId;
-
-				// Apply any additional attributes from the rendered SVG. The accessibility
-				// attributes are ours: mermaid's root carries role="graphics-document" and
-				// an aria-roledescription, which would overwrite the label a screen reader
-				// needs (and did, non-deterministically, depending on when the lazy import
-				// resolved).
-				const keepOwn = new Set(['id', 'role', 'aria-label', 'aria-roledescription']);
-				const tempSvg = new DOMParser().parseFromString(svgString, 'image/svg+xml').documentElement;
-				Array.from(tempSvg.attributes).forEach((attribute) => {
-					if (!keepOwn.has(attribute.name)) {
-						svgTarget.setAttribute(attribute.name, attribute.value);
+			const next = draw(chart);
+			if (next !== null) {
+				svg = next;
+				error = '';
+			}
+		} catch (cause) {
+			if (incomplete) {
+				// The streaming tail is usually a half-typed line: drop it and try the
+				// rest, so nodes appear as soon as their line is done.
+				const lastBreak = chart.lastIndexOf('\n');
+				if (lastBreak > 0) {
+					try {
+						const next = draw(chart.slice(0, lastBreak));
+						if (next !== null) svg = next;
+					} catch {
+						// Keep the previous frame.
 					}
-				});
-
-				panzoom.zoomToFit();
-				panzoom.zoomToFit();
+				}
+			} else {
+				error = cause instanceof Error ? cause.message : String(cause);
 			}
-		} catch (err) {
-			console.warn('Mermaid rendering error:', err);
-			// Could show error state in UI here
 		}
-	};
+	});
+
+	$effect(() => {
+		if (!svg) return;
+		// After the flush: the `{#if svg}` block and its panzoom attachment do not
+		// exist yet when this runs for the first diagram.
+		let cancelled = false;
+		tick().then(() => !cancelled && panzoom.zoomToFit());
+		return () => (cancelled = true);
+	});
 </script>
 
 <div data-streamdown-mermaid={id} data-incomplete={incomplete || undefined}>
-	{#if mermaid}
-		<div
-			bind:this={container}
-			style={animate && streamdown.isMounted ? streamdown.animationBlockStyle : ''}
-			class={streamdown.theme.mermaid.base}
-			{@attach (node) => {
-				// A half-written diagram makes mermaid throw and log on every chunk, so
-				// skip the render entirely and keep showing whatever rendered last.
-				if (!incomplete) renderMermaid(chart, node);
-			}}
-			{@attach insider.attach}
-			data-expanded={'false'}
-			role={panzoom.expanded ? 'dialog' : undefined}
-			aria-modal={panzoom.expanded ? 'true' : undefined}
-			aria-label={panzoom.expanded ? diagramLabel : undefined}
-			tabindex="-1"
-		>
+	<div
+		bind:this={container}
+		bind:clientWidth={width}
+		style={animate && streamdown.isMounted ? streamdown.animationBlockStyle : ''}
+		class={streamdown.theme.mermaid.base}
+		{@attach insider.attach}
+		data-expanded={'false'}
+		role={panzoom.expanded ? 'dialog' : undefined}
+		aria-modal={panzoom.expanded ? 'true' : undefined}
+		aria-label={panzoom.expanded ? diagramLabel : undefined}
+		tabindex="-1"
+	>
+		{#if error && !svg}
+			<pre class={streamdown.theme.mermaid.error}>{error}</pre>
+		{/if}
+		{#if svg}
 			{#if streamdown.controls.mermaid}
 				<div class={streamdown.theme.mermaid.buttons}>
 					<button
@@ -315,22 +241,17 @@
 					{/if}
 				</div>
 			{/if}
-			<svg {@attach panzoom.attach} data-mermaid-svg role="img" aria-label={diagramLabel}></svg>
-		</div>
-	{:else}
-		<div class={streamdown.theme.mermaid.base}></div>
-	{/if}
+			<!-- pele escapes every label, emits no script, handler or HTML label, and
+			     filters link and image schemes, so its output is safe to insert. -->
+			<div
+				{@attach panzoom.attach}
+				data-mermaid-svg
+				role="img"
+				aria-label={diagramLabel}
+				style="width: max-content;"
+			>
+				{@html svg}
+			</div>
+		{/if}
+	</div>
 </div>
-
-<style>
-	/* [data-expanded='true'] now lives in Streamdown.svelte's global block. */
-
-	/* Hide Mermaid's temporary rendering containers */
-	:global(div[id^='dmermaid-']) {
-		position: absolute !important;
-		left: -9999px !important;
-		top: -9999px !important;
-		visibility: hidden !important;
-		pointer-events: none !important;
-	}
-</style>

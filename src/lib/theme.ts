@@ -1,8 +1,7 @@
-import { type ClassValue, clsx } from 'clsx';
-import { twMerge } from 'tailwind-merge';
-
-export const cn = (...inputs: ClassValue[]) => twMerge(clsx(inputs));
+import { cn, type ClassValue } from 'cn';
 import type { Snippets } from './context.svelte.js';
+
+export { cn };
 
 export const theme = {
 	link: {

@@ -34,6 +34,15 @@ Mermaid fences are now drawn by [pele](https://pele.run), Obsidian's MIT rendere
 
 **Security**: pele escapes all diagram text, emits no script, event handler or HTML label, ignores `click` JavaScript callbacks, and only allows `http`, `https`, `mailto` and `tel` links and `http`/`https` images by default (`peleOptions.linkSchemes` / `imageSchemes` to narrow them). Its output is inserted as is.
 
+### 🧵 Class merging moves to `cn`
+
+`clsx` and `tailwind-merge` are replaced by [`cn`](https://github.com/shadcn-ui/cn) 0.5.0, which implements both of their APIs in one zero-dependency package. **Nothing about theming changes**: `theme`, `shadcnTheme`, `mergeTheme` and the `theme` prop take the same values and produce the same class strings, verified by running every class string in this repo's two themes — alone, in all 13,924 ordered pairs, and against the `clsx` array/object/falsy shapes a custom theme can pass — through both implementations: 14,682 cases, byte-identical output. The library's merge helper was never exported from the package root, so there is no API surface to migrate.
+
+- **Faster where it is hot.** `mergeTheme` runs `cn(baseVal, customVal)` per overridden theme key, and `Streamdown`'s `theme` getter re-runs it on every read, so a page with a custom theme merges constantly. On that exact call shape `cn` is **~25× faster** (250 ns → 10 ns per call, best of 5 runs). With no custom theme `mergeTheme` returns the base theme untouched, so that path was already free and stays free.
+- **Costs ~3.4 KB gzip.** The root entry grows from 200,097 min / 61,784 gzip to 202,386 / 65,188 — `cn`'s compiled lookup tables are high-entropy and gzip worse than tailwind-merge's repetitive config, so it is a little larger despite shipping less JavaScript to parse. The `code` and `parser` entries are unchanged. The root bundle-size budget is raised on purpose for this.
+- **One fewer transitive dependency, two fewer direct ones**: `clsx` and `tailwind-merge` are gone from `dependencies`, replaced by `cn` alone. If your app imports `clsx` or `tailwind-merge` itself, keep them in your own `dependencies` — they were never yours to rely on through this package, and a strict package manager will now stop resolving them through it.
+- `cn` declares `engines: node >= 22`. That gates its CLI, which this library does not use; the runtime works on older Node, but npm or pnpm may print an `EBADENGINE` warning on Node 20 and below.
+
 ## 4.2.1
 
 Code blocks highlight with `@tanstack/highlight` 1.0.0 (from 0.1.0). Same API, themes and markup; the JavaScript and TypeScript tokenizers now mark object-literal keys as properties and no longer mistake a spread (`...rest`) for a property access. The dependency range moves from `^0.1.0` to `^1.0.0`, so an app that also installs 1.0.0 (entasis does) ships one copy of the highlighter instead of two.

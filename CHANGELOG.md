@@ -1,5 +1,17 @@
 # Changelog
 
+## Unreleased
+
+### 🔒 Security
+
+- **Deep nesting no longer takes the page down.** `>` fifty times then a letter overflowed the stack while mounting, and on hydration, which removed the whole mounted tree. Past 16 quotes, 8 lists, 8 tags or 8 marks inside each other (bold, italic, strikethrough, a link), the rest is drawn as plain text. Marks do not count toward the other three.
+
+- **A citation source can no longer run code.** A source's `javascript:`, `vbscript:` or `data:` page address became a link in the popover. It now keeps its title and text with no link. Every other address still links, an app's own scheme included.
+
+### 🐛 Fixes
+
+- **A bracket with nothing to cite is ordinary Markdown.** With no `sources` and no `inlineCitation` snippet, the citation rule is off. It took the whole bracket before any other rule, so a tag in `[<Mention … />]` showed as its source, even through a rule added with `extensions`. `[**bold**]` is now bold, and `[1]` still reads `[1]`. With sources, nothing changes.
+
 ## 5.0.0
 
 ### 💥 Breaking: mermaid.js replaced by pele

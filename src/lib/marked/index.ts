@@ -233,9 +233,20 @@ const cached = (
 const lexOptionsCache: OptionsCache = new WeakMap();
 const blockOptionsCache: OptionsCache = new WeakMap();
 
-const getLexOptions = (extensions: Extension[], tags: TagMatchers): LexerOptions =>
-	cached(lexOptionsCache, tags, extensions, () =>
-		parseExtensions(...defaultLexExtensions(tags), ...extensions)
+const lexOptionsWithoutCitationsCache: OptionsCache = new WeakMap();
+
+const getLexOptions = (
+	extensions: Extension[],
+	tags: TagMatchers,
+	citations: boolean
+): LexerOptions =>
+	cached(citations ? lexOptionsCache : lexOptionsWithoutCitationsCache, tags, extensions, () =>
+		parseExtensions(
+			...defaultLexExtensions(tags).filter(
+				(extension) => citations || extension !== markedCitations
+			),
+			...extensions
+		)
 	);
 
 const getBlockOptions = (extensions: Extension[], tags: TagMatchers): LexerOptions =>
@@ -248,14 +259,74 @@ const getBlockOptions = (extensions: Extension[], tags: TagMatchers): LexerOptio
 		)
 	);
 
+// How deep a text may nest before the rest is drawn as plain text. Rendering recurses once per level,
+// so without a limit 52 bytes (`>` fifty times, then a letter) overflow the stack and take the whole
+// mounted tree with them, on hydration too. Measured on a first render in Chromium, on entasis, whose
+// components are the heaviest a tag reaches: the stack ran out past 32 quotes, 16 list levels and 14
+// tags, about 33 of the units below. It has to be a first render: once the JIT has warmed up the same
+// code reaches more than twice as deep. Half of that leaves room for a host that is already deep.
+const DEPTH_LIMIT = 16;
+const DEPTH_COST: Record<string, number> = { list: 2, mdx: 2 };
+// Marks are counted apart, so that a word in bold deep in a document stays bold: real text nests a
+// few of them where it stands, and only a text written to do so nests more.
+const MARK_LIMIT = 8;
+const MARKS = new Set(['strong', 'em', 'del', 'link']);
+// One level under whatever holds them, so they cannot add up to anything on their own.
+const HOLDS_MARKS = new Set(['paragraph', 'text', 'heading']);
+// Parts of something larger. They have no meaning, and no valid place in the page, on their own.
+const STRUCTURAL = new Set([
+	'list_item',
+	'thead',
+	'tbody',
+	'tfoot',
+	'tr',
+	'th',
+	'td',
+	'description',
+	'descriptionTerm',
+	'descriptionDetail'
+]);
+
+const plainText = (raw: string) => ({ type: 'text', raw, text: raw }) as StreamdownToken;
+
+const limitDepth = (
+	tokens: StreamdownToken[],
+	budget: number,
+	marks: number = MARK_LIMIT
+): StreamdownToken[] =>
+	tokens.map((token) => {
+		const children = (token as { tokens?: StreamdownToken[] }).tokens;
+		if (!children?.length) return token;
+		const free = STRUCTURAL.has(token.type) || HOLDS_MARKS.has(token.type);
+		const isMark = MARKS.has(token.type);
+		const left = free || isMark ? budget : budget - (DEPTH_COST[token.type] ?? 1);
+		const marksLeft = isMark ? marks - 1 : marks;
+		// What reaches here has a source: the parts that do not are the free ones above.
+		if (left < 0 || marksLeft < 0) return plainText((token as { raw: string }).raw);
+		(token as { tokens?: StreamdownToken[] }).tokens = limitDepth(children, left, marksLeft);
+		return token;
+	});
+
 export const lex = (
 	markdown: string,
 	extensions: Extension[] = [],
-	tags: TagMatchers = DEFAULT_TAGS
+	tags: TagMatchers = DEFAULT_TAGS,
+	citations = true
 ): StreamdownToken[] => {
-	return new Lexer(getLexOptions(extensions, tags))
-		.lex(markdown)
-		.filter((token) => token.type !== 'space' && token.type !== 'footnote') as StreamdownToken[];
+	try {
+		return limitDepth(
+			new Lexer(getLexOptions(extensions, tags, citations))
+				.lex(markdown)
+				.filter(
+					(token) => token.type !== 'space' && token.type !== 'footnote'
+				) as StreamdownToken[],
+			DEPTH_LIMIT
+		);
+	} catch (error) {
+		// The lexer recurses too. Too deep for it is text that is too deep to be anything else.
+		if (error instanceof RangeError) return [plainText(markdown)];
+		throw error;
+	}
 };
 
 /**
@@ -337,8 +408,15 @@ class SplitLexer extends Lexer {
 	}
 }
 
-const blockTokensOf = (markdown: string, extensions: Extension[], tags: TagMatchers) =>
-	new SplitLexer(getBlockOptions(extensions, tags)).blockTokens(markdown, []);
+const blockTokensOf = (markdown: string, extensions: Extension[], tags: TagMatchers) => {
+	try {
+		return new SplitLexer(getBlockOptions(extensions, tags)).blockTokens(markdown, []);
+	} catch (error) {
+		// One block, for `lex` to deal with.
+		if (error instanceof RangeError) return [{ type: 'paragraph', raw: markdown, text: markdown }];
+		throw error;
+	}
+};
 
 /**
  * Is `markdown` an append to `cache.content`?

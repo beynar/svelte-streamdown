@@ -335,7 +335,7 @@ III. Third item
 
 Streamdown supports inline citations that allow you to reference external sources and display them in interactive popovers. Citations work out-of-the-box with a simple object structure and support nested references like this `[cloudflare.website, vercel]` will render into [cloudflare.website, vercel]
 
-To enable inline citations, pass a `sources` object as a prop to the `Streamdown` component.
+To enable inline citations, pass a `sources` object as a prop to the `Streamdown` component. With no sources and no `inlineCitation` snippet, the citation rule is off: a bracket is ordinary Markdown, and a tag inside it reaches its component.
 
 #### Basic Usage
 

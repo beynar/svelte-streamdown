@@ -1,4 +1,5 @@
 <script lang="ts">
+	import { runsCode } from '$lib/utils/runs-code.js';
 	import { useStreamdown } from '$lib/context.svelte.js';
 	import Slot from './Slot.svelte';
 	import { useClickOutside } from '$lib/utils/useClickOutside.svelte.js';
@@ -26,7 +27,9 @@
 			const safeUrl = (url: string | null) => {
 				if (url == null) return null;
 				try {
-					return new URL(url);
+					// The sources are often a model's. A source that would run code keeps its title and text.
+					const parsed = new URL(url);
+					return runsCode(parsed) ? null : parsed;
 				} catch (error) {
 					return null;
 				}

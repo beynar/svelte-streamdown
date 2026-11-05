@@ -267,6 +267,45 @@ describe('parseIncompleteMarkdown direct coverage', () => {
 				'```\nx\n```\n<Card>\nhi\n</Card>'
 			);
 		});
+
+		// A tag inside a closed code span is prose about markup, not a component to
+		// close. The default allowlist matches any PascalCase name, so this needed
+		// no custom tags to reach.
+		test('should not open a component for a tag inside a complete code span', () => {
+			expect(parseIncompleteMarkdown('We render `<Note>` here.')).toBe('We render `<Note>` here.');
+			expect(parseIncompleteMarkdown('Use `<Note prop="1">` to configure it.')).toBe(
+				'Use `<Note prop="1">` to configure it.'
+			);
+			expect(parseIncompleteMarkdown('The `<Note>` and `<Card>` components.')).toBe(
+				'The `<Note>` and `<Card>` components.'
+			);
+		});
+
+		test('should not let a closing tag inside a code span pop a real open component', () => {
+			expect(parseIncompleteMarkdown('<Card>\nclose it with `</Card>`')).toBe(
+				'<Card>\nclose it with `</Card>`\n</Card>'
+			);
+		});
+
+		test('should still close an unclosed component on a line that also has a code span', () => {
+			expect(parseIncompleteMarkdown('`code` <Card>\nhi')).toBe('`code` <Card>\nhi\n</Card>');
+		});
+
+		// A void element has no closing tag to wait for. `customTags: ['img']` is a
+		// reasonable thing to configure, since Markdown image syntax carries no width.
+		test('should not close an allowlisted void element', () => {
+			const tags = compileTags(['img']);
+			expect(parseIncompleteMarkdown('Shot: <img src="a.png" width="300">', { tags })).toBe(
+				'Shot: <img src="a.png" width="300">'
+			);
+			expect(parseIncompleteMarkdown('Shot: <img>', { tags })).toBe('Shot: <img>');
+		});
+
+		test('should still close a PascalCase component that shares a void element name', () => {
+			expect(parseIncompleteMarkdown('<Img src="a.png">\nhi')).toBe(
+				'<Img src="a.png">\nhi\n</Img>'
+			);
+		});
 	});
 
 	// 8093f2a: LaTeX delimiters are a protected context. Every input here used to

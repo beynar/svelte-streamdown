@@ -985,6 +985,16 @@ export class IncompleteMarkdownParser {
 							const tagStart = line.indexOf('<', searchPos);
 							if (tagStart === -1 || tagStart >= line.length - 1) break;
 
+							// A '<' inside a closed code span is content, not a tag — the rule
+							// the other plugins already apply. Prose about markup (`` `<Note>` ``)
+							// must not open a component that postprocess then closes. tagStart
+							// rises within a line and the helper resets per line, which is what
+							// it memoizes on.
+							if (isWithinCompleteInlineCode(line, tagStart)) {
+								searchPos = tagStart + 1;
+								continue;
+							}
+
 							const nextChar = line[tagStart + 1];
 
 							// Closing tag for a component opened on an earlier line. Handled
@@ -1029,7 +1039,13 @@ export class IncompleteMarkdownParser {
 							const openTagMatch = line.substring(tagStart).match(tags.openTag);
 							if (openTagMatch) {
 								const tagName = openTagMatch[1];
-								openTags.push({ tagName, lineIndex: i });
+								// A void element has no closing tag to wait for, so an allowlisted
+								// `<img src="…">` is already complete; tracking it as open makes
+								// postprocess invent an `</img>`. Matched exactly, so a PascalCase
+								// `<Img>` component is still an ordinary component.
+								if (!VOID_TAGS.has(tagName)) {
+									openTags.push({ tagName, lineIndex: i });
+								}
 								searchPos = tagStart + openTagMatch[0].length;
 								continue;
 							}
@@ -1202,6 +1218,25 @@ const endOfCodeSpan = (line: string, open: number): number => {
 	}
 	return -1;
 };
+
+// HTML elements that never take a closing tag, so an allowlisted one is never
+// "open" and must not be pushed onto the mdx stack.
+const VOID_TAGS = new Set([
+	'area',
+	'base',
+	'br',
+	'col',
+	'embed',
+	'hr',
+	'img',
+	'input',
+	'link',
+	'meta',
+	'param',
+	'source',
+	'track',
+	'wbr'
+]);
 
 // The spans are probed at ascending positions along one line (once per marker
 // character in the worst case), so the walk is resumed where it stopped instead

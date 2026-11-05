@@ -4,7 +4,8 @@ import { useKeyDown } from './useKeyDown.svelte.js';
  * The fullscreen half of the mermaid expand behaviour (Mermaid.svelte:264-267)
  * without panzoom's `expand()`, which is entangled with `zoomToFit` and a FLIP
  * animation a table has no use for: state, Escape and focus only. The
- * `position: fixed` comes from the global `[data-expanded='true']` rule in
+ * `position: fixed` comes from the global
+ * `:where([data-streamdown-expandable])[data-expanded='true']` rule in
  * Streamdown.svelte.
  *
  * The flag lives in the caller (so the markup can drive `role`/`aria-*`/the
@@ -24,7 +25,10 @@ export const useExpand = (opts: {
 	const set = (next: boolean) => {
 		const target = opts.getTarget();
 		opts.expanded = next;
-		if (target) target.dataset.expanded = String(next);
+		if (target) {
+			target.dataset.streamdownExpandable = '';
+			target.dataset.expanded = String(next);
+		}
 		if (next) target?.focus();
 		else trigger?.focus();
 	};

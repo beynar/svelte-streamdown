@@ -68,6 +68,21 @@ describe('table fullscreen', () => {
 		expect(document.activeElement).toBe(toggle);
 	});
 
+	test('the fullscreen rule leaves other elements with data-expanded alone', () => {
+		const { toggle, wrapper } = setup();
+		// The rule is global; the host page may use data-expanded for its own elements.
+		const other = document.createElement('div');
+		other.dataset.expanded = 'true';
+		document.body.append(other);
+
+		toggle.click();
+		flushSync();
+
+		expect(getComputedStyle(wrapper).position).toBe('fixed');
+		expect(getComputedStyle(other).position).toBe('static');
+		other.remove();
+	});
+
 	test('Escape on a collapsed table does nothing', () => {
 		const { wrapper } = setup();
 		escape();

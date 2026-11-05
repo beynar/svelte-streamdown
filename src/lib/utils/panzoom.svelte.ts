@@ -400,6 +400,8 @@ export const usePanzoom = (opts: PanzoomOptions = {}) => {
 
 	const expand = (expand: boolean) => {
 		if (!eventTarget) return;
+		// Opts eventTarget into the global fullscreen rule in Streamdown.svelte.
+		eventTarget.dataset.streamdownExpandable = '';
 
 		// Capture first state
 		const first = eventTarget.getBoundingClientRect();

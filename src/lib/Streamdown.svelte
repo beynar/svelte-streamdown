@@ -80,7 +80,9 @@
 
 	const source = $derived(normalizeHtmlIndentation ? dedentHtml(content) : content);
 
-	streamdown = new StreamdownContext({
+	// The context lives here, not in the `streamdown` prop: a parent that spreads its props re-applies
+	// all of them on any change, `streamdown: undefined` included, and that would take it away.
+	const context = new StreamdownContext({
 		get element() {
 			return element;
 		},
@@ -236,10 +238,13 @@
 		}
 	});
 
+	// Handed out to `bind:streamdown`; nothing here reads it back.
+	streamdown = context;
+
 	const id = $props.id();
 
 	const blocks = $derived(
-		isStatic ? source : parseBlocks(source, streamdown.extensions, blocksCache, tags)
+		isStatic ? source : parseBlocks(source, context.extensions, blocksCache, tags)
 	);
 
 	// Only the tail of a live stream can be mid-fence — a static render is finished

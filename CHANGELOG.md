@@ -1,5 +1,11 @@
 # Changelog
 
+## 5.0.2
+
+### 🐛 Fixes
+
+- **Props passed with a spread no longer crash the render.** `<Streamdown {...options} />` threw `Cannot read properties of undefined (reading 'extensions')` as soon as one of those props changed after mount, and the content disappeared. The spread re-applied `streamdown` (unset) over the context Streamdown kept there. The context now stays inside the component; `bind:streamdown` still receives it.
+
 ## 5.0.1
 
 ### 🔒 Security

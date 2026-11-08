@@ -54,6 +54,64 @@ interface ParseState {
 	live: boolean;
 }
 
+// The plugins that decide whether an emphasis mark was left open.
+const EMPHASIS_PLUGINS = new Set([
+	'boldItalic',
+	'bold',
+	'doubleUnderscoreItalic',
+	'strikethrough',
+	'singleAsteriskItalic',
+	'singleUnderscoreItalic',
+	'subscript',
+	'superscript'
+]);
+
+// One stand-in per mark, from a private-use range: nothing in Markdown reacts to them, and they turn
+// back into their mark whatever the plugin added or cut around them.
+const MARK_MASKS: Record<string, string> = {
+	'*': '\uE000',
+	_: '\uE001',
+	'~': '\uE002',
+	'^': '\uE003'
+};
+const MASKED_MARK = /[\uE000-\uE003]/g;
+const MASK_MARKS: Record<string, string> = Object.fromEntries(
+	Object.entries(MARK_MASKS).map(([mark, mask]) => [mask, mark])
+);
+
+const maskMarks = (text: string) => text.replace(/[*_~^]/g, (mark) => MARK_MASKS[mark]);
+
+// Where the destination of `](...)` ends: its balanced `)`, or the end of the line while it streams.
+const destinationEnd = (line: string, start: number) => {
+	let depth = 1;
+	for (let i = start; i < line.length; i++) {
+		if (line[i] === '\\') i++;
+		else if (line[i] === '(') depth++;
+		else if (line[i] === ')' && --depth === 0) return i;
+	}
+	return line.length;
+};
+
+// A bare address, up to the first space. Its last character is left out: in `_https://a.co_` the
+// final `_` closes the emphasis around the address.
+const BARE_ADDRESS = /[a-z][a-z0-9+.-]*:\/\/[^\s<>]*[^\s<>*_~^]/gi;
+
+const maskAddressMarks = (line: string) => {
+	if (!/[*_~^]/.test(line)) return line;
+	let masked = '';
+	let from = 0;
+	for (let open = line.indexOf('](', from); open !== -1; open = line.indexOf('](', from)) {
+		const start = open + 2;
+		const end = destinationEnd(line, start);
+		masked += line.slice(from, start) + maskMarks(line.slice(start, end));
+		from = end;
+	}
+	masked += line.slice(from);
+	return masked.replace(BARE_ADDRESS, maskMarks);
+};
+
+const unmaskAddressMarks = (line: string) => line.replace(MASKED_MARK, (mask) => MASK_MARKS[mask]);
+
 export class IncompleteMarkdownParser {
 	private plugins: Plugin[] = [];
 	private state: ParseState = {
@@ -136,15 +194,19 @@ export class IncompleteMarkdownParser {
 				}
 
 				try {
-					const match = plugin.pattern ? line.match(plugin.pattern) : line.match(/.*/);
+					// Marks inside an address are part of the address: they neither open nor close
+					// emphasis, so the plugins that count marks do not get to see them.
+					const counted = EMPHASIS_PLUGINS.has(plugin.name) ? maskAddressMarks(line) : line;
+					const match = plugin.pattern ? counted.match(plugin.pattern) : counted.match(/.*/);
 					if (match && plugin.handler) {
-						line = plugin.handler({
-							line,
-							text: line,
+						const handled = plugin.handler({
+							line: counted,
+							text: counted,
 							match,
 							state: this.state,
 							setState: this.setState
 						});
+						line = counted === line ? handled : unmaskAddressMarks(handled);
 					}
 				} catch (error) {
 					console.error(`Plugin ${plugin.name} failed on line ${i}:`, error);

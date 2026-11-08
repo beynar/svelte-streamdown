@@ -1,6 +1,6 @@
 <script lang="ts">
 	import { useStreamdown } from '$lib/context.svelte.js';
-	import { isPathRelativeUrl, transformUrl } from '$lib/utils/url.js';
+	import { transformUrl } from '$lib/utils/url.js';
 	import Slot from './Slot.svelte';
 	import type { Tokens } from 'marked';
 	import type { Snippet } from 'svelte';
@@ -17,18 +17,16 @@
 		id: string;
 	} = $props();
 
-	const isRelativeUrl = $derived(isPathRelativeUrl(token.href));
-
 	const transformedUrl = $derived(
 		transformUrl(token.href, streamdown.allowedImagePrefixes ?? [], streamdown.defaultOrigin)
 	);
 </script>
 
 {#if token.href !== 'streamdown:incomplete-image'}
-	{#if transformedUrl || isRelativeUrl}
+	{#if transformedUrl}
 		<Slot
 			props={{
-				src: isRelativeUrl ? token.href : transformedUrl,
+				src: transformedUrl,
 				alt: token.text,
 				children,
 				token
@@ -40,11 +38,7 @@
 				style={streamdown.isMounted ? streamdown.animationBlockStyle : ''}
 				class={streamdown.theme.image.base}
 			>
-				<img
-					class={streamdown.theme.image.image}
-					src={isRelativeUrl ? token.href : transformedUrl}
-					alt={token.text}
-				/>
+				<img class={streamdown.theme.image.image} src={transformedUrl} alt={token.text} />
 			</span>
 		</Slot>
 	{:else}

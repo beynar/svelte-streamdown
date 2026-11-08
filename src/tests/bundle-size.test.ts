@@ -12,12 +12,14 @@ import { measureSizes, type EntryName, type Sizes } from '../../scripts/measure-
 // its compiled lookup tables are high-entropy, so they gzip worse than
 // tailwind-merge's repetitive config. That is the trade accepted for a ~25x
 // faster merge on the one call shape this library makes (see `mergeTheme`).
+// `parser` gzip was raised on purpose in 5.1.0, from 24_900 to 25_400: telling the streaming
+// completer which marks belong to an address, and the `inline` lexer, took it from 24_718 to 25_082.
 // Dependencies are bundled in (only `svelte` is external), so a dependency bump
 // moves these too — that is the point, it is what a consumer downloads.
 const budgets: Record<EntryName, { min: number; gzip: number }> = {
 	root: { min: 212_600, gzip: 68_500 },
 	code: { min: 45_400, gzip: 16_400 },
-	parser: { min: 79_500, gzip: 24_900 }
+	parser: { min: 79_500, gzip: 25_400 }
 };
 
 let sizes: Sizes;

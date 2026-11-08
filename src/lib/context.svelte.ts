@@ -341,6 +341,18 @@ export type StreamdownProps<Source extends Record<string, any> = Record<string, 
 	defaultOrigin?: string;
 	allowedLinkPrefixes?: string[];
 	allowedImagePrefixes?: string[];
+	/**
+	 * How a link the prefix list refuses is drawn: `'badge'` keeps its label, adds a blocked badge and
+	 * names the address in a `title`; `'label'` draws its label alone.
+	 * @default 'badge'
+	 */
+	blockedLink?: 'badge' | 'label';
+	/**
+	 * Draws one line: inline Markdown only (links, strong, emphasis, code), in a `<span>` with no block
+	 * around it, so it takes the type of what holds it. `# x` and `- x` stay literal text.
+	 * @default false
+	 */
+	inline?: boolean;
 
 	// Theme
 	theme?: DeepPartialTheme;

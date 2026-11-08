@@ -25,6 +25,8 @@
 		defaultOrigin,
 		allowedLinkPrefixes = ['*'],
 		allowedImagePrefixes = ['*'],
+		blockedLink = 'badge',
+		inline = false,
 		theme,
 		mermaidConfig,
 		peleOptions,
@@ -97,6 +99,9 @@
 		},
 		get allowedLinkPrefixes() {
 			return allowedLinkPrefixes;
+		},
+		get blockedLink() {
+			return blockedLink;
 		},
 		get allowedImagePrefixes() {
 			return allowedImagePrefixes;
@@ -244,7 +249,7 @@
 	const id = $props.id();
 
 	const blocks = $derived(
-		isStatic ? source : parseBlocks(source, context.extensions, blocksCache, tags)
+		isStatic || inline ? [] : parseBlocks(source, context.extensions, blocksCache, tags)
 	);
 
 	// Only the tail of a live stream can be mid-fence — a static render is finished
@@ -254,20 +259,26 @@
 	);
 </script>
 
-<div bind:this={element} class={className}>
-	{#if isStatic}
-		<Block static={isStatic} block={source} />
-	{:else}
-		{#each blocks as block, index (`${id}-block-${index}`)}
-			<Block
-				static={isStatic}
-				{block}
-				live={index === blocks.length - 1}
-				incomplete={lastBlockIncomplete && index === blocks.length - 1}
-			/>
-		{/each}
-	{/if}
-</div>
+{#if inline}
+	<span bind:this={element} class={className}
+		><Block static={isStatic} block={source} inline /></span
+	>
+{:else}
+	<div bind:this={element} class={className}>
+		{#if isStatic}
+			<Block static={isStatic} block={source} />
+		{:else}
+			{#each blocks as block, index (`${id}-block-${index}`)}
+				<Block
+					static={isStatic}
+					{block}
+					live={index === blocks.length - 1}
+					incomplete={lastBlockIncomplete && index === blocks.length - 1}
+				/>
+			{/each}
+		{/if}
+	</div>
+{/if}
 
 <style global>
 	:global {

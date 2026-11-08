@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { parseIncompleteMarkdown as completeMarkdown } from './utils/parse-incomplete-markdown.js';
 	import Element from './Elements/Element.svelte';
-	import { lex, type StreamdownToken } from './marked/index.js';
+	import { lex, lexInline, type StreamdownToken } from './marked/index.js';
 	import AnimatedText from './AnimatedText.svelte';
 	import { useStreamdown } from './context.svelte.js';
 	import { getContext, untrack } from 'svelte';
@@ -10,7 +10,8 @@
 		block,
 		static: isStatic = false,
 		incomplete = false,
-		live = false
+		live = false,
+		inline = false
 	}: {
 		block: string;
 		static?: boolean;
@@ -18,6 +19,8 @@
 		incomplete?: boolean;
 		/** This is the block still being streamed into — the only one whose tail may be cut. */
 		live?: boolean;
+		/** One line of inline Markdown: no block is parsed, so none can wrap it. */
+		inline?: boolean;
 	} = $props();
 
 	const streamdown = useStreamdown();
@@ -32,7 +35,7 @@
 		Object.keys(streamdown.sources ?? {}).length > 0 || !!streamdown.snippets.inlineCitation
 	);
 	const view = $derived.by(() => {
-		const tokens = lex(
+		const tokens = (inline ? lexInline : lex)(
 			complete ? completeMarkdown(block.trim(), { tags: streamdown.tags, live }) : block,
 			streamdown.extensions,
 			streamdown.tags,

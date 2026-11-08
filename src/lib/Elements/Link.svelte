@@ -24,12 +24,11 @@
 	);
 </script>
 
-{#if transformedUrl || token.href === 'streamdown:incomplete-link' || isRelativeUrl}
+{#if transformedUrl || token.href === 'streamdown:incomplete-link'}
 	<Slot
 		props={{
 			href: transformedUrl,
-			target: '_blank',
-			rel: 'noopener noreferrer',
+			...(isRelativeUrl ? {} : { target: '_blank', rel: 'noopener noreferrer' }),
 			title: token.title,
 			children,
 			token
@@ -40,13 +39,14 @@
 			data-streamdown-link={id}
 			class={streamdown.theme.link.base}
 			title={token.title}
-			{...isRelativeUrl
-				? { href: token.href }
-				: { href: transformedUrl, target: '_blank', rel: 'noopener noreferrer' }}
+			href={transformedUrl}
+			{...isRelativeUrl ? {} : { target: '_blank', rel: 'noopener noreferrer' }}
 		>
 			{@render children()}
 		</a>
 	</Slot>
+{:else if streamdown.blockedLink === 'label'}
+	<span data-streamdown-link-blocked={id}>{@render children()}</span>
 {:else}
 	<span
 		data-streamdown-link-blocked={id}

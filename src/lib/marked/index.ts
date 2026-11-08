@@ -307,19 +307,16 @@ const limitDepth = (
 		return token;
 	});
 
-export const lex = (
+const lexWith = (
+	read: (lexer: Lexer, markdown: string) => StreamdownToken[],
 	markdown: string,
-	extensions: Extension[] = [],
-	tags: TagMatchers = DEFAULT_TAGS,
-	citations = true
+	extensions: Extension[],
+	tags: TagMatchers,
+	citations: boolean
 ): StreamdownToken[] => {
 	try {
 		return limitDepth(
-			new Lexer(getLexOptions(extensions, tags, citations))
-				.lex(markdown)
-				.filter(
-					(token) => token.type !== 'space' && token.type !== 'footnote'
-				) as StreamdownToken[],
+			read(new Lexer(getLexOptions(extensions, tags, citations)), markdown),
 			DEPTH_LIMIT
 		);
 	} catch (error) {
@@ -328,6 +325,29 @@ export const lex = (
 		throw error;
 	}
 };
+
+const readBlocks = (lexer: Lexer, markdown: string) =>
+	lexer
+		.lex(markdown)
+		.filter((token) => token.type !== 'space' && token.type !== 'footnote') as StreamdownToken[];
+
+const readInline = (lexer: Lexer, markdown: string) =>
+	lexer.inlineTokens(markdown) as StreamdownToken[];
+
+export const lex = (
+	markdown: string,
+	extensions: Extension[] = [],
+	tags: TagMatchers = DEFAULT_TAGS,
+	citations = true
+): StreamdownToken[] => lexWith(readBlocks, markdown, extensions, tags, citations);
+
+/** Inline tokens only: a heading or a list marker in `markdown` stays literal text. */
+export const lexInline = (
+	markdown: string,
+	extensions: Extension[] = [],
+	tags: TagMatchers = DEFAULT_TAGS,
+	citations = true
+): StreamdownToken[] => lexWith(readInline, markdown, extensions, tags, citations);
 
 /**
  * Opaque incremental state for `parseBlocks`. Create one per Streamdown

@@ -19,68 +19,74 @@ export const parseUrl = (url: unknown, defaultOrigin?: string): URL | null => {
 	}
 };
 
+// An origin no real address has, to ask the URL parser how a browser reads a path: a browser treats
+// `\\` like `/` and drops tabs and newlines, so `/\\evil.example` and `/\t/evil.example` are not paths.
+const PROBE_ORIGIN = 'https://streamdown.invalid';
+
+const rooted = (url: string) => url.startsWith('/') || url.startsWith('\\');
+
+/**
+ * Whether `url` stays on the page's origin the way a browser reads it: a path starting with `/`.
+ * `//host`, `/\\host` and the like leave for another site, so they are not relative.
+ */
 export const isPathRelativeUrl = (url: unknown): boolean => {
-	if (typeof url !== 'string') return false;
-	return url.startsWith('/');
+	if (typeof url !== 'string' || !rooted(url)) return false;
+	try {
+		return new URL(url, PROBE_ORIGIN).origin === PROBE_ORIGIN;
+	} catch {
+		return false;
+	}
 };
 
 const WILDCARD_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
 
+/** Whether a protocol-only prefix, such as `https://` or `mailto:`. */
+const isProtocolPrefix = (prefix: string) =>
+	prefix.endsWith('://') || (prefix.endsWith(':') && !prefix.includes('//'));
+
+const absoluteMatches = (url: URL, prefix: string) => {
+	if (isProtocolPrefix(prefix)) return url.href.startsWith(prefix);
+	const parsedPrefix = parseUrl(prefix);
+	return Boolean(
+		parsedPrefix && parsedPrefix.origin === url.origin && url.href.startsWith(parsedPrefix.href)
+	);
+};
+
+/**
+ * Judges an address against a list of prefixes, reading it as a browser would, and returns what to
+ * draw, or `null` to refuse it.
+ *
+ * A path on the page's origin (`/docs`) is always drawn, whatever the list says: it cannot leave
+ * the site. An address that only looks like a path (`//host`, `/\\host`) does leave it, so it is
+ * judged as the https address the browser reads it as.
+ */
 export const transformUrl = (
-	url: unknown,
+	url: string | null | undefined,
 	allowedPrefixes: string[],
 	defaultOrigin?: string
 ): string | null => {
 	if (!url) return null;
-	const parsedUrl = parseUrl(url, defaultOrigin);
-	if (!parsedUrl) return null;
 
-	// If the input is path relative, we output a path relative URL as well,
-	// however, we always run the same checks on an absolute URL and we
-	// always rescronstruct the output from the parsed URL to ensure that
-	// the output is always a valid URL.
-	const inputWasRelative = isPathRelativeUrl(url);
-	const urlString = parseUrl(url);
-	if (
-		urlString &&
-		allowedPrefixes.some((prefix) => {
-			// Protocol-only prefixes (e.g. 'https://', 'http://', 'mailto:') allow any
-			// URL using that protocol. They are not valid absolute URLs on their own
-			// (new URL('https://') throws), so we match them with a simple prefix check.
-			if (prefix.endsWith('://') || (prefix.endsWith(':') && !prefix.includes('//'))) {
-				return urlString.href.startsWith(prefix);
-			}
-			const parsedPrefix = parseUrl(prefix);
-			if (!parsedPrefix) {
-				return false;
-			}
-			if (parsedPrefix.origin !== urlString.origin) {
-				return false;
-			}
-			return urlString.href.startsWith(parsedPrefix.href);
-		})
-	) {
-		if (inputWasRelative) {
-			return urlString.pathname + urlString.search + urlString.hash;
-		}
-		return urlString.href;
+	if (isPathRelativeUrl(url)) {
+		// Written back as the browser reads it, so `/docs/../admin` is `/admin`.
+		const read = new URL(url, PROBE_ORIGIN);
+		return read.pathname + read.search + read.hash;
 	}
-	// Check for wildcard - allow all URLs
+
+	const absolute = rooted(url) ? new URL(url, PROBE_ORIGIN) : (parseUrl(url) ?? null);
+	if (
+		absolute &&
+		allowedPrefixes.some((prefix) => prefix !== '*' && absoluteMatches(absolute, prefix))
+	) {
+		return absolute.href;
+	}
+
 	if (allowedPrefixes.includes('*')) {
+		const parsed = absolute ?? parseUrl(url, defaultOrigin);
 		// The wildcard allows the protocols a document can legitimately link to.
 		// javascript:, data: and vbscript: stay blocked - they execute in the
-		// page's origin. mailto:/tel: were missing, so the default ['*'] config
-		// rendered a [blocked] badge on every phone and email link.
-		if (!WILDCARD_PROTOCOLS.has(parsedUrl.protocol)) {
-			return null;
-		}
-		const inputWasRelative = isPathRelativeUrl(url);
-		if (parsedUrl) {
-			if (inputWasRelative) {
-				return parsedUrl.pathname + parsedUrl.search + parsedUrl.hash;
-			}
-			return parsedUrl.href;
-		}
+		// page's origin.
+		return parsed && WILDCARD_PROTOCOLS.has(parsed.protocol) ? parsed.href : null;
 	}
 	return null;
 };

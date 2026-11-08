@@ -1,5 +1,5 @@
 import { expect, describe, test } from 'vitest';
-import { transformUrl } from '../lib/utils/url.js';
+import { isPathRelativeUrl, transformUrl } from '../lib/utils/url.js';
 
 describe('transformUrl protocol-only prefixes', () => {
 	test('https:// allows any https URL', () => {
@@ -55,5 +55,62 @@ describe('transformUrl protocol-only prefixes', () => {
 	test('an explicit prefix list still excludes mailto: and tel:', () => {
 		expect(transformUrl('mailto:user@example.com', ['https://'])).toBeNull();
 		expect(transformUrl('tel:+15551234567', ['https://example.com'])).toBeNull();
+	});
+});
+
+describe('transformUrl reads an address as a browser does', () => {
+	// Each of these leaves for another site, however much it looks like a path.
+	const elsewhere = [
+		'//evil.example',
+		'//evil.example/a',
+		'/\\evil.example',
+		'\\\\evil.example',
+		'\\/evil.example',
+		'/\t/evil.example',
+		'/\n/evil.example',
+		'///evil.example'
+	];
+
+	test.each(elsewhere)('%j is not relative', (url) => {
+		expect(isPathRelativeUrl(url)).toBe(false);
+	});
+
+	test.each(elsewhere)('%j is refused by a list that does not cover the site', (url) => {
+		expect(transformUrl(url, ['https://trusted.example'])).toBeNull();
+		expect(transformUrl(url, ['/'])).toBeNull();
+		expect(transformUrl(url, ['mailto:'])).toBeNull();
+		expect(transformUrl(url, [])).toBeNull();
+	});
+
+	test.each(elsewhere)('%j is the https address it reads as under a list that covers it', (url) => {
+		expect(transformUrl(url, ['https://'])).toMatch(/^https:\/\/evil\.example\//);
+		expect(transformUrl(url, ['*'])).toMatch(/^https:\/\/evil\.example\//);
+	});
+
+	test.each(['/about', '/a/b?x=1#y', '/', '/%2F%2Fevil.example', '/a//b', '/a\\b'])(
+		'%j is relative',
+		(url) => {
+			expect(isPathRelativeUrl(url)).toBe(true);
+		}
+	);
+
+	test('a real path is drawn whatever the list says', () => {
+		for (const list of [['https://'], ['https://', 'mailto:', 'tel:'], [], ['*'], ['/']]) {
+			expect(transformUrl('/about', list)).toBe('/about');
+			expect(transformUrl('/a/b?x=1#y', list)).toBe('/a/b?x=1#y');
+		}
+		expect(transformUrl('/a', ['https://other.example/'], 'https://app.example')).toBe('/a');
+	});
+
+	test('a path is written back as the browser resolves it', () => {
+		expect(transformUrl('/docs/../admin', ['https://'])).toBe('/admin');
+		expect(transformUrl('/docs/./a', ['https://'])).toBe('/docs/a');
+	});
+
+	test('nothing executable gets through, however it is spelled', () => {
+		for (const url of ['java\nscript:alert(1)', ' javascript:alert(1)', 'JAVASCRIPT:alert(1)']) {
+			expect(transformUrl(url, ['*'])).toBeNull();
+			expect(transformUrl(url, ['https://'])).toBeNull();
+		}
 	});
 });

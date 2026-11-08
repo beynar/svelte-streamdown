@@ -1,5 +1,23 @@
 # Changelog
 
+## 5.1.0
+
+### ✨ Added
+
+- **`inline`** draws one line of inline Markdown (links, bold, italic, code) in a `<span>` with no paragraph around it, so it takes the type of what holds it: a title, a button, a table cell. `# x` and `- x` stay literal text. A mark left open while streaming is closed, as in a block.
+- **`blockedLink`**: `'badge'` (the default, unchanged) keeps a refused link's label with a `[blocked]` badge and names its address in a `title`; `'label'` draws the label alone.
+
+### 🔒 Security
+
+- **An address that only looks like a path is no longer let through.** Anything starting with `/` was drawn as a link or an image whatever `allowedLinkPrefixes` and `allowedImagePrefixes` said, so `//evil.example`, `/\evil.example` or `/` followed by a tab and `/evil.example` opened another site under a list that allowed only `https://trusted.example`. Addresses are now read as a browser reads them, and those are judged as the `https://` address they open. Under `'*'` or `'https://'` they are still links, now opening in a new tab like any other site.
+
+### 🐛 Fixes
+
+- **A real path still always draws** (`/docs`, `/logo.png`), whatever the lists say, in the same tab, as before. A custom `link` snippet no longer receives `target="_blank"` for it either. It is written as the browser resolves it: `/docs/../admin` is `/admin`.
+- **Marks inside an address no longer break it while streaming.** The completer closed a `_`, `*`, `~` or `^` it found in a URL, so `[Mercure](https://fr.wikipedia.org/wiki/Mercure_(planète))` or `see https://a.co/a_b` gained a stray mark while the message streamed. Marks inside a link's address or a bare address are now left alone; emphasis around the link still closes.
+
+The parser entry grows by about 360 B gzip.
+
 ## 5.0.2
 
 ### 🐛 Fixes

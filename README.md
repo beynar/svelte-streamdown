@@ -635,6 +635,18 @@ Prefixes can also be **protocol-only**, which allows any URL using that protocol
 > [!NOTE]
 > `'*'` allows every `http:`, `https:`, `mailto:` and `tel:` URL — the protocols a document can legitimately link to. `javascript:`, `data:` and `vbscript:` stay blocked under the wildcard because they execute in the page's origin. A protocol-only prefix only allows that exact protocol, so list each one you want to permit. Only add a protocol you trust — e.g. do not add `'javascript:'`.
 
+A path on the page's own site (`/docs`, `/logo.png`) is always drawn, whatever the lists say: it cannot leave the site, and it opens in the same tab. An address that only looks like a path does leave it — `//host`, `/\host`, or one with a tab or a newline after the first `/` — so it is judged as the `https://` address a browser reads it as.
+
+A refused link keeps its label with a `[blocked]` badge and names its address in a `title`. `blockedLink="label"` draws the label alone.
+
+### One line of Markdown
+
+`inline` draws inline Markdown only (links, bold, italic, code) in a `<span>`, with no paragraph around it, so it takes the type of what holds it: a title, a button, a table cell. `# x` and `- x` stay literal text.
+
+```svelte
+<h2><Streamdown inline content={title} /></h2>
+```
+
 ## 📦 Bundle Optimization
 
 Streamdown is optimized for minimal bundle size by making heavy components **opt-in**. By default, Code blocks, Mermaid diagrams, and Math expressions render as lightweight fallbacks (plain text). To enable full functionality, import and pass the components you need:
@@ -828,6 +840,8 @@ v4 replaces shiki with `@tanstack/highlight`. Highlighting is now synchronous, r
 | `defaultOrigin`            | `string`                                                                         | -                      | Default origin for relative URLs                                                                                                                                                                                                  |
 | `allowedLinkPrefixes`      | `string[]`                                                                       | `['*']`                | Allowed URL prefixes for links                                                                                                                                                                                                    |
 | `allowedImagePrefixes`     | `string[]`                                                                       | `['*']`                | Allowed URL prefixes for images                                                                                                                                                                                                   |
+| `blockedLink`              | `'badge' \| 'label'`                                                             | `'badge'`              | How a refused link is drawn: with a blocked badge, or its label alone                                                                                                                                                             |
+| `inline`                   | `boolean`                                                                        | `false`                | Inline Markdown only, in a `<span>` with no block around it                                                                                                                                                                       |
 | `renderHtml`               | `boolean \| ((token) => string)`                                                 | `false`                | Render raw HTML blocks and inline tags. When off, the HTML source is shown as literal text instead of being dropped. Pass a function to sanitize and return the HTML string yourself.                                             |
 | `inlineCitationsMode`      | `'list' \| 'carousel'`                                                           | `'carousel'`           | How an inline citation popover presents its sources                                                                                                                                                                               |
 | `translations`             | `{ alert?: {...}, controls?: {...} }`                                            | `defaultTranslations`  | Override the built-in alert titles and control labels — see [Translations](#-translations)                                                                                                                                        |

@@ -25,17 +25,38 @@ const PROBE_ORIGIN = 'https://streamdown.invalid';
 
 const rooted = (url: string) => url.startsWith('/') || url.startsWith('\\');
 
+const read = (url: string): URL | null => {
+	try {
+		return new URL(url, PROBE_ORIGIN);
+	} catch {
+		return null;
+	}
+};
+
+/**
+ * What a rooted address opens: a path on the page's site, another site's URL, or `null` when the
+ * URL parser refuses it. A path is written back as `pathname + search + hash`, and one whose
+ * pathname resolves to `//…` (`/a/..//host`) would be written back as another host, so it is read
+ * again as what that output opens.
+ */
+const opens = (url: string): { path: string } | { url: URL } | null => {
+	const first = read(url);
+	if (!first) return null;
+	if (first.origin !== PROBE_ORIGIN) return { url: first };
+	const path = first.pathname + first.search + first.hash;
+	if (!path.startsWith('//')) return { path };
+	const second = read(path);
+	return second && second.origin !== PROBE_ORIGIN ? { url: second } : null;
+};
+
 /**
  * Whether `url` stays on the page's origin the way a browser reads it: a path starting with `/`.
- * `//host`, `/\\host` and the like leave for another site, so they are not relative.
+ * `//host`, `/\\host`, `/a/..//host` and the like leave for another site, so they are not relative.
  */
 export const isPathRelativeUrl = (url: unknown): boolean => {
 	if (typeof url !== 'string' || !rooted(url)) return false;
-	try {
-		return new URL(url, PROBE_ORIGIN).origin === PROBE_ORIGIN;
-	} catch {
-		return false;
-	}
+	const target = opens(url);
+	return target !== null && 'path' in target;
 };
 
 const WILDCARD_PROTOCOLS = new Set(['http:', 'https:', 'mailto:', 'tel:']);
@@ -57,8 +78,8 @@ const absoluteMatches = (url: URL, prefix: string) => {
  * draw, or `null` to refuse it.
  *
  * A path on the page's origin (`/docs`) is always drawn, whatever the list says: it cannot leave
- * the site. An address that only looks like a path (`//host`, `/\\host`) does leave it, so it is
- * judged as the https address the browser reads it as.
+ * the site. An address that only looks like a path (`//host`, `/\\host`, `/a/..//host`) does leave
+ * it, so it is judged as the https address it opens. One the URL parser refuses is refused.
  */
 export const transformUrl = (
 	url: string | null | undefined,
@@ -67,13 +88,17 @@ export const transformUrl = (
 ): string | null => {
 	if (!url) return null;
 
-	if (isPathRelativeUrl(url)) {
+	let absolute: URL | null;
+	if (rooted(url)) {
+		const target = opens(url);
+		if (!target) return null;
 		// Written back as the browser reads it, so `/docs/../admin` is `/admin`.
-		const read = new URL(url, PROBE_ORIGIN);
-		return read.pathname + read.search + read.hash;
+		if ('path' in target) return target.path;
+		absolute = target.url;
+	} else {
+		absolute = parseUrl(url);
 	}
 
-	const absolute = rooted(url) ? new URL(url, PROBE_ORIGIN) : (parseUrl(url) ?? null);
 	if (
 		absolute &&
 		allowedPrefixes.some((prefix) => prefix !== '*' && absoluteMatches(absolute, prefix))

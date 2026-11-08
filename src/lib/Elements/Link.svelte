@@ -17,11 +17,11 @@
 		id: string;
 	} = $props();
 
-	const isRelativeUrl = $derived(isPathRelativeUrl(token.href));
-
 	const transformedUrl = $derived(
 		transformUrl(token.href, streamdown.allowedLinkPrefixes ?? [], streamdown.defaultOrigin)
 	);
+	// Judged on what is drawn: a path stays in this tab, anything that leaves the site opens a new one.
+	const isRelativeUrl = $derived(isPathRelativeUrl(transformedUrl));
 </script>
 
 {#if transformedUrl || token.href === 'streamdown:incomplete-link'}

@@ -92,3 +92,37 @@ describe('inline', () => {
 		expect(host.querySelector('strong')?.textContent).toBe('three');
 	});
 });
+
+describe('what a link opens', () => {
+	test.each(['/app/..//evil.example/x', '/a/%2e%2e//evil.example', '/a/.%2e//evil.example'])(
+		'%j opens as https in a new tab, or is refused',
+		(href) => {
+			const allowed = draw(`[x](${href}) ![y](${href})`, {
+				allowedLinkPrefixes: ['https://'],
+				allowedImagePrefixes: ['https://']
+			});
+			const link = allowed.querySelector('a')!;
+			expect(link.getAttribute('href')).toMatch(/^https:\/\/evil\.example\//);
+			expect(link.getAttribute('target')).toBe('_blank');
+			expect(link.getAttribute('rel')).toBe('noopener noreferrer');
+			expect(allowed.querySelector('img')?.getAttribute('src')).toMatch(
+				/^https:\/\/evil\.example\//
+			);
+
+			const refused = draw(`[x](${href}) ![y](${href})`, {
+				allowedLinkPrefixes: ['https://trusted.example'],
+				allowedImagePrefixes: ['https://trusted.example']
+			});
+			expect(refused.querySelector('a')).toBeNull();
+			expect(refused.querySelector('img')).toBeNull();
+		}
+	);
+
+	test.each(['//', '/\\'])('%j draws the message instead of throwing', (href) => {
+		const root = draw(`Before [x](${href}) ![y](${href}) after`);
+		expect(root.textContent).toContain('Before');
+		expect(root.textContent).toContain('after');
+		expect(root.querySelector('a')).toBeNull();
+		expect(root.querySelector('img')).toBeNull();
+	});
+});

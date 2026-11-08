@@ -1,5 +1,15 @@
 # Changelog
 
+## 5.1.1
+
+### 🔒 Security
+
+- **A path that resolves to another host is judged as that host.** A path is written back as the browser resolves it, and `/app/..//evil.example/x` or `/a/.%2e//evil.example` resolve to a pathname starting with `//`, so the link was drawn as `href="//evil.example/x"`, with no new tab, under any list. It is now judged as the `https://` address it opens: a link in a new tab with `noopener noreferrer` if the list allows it, refused otherwise. Links and images alike.
+
+### 🐛 Fixes
+
+- **An address the URL parser refuses no longer breaks the message.** `[x](//)` or `![x](/\)` threw `TypeError: Invalid URL` and the whole message failed to render. Such an address is now refused like any other.
+
 ## 5.1.0
 
 ### ✨ Added

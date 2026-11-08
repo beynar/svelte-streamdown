@@ -114,3 +114,42 @@ describe('transformUrl reads an address as a browser does', () => {
 		}
 	});
 });
+
+describe('transformUrl judges what it draws as what it opens', () => {
+	// Each resolves to a path starting with `//`, which written back opens evil.example.
+	const resolvesElsewhere = [
+		'/app/..//evil.example/x',
+		'/a/%2e%2e//evil.example',
+		'/a/.%2e//evil.example',
+		'/docs/.%2e//evil.example'
+	];
+
+	test.each(resolvesElsewhere)('%j is not relative', (url) => {
+		expect(isPathRelativeUrl(url)).toBe(false);
+	});
+
+	test.each(resolvesElsewhere)('%j is refused by a list that does not cover the site', (url) => {
+		expect(transformUrl(url, ['https://trusted.example'])).toBeNull();
+		expect(transformUrl(url, ['mailto:'])).toBeNull();
+		expect(transformUrl(url, [])).toBeNull();
+	});
+
+	test.each(resolvesElsewhere)(
+		'%j is the https address it opens under a list that covers it',
+		(url) => {
+			expect(transformUrl(url, ['https://'])).toMatch(/^https:\/\/evil\.example\//);
+			expect(transformUrl(url, ['*'])).toMatch(/^https:\/\/evil\.example\//);
+		}
+	);
+
+	test.each(['//', '/\\', '\\\\', '///', '//:'])(
+		'%j, which the URL parser refuses, is refused',
+		(url) => {
+			for (const list of [['*'], ['https://'], [], ['/']]) {
+				expect(() => transformUrl(url, list)).not.toThrow();
+				expect(transformUrl(url, list)).toBeNull();
+			}
+			expect(isPathRelativeUrl(url)).toBe(false);
+		}
+	);
+});
